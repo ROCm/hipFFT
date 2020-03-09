@@ -17,3 +17,4 @@ If you use a distro other than Ubuntu, or would like more control over the build
 
 ### Functions supported
 A list of [exported functions](https://github.com/ROCmSoftwarePlatform/hipFFT/wiki/Exported-functions) from hipfft can be found on the wiki
+
