@@ -90,7 +90,7 @@ endif()
 
 # Target link libraries
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
-  target_link_libraries(hipfft PRIVATE ${ROCFFT_LIBRARIES})
+  target_link_libraries(hipfft PRIVATE roc::rocfft)
 else()
   target_link_libraries(hipfft PRIVATE ${CUDA_cufft_LIBRARY})
 endif()

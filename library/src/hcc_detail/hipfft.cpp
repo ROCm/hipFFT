@@ -22,7 +22,6 @@
  *******************************************************************************/
 
 #include "hipfft.h"
-#include "private.h"
 #include "rocfft.h"
 #include <sstream>
 #include <string>
@@ -68,6 +67,7 @@ struct hipfftHandle_t
     rocfft_plan           op_inverse;
     rocfft_execution_info info;
     void*                 workBuffer;
+    size_t                workBufferSize;
     bool                  autoAllocate;
 
     hipfftHandle_t()
@@ -77,8 +77,30 @@ struct hipfftHandle_t
         , op_inverse(nullptr)
         , info(nullptr)
         , workBuffer(nullptr)
+        , workBufferSize(0)
         , autoAllocate(true)
     {
+    }
+};
+
+// Internal usage
+struct hipfft_plan_description_t
+{
+    rocfft_array_type inArrayType, outArrayType;
+
+    size_t inStrides[3];
+    size_t outStrides[3];
+
+    size_t inDist;
+    size_t outDist;
+
+    hipfft_plan_description_t()
+    {
+        inArrayType  = rocfft_array_type_complex_interleaved;
+        outArrayType = rocfft_array_type_complex_interleaved;
+
+        inDist  = 0;
+        outDist = 0;
     }
 };
 
@@ -138,183 +160,338 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
         *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
 }
 
-hipfftResult hipfftMakePlan_internal(hipfftHandle            plan,
-                                     size_t                  dim,
-                                     size_t*                 lengths,
-                                     hipfftType              type,
-                                     size_t                  number_of_transforms,
-                                     rocfft_plan_description desc,
-                                     size_t*                 workSize,
-                                     bool                    dry_run)
+hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
+                                     size_t                     dim,
+                                     size_t*                    lengths,
+                                     hipfftType                 type,
+                                     size_t                     number_of_transforms,
+                                     hipfft_plan_description_t* desc,
+                                     size_t*                    workSize,
+                                     bool                       re_calc_strides_in_desc)
 {
     size_t workBufferSize = 0;
+
+    rocfft_plan_description ip_forward_desc = nullptr;
+    rocfft_plan_description op_forward_desc = nullptr;
+    rocfft_plan_description ip_inverse_desc = nullptr;
+    rocfft_plan_description op_inverse_desc = nullptr;
+
+    if(desc != nullptr)
+    {
+        rocfft_plan_description_create(&ip_forward_desc);
+        rocfft_plan_description_create(&op_forward_desc);
+        rocfft_plan_description_create(&ip_inverse_desc);
+        rocfft_plan_description_create(&op_inverse_desc);
+
+        size_t i_strides[3] = {desc->inStrides[0], desc->inStrides[1], desc->inStrides[2]};
+        size_t o_strides[3] = {desc->outStrides[0], desc->outStrides[1], desc->outStrides[2]};
+
+        if(re_calc_strides_in_desc)
+        {
+            if(desc->inArrayType == rocfft_array_type_real) // real-to-complex in-place
+            {
+                size_t dist = 2 * (1 + lengths[0] / 2);
+
+                for(size_t i = 1; i < dim; i++)
+                {
+                    i_strides[i] = dist;
+                    dist *= lengths[i];
+                }
+
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(ip_forward_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+            }
+            else if(desc->outArrayType == rocfft_array_type_real) // complex-to-real
+            {
+                size_t dist = 1 + (lengths[0]) / 2;
+
+                for(size_t i = 1; i < dim; i++)
+                {
+                    i_strides[i] = dist;
+                    dist *= lengths[i];
+                }
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(ip_inverse_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(op_inverse_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+            }
+            else
+            {
+                // Set the inStrides to deal with contiguous data
+                for(size_t i = 1; i < dim; i++)
+                    i_strides[i] = lengths[i - 1] * i_strides[i - 1];
+
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(ip_forward_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(op_forward_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(ip_inverse_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(op_inverse_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
+            }
+        }
+        else
+        {
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_set_data_layout(ip_forward_desc,
+                                                                                desc->inArrayType,
+                                                                                desc->outArrayType,
+                                                                                0,
+                                                                                0,
+                                                                                dim,
+                                                                                i_strides,
+                                                                                desc->inDist,
+                                                                                dim,
+                                                                                o_strides,
+                                                                                desc->outDist));
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_set_data_layout(op_forward_desc,
+                                                                                desc->inArrayType,
+                                                                                desc->outArrayType,
+                                                                                0,
+                                                                                0,
+                                                                                dim,
+                                                                                i_strides,
+                                                                                desc->inDist,
+                                                                                dim,
+                                                                                o_strides,
+                                                                                desc->outDist));
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_set_data_layout(ip_inverse_desc,
+                                                                                desc->inArrayType,
+                                                                                desc->outArrayType,
+                                                                                0,
+                                                                                0,
+                                                                                dim,
+                                                                                i_strides,
+                                                                                desc->inDist,
+                                                                                dim,
+                                                                                o_strides,
+                                                                                desc->outDist));
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_set_data_layout(op_inverse_desc,
+                                                                                desc->inArrayType,
+                                                                                desc->outArrayType,
+                                                                                0,
+                                                                                0,
+                                                                                dim,
+                                                                                i_strides,
+                                                                                desc->inDist,
+                                                                                dim,
+                                                                                o_strides,
+                                                                                desc->outDist));
+        }
+    }
 
     switch(type)
     {
     case HIPFFT_R2C:
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->ip_forward,
-                                                                rocfft_placement_inplace,
-                                                                rocfft_transform_type_real_forward,
-                                                                rocfft_precision_single,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->op_forward,
-                                                                rocfft_placement_notinplace,
-                                                                rocfft_transform_type_real_forward,
-                                                                rocfft_precision_single,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_forward,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_real_forward,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_forward,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_real_forward,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_forward_desc));
         break;
     case HIPFFT_C2R:
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->ip_inverse,
-                                                                rocfft_placement_inplace,
-                                                                rocfft_transform_type_real_inverse,
-                                                                rocfft_precision_single,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->op_inverse,
-                                                                rocfft_placement_notinplace,
-                                                                rocfft_transform_type_real_inverse,
-                                                                rocfft_precision_single,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_inverse,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_real_inverse,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_inverse_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_inverse,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_real_inverse,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_inverse_desc));
         break;
     case HIPFFT_C2C:
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->ip_forward,
-                                        rocfft_placement_inplace,
-                                        rocfft_transform_type_complex_forward,
-                                        rocfft_precision_single,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->op_forward,
-                                        rocfft_placement_notinplace,
-                                        rocfft_transform_type_complex_forward,
-                                        rocfft_precision_single,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->ip_inverse,
-                                        rocfft_placement_inplace,
-                                        rocfft_transform_type_complex_inverse,
-                                        rocfft_precision_single,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->op_inverse,
-                                        rocfft_placement_notinplace,
-                                        rocfft_transform_type_complex_inverse,
-                                        rocfft_precision_single,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_forward,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_complex_forward,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_forward,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_complex_forward,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_inverse,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_complex_inverse,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_inverse_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_inverse,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_complex_inverse,
+                                                       rocfft_precision_single,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_inverse_desc));
         break;
 
     case HIPFFT_D2Z:
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->ip_forward,
-                                                                rocfft_placement_inplace,
-                                                                rocfft_transform_type_real_forward,
-                                                                rocfft_precision_double,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->op_forward,
-                                                                rocfft_placement_notinplace,
-                                                                rocfft_transform_type_real_forward,
-                                                                rocfft_precision_double,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_forward,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_real_forward,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_forward,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_real_forward,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_forward_desc));
         break;
     case HIPFFT_Z2D:
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->ip_inverse,
-                                                                rocfft_placement_inplace,
-                                                                rocfft_transform_type_real_inverse,
-                                                                rocfft_precision_double,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create_internal(plan->op_inverse,
-                                                                rocfft_placement_notinplace,
-                                                                rocfft_transform_type_real_inverse,
-                                                                rocfft_precision_double,
-                                                                dim,
-                                                                lengths,
-                                                                number_of_transforms,
-                                                                desc,
-                                                                dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_inverse,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_real_inverse,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_inverse_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_inverse,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_real_inverse,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_inverse_desc));
         break;
     case HIPFFT_Z2Z:
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->ip_forward,
-                                        rocfft_placement_inplace,
-                                        rocfft_transform_type_complex_forward,
-                                        rocfft_precision_double,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->op_forward,
-                                        rocfft_placement_notinplace,
-                                        rocfft_transform_type_complex_forward,
-                                        rocfft_precision_double,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->ip_inverse,
-                                        rocfft_placement_inplace,
-                                        rocfft_transform_type_complex_inverse,
-                                        rocfft_precision_double,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_plan_create_internal(plan->op_inverse,
-                                        rocfft_placement_notinplace,
-                                        rocfft_transform_type_complex_inverse,
-                                        rocfft_precision_double,
-                                        dim,
-                                        lengths,
-                                        number_of_transforms,
-                                        desc,
-                                        dry_run));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_forward,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_complex_forward,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_forward,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_complex_forward,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_forward_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->ip_inverse,
+                                                       rocfft_placement_inplace,
+                                                       rocfft_transform_type_complex_inverse,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       ip_inverse_desc));
+        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_create(&plan->op_inverse,
+                                                       rocfft_placement_notinplace,
+                                                       rocfft_transform_type_complex_inverse,
+                                                       rocfft_precision_double,
+                                                       dim,
+                                                       lengths,
+                                                       number_of_transforms,
+                                                       op_inverse_desc));
         break;
     default:
         return HIPFFT_PARSE_ERROR;
@@ -363,6 +540,13 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle            plan,
     if(workSize != nullptr)
         *workSize = workBufferSize;
 
+    plan->workBufferSize = workBufferSize;
+
+    rocfft_plan_description_destroy(ip_forward_desc);
+    rocfft_plan_description_destroy(op_forward_desc);
+    rocfft_plan_description_destroy(ip_inverse_desc);
+    rocfft_plan_description_destroy(op_inverse_desc);
+
     return HIPFFT_SUCCESS;
 }
 
@@ -371,16 +555,8 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle            plan,
 hipfftResult hipfftCreate(hipfftHandle* plan)
 {
     hipfftHandle h = new hipfftHandle_t;
-
-    ROC_FFT_CHECK_ALLOC_FAILED(rocfft_plan_allocate(&h->ip_forward));
-    ROC_FFT_CHECK_ALLOC_FAILED(rocfft_plan_allocate(&h->op_forward));
-    ROC_FFT_CHECK_ALLOC_FAILED(rocfft_plan_allocate(&h->ip_inverse));
-    ROC_FFT_CHECK_ALLOC_FAILED(rocfft_plan_allocate(&h->op_inverse));
-
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_create(&h->info));
-
     *plan = h;
-
     return HIPFFT_SUCCESS;
 }
 
@@ -398,9 +574,9 @@ hipfftResult
     }
 
     size_t lengths[1];
-    lengths[0]                                   = nx;
-    size_t                  number_of_transforms = batch;
-    rocfft_plan_description desc                 = nullptr;
+    lengths[0]                                      = nx;
+    size_t                     number_of_transforms = batch;
+    hipfft_plan_description_t* desc                 = nullptr;
 
     return hipfftMakePlan_internal(
         plan, 1, lengths, type, number_of_transforms, desc, workSize, false);
@@ -418,10 +594,10 @@ hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type
     }
 
     size_t lengths[2];
-    lengths[0]                                   = ny;
-    lengths[1]                                   = nx;
-    size_t                  number_of_transforms = 1;
-    rocfft_plan_description desc                 = nullptr;
+    lengths[0]                                      = ny;
+    lengths[1]                                      = nx;
+    size_t                     number_of_transforms = 1;
+    hipfft_plan_description_t* desc                 = nullptr;
 
     return hipfftMakePlan_internal(
         plan, 2, lengths, type, number_of_transforms, desc, workSize, false);
@@ -440,11 +616,11 @@ hipfftResult
     }
 
     size_t lengths[3];
-    lengths[0]                                   = nz;
-    lengths[1]                                   = ny;
-    lengths[2]                                   = nx;
-    size_t                  number_of_transforms = 1;
-    rocfft_plan_description desc                 = nullptr;
+    lengths[0]                                      = nz;
+    lengths[1]                                      = ny;
+    lengths[2]                                      = nx;
+    size_t                     number_of_transforms = 1;
+    hipfft_plan_description_t* desc                 = nullptr;
 
     return hipfftMakePlan_internal(
         plan, 3, lengths, type, number_of_transforms, desc, workSize, false);
@@ -512,91 +688,75 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
 
     size_t number_of_transforms = batch;
 
-    rocfft_plan_description desc = nullptr;
-    if((inembed != nullptr) || (onembed != nullptr))
+    // Decide the inArrayType and outArrayType based on the transform type
+    rocfft_array_type in_array_type, out_array_type;
+    switch(type)
     {
-        rocfft_plan_description_create(&desc);
-
-        size_t i_strides[3] = {1, 1, 1};
-        size_t o_strides[3] = {1, 1, 1};
-
-        // pre-fetch the default params in case one of inembed and onembed
-        // is NULL
-        hipfftMakePlan_internal(
-            plan, rank, lengths, type, number_of_transforms, nullptr, workSize, true);
-
-        if(inembed == nullptr) // restore the default strides
-        {
-            for(size_t i = 1; i < rank; i++)
-                i_strides[i] = plan->ip_forward->desc.inStrides[i];
-        }
-        else
-        {
-            i_strides[0] = istride;
-
-            size_t inembed_lengths[3];
-            for(size_t i = 0; i < rank; i++)
-                inembed_lengths[i] = inembed[rank - 1 - i];
-
-            for(size_t i = 1; i < rank; i++)
-                i_strides[i] = inembed_lengths[i - 1] * i_strides[i - 1];
-        }
-
-        if(onembed == nullptr) // restore the default strides
-        {
-            for(size_t i = 1; i < rank; i++)
-                o_strides[i] = plan->ip_forward->desc.outStrides[i];
-        }
-        else
-        {
-            o_strides[0] = ostride;
-
-            size_t onembed_lengths[3];
-            for(size_t i = 0; i < rank; i++)
-                onembed_lengths[i] = onembed[rank - 1 - i];
-
-            for(size_t i = 1; i < rank; i++)
-                o_strides[i] = onembed_lengths[i - 1] * o_strides[i - 1];
-        }
-
-        // Decide the inArrayType and outArrayType based on the transform type
-        rocfft_array_type in_array_type, out_array_type;
-        switch(type)
-        {
-        case HIPFFT_R2C:
-        case HIPFFT_D2Z:
-            in_array_type  = rocfft_array_type_real;
-            out_array_type = rocfft_array_type_hermitian_interleaved;
-            break;
-        case HIPFFT_C2R:
-        case HIPFFT_Z2D:
-            in_array_type  = rocfft_array_type_hermitian_interleaved;
-            out_array_type = rocfft_array_type_real;
-            break;
-        case HIPFFT_C2C:
-        case HIPFFT_Z2Z:
-            in_array_type  = rocfft_array_type_complex_interleaved;
-            out_array_type = rocfft_array_type_complex_interleaved;
-            break;
-        }
-
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_set_data_layout(desc,
-                                                                            in_array_type,
-                                                                            out_array_type,
-                                                                            0,
-                                                                            0,
-                                                                            rank,
-                                                                            i_strides,
-                                                                            idist,
-                                                                            rank,
-                                                                            o_strides,
-                                                                            odist));
+    case HIPFFT_R2C:
+    case HIPFFT_D2Z:
+        in_array_type  = rocfft_array_type_real;
+        out_array_type = rocfft_array_type_hermitian_interleaved;
+        break;
+    case HIPFFT_C2R:
+    case HIPFFT_Z2D:
+        in_array_type  = rocfft_array_type_hermitian_interleaved;
+        out_array_type = rocfft_array_type_real;
+        break;
+    case HIPFFT_C2C:
+    case HIPFFT_Z2Z:
+        in_array_type  = rocfft_array_type_complex_interleaved;
+        out_array_type = rocfft_array_type_complex_interleaved;
+        break;
     }
 
-    hipfftResult ret = hipfftMakePlan_internal(
-        plan, rank, lengths, type, number_of_transforms, desc, workSize, false);
+    hipfft_plan_description_t desc;
 
-    ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_description_destroy(desc));
+    bool re_calc_strides_in_desc = ((inembed == nullptr) || (onembed == nullptr)) ? true : false;
+
+    size_t i_strides[3] = {1, 1, 1};
+    size_t o_strides[3] = {1, 1, 1};
+
+    if(inembed != nullptr)
+    {
+        i_strides[0] = istride;
+
+        size_t inembed_lengths[3];
+        for(size_t i = 0; i < rank; i++)
+            inembed_lengths[i] = inembed[rank - 1 - i];
+
+        for(size_t i = 1; i < rank; i++)
+            i_strides[i] = inembed_lengths[i - 1] * i_strides[i - 1];
+    }
+
+    if(onembed != nullptr)
+    {
+        o_strides[0] = ostride;
+
+        size_t onembed_lengths[3];
+        for(size_t i = 0; i < rank; i++)
+            onembed_lengths[i] = onembed[rank - 1 - i];
+
+        for(size_t i = 1; i < rank; i++)
+            o_strides[i] = onembed_lengths[i - 1] * o_strides[i - 1];
+    }
+
+    desc.inArrayType  = in_array_type;
+    desc.outArrayType = out_array_type;
+
+    for(size_t i = 0; i < rank; i++)
+        desc.inStrides[i] = i_strides[i];
+
+    if(idist != 0)
+        desc.inDist = idist;
+
+    for(size_t i = 0; i < rank; i++)
+        desc.outStrides[i] = o_strides[i];
+
+    if(odist != 0)
+        desc.outDist = odist;
+
+    hipfftResult ret = hipfftMakePlan_internal(
+        plan, rank, lengths, type, number_of_transforms, &desc, workSize, re_calc_strides_in_desc);
 
     return ret;
 }
@@ -780,7 +940,7 @@ hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
 {
     // return hipfftGetSize_internal(plan, type, workArea);
 
-    *workSize = plan->info->workBufferSize;
+    *workSize = plan->workBufferSize;
     return HIPFFT_SUCCESS;
 }
 
@@ -814,7 +974,7 @@ hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
 {
     ROC_FFT_CHECK_INVALID_VALUE(
-        rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->info->workBufferSize));
+        rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
     return HIPFFT_SUCCESS;
 }
 
@@ -971,10 +1131,14 @@ hipfftResult hipfftDestroy(hipfftHandle plan)
 {
     if(plan != nullptr)
     {
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->ip_forward));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_forward));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->ip_inverse));
-        ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_inverse));
+        if(plan->ip_forward != nullptr)
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->ip_forward));
+        if(plan->op_forward != nullptr)
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_forward));
+        if(plan->ip_inverse != nullptr)
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->ip_inverse));
+        if(plan->op_inverse != nullptr)
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_inverse));
 
         if(plan->autoAllocate)
             hipFree(plan->workBuffer);
@@ -992,7 +1156,7 @@ hipfftResult hipfftGetVersion(int* version)
     char v[256];
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_get_version_string(v, 256));
 
-    //export major.minor.patch only, ignore tweak
+    // export major.minor.patch only, ignore tweak
     std::ostringstream       result;
     std::vector<std::string> sections;
 

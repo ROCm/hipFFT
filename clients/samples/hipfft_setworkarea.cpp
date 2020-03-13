@@ -1,4 +1,5 @@
-// Copyright (c) 2019 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019 - present Advanced Micro Devices, Inc. All rights
+// reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,8 @@
 
 int main()
 {
-    std::cout << "hipfft 1D single-precision real-to-complex transform showing work memory usage\n";
+    std::cout << "hipfft 1D single-precision real-to-complex transform showing "
+                 "work memory usage\n";
 
     int major_version;
     hipfftGetProperty(HIPFFT_MAJOR_VERSION, &major_version);

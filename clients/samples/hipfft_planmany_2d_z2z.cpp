@@ -1,4 +1,5 @@
-// Copyright (c) 2019 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019 - present Advanced Micro Devices, Inc. All rights
+// reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +27,8 @@
 
 int main()
 {
-    std::cout
-        << "hipfft 2D double-precision complex-to-complex transform using advanced interface\n";
+    std::cout << "hipfft 2D double-precision complex-to-complex transform using "
+                 "advanced interface\n";
 
     int rank    = 2;
     int n[2]    = {4, 5};

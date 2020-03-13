@@ -1,4 +1,5 @@
-// Copyright (c) 2016 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2016 - present Advanced Micro Devices, Inc. All rights
+// reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +35,9 @@ int verbose = 0;
 
 int main(int argc, char* argv[])
 {
-    // NB: If we initialize gtest first, then it removes all of its own command-line
-    // arguments and sets argc and argv correctly; no need to jump through hoops for
-    // boost::program_options.
+    // NB: If we initialize gtest first, then it removes all of its own
+    // command-line arguments and sets argc and argv correctly; no need to jump
+    // through hoops for boost::program_options.
     ::testing::InitGoogleTest(&argc, argv);
 
     // Declare the supported options.
