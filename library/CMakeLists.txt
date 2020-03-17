@@ -95,11 +95,6 @@ else()
   target_link_libraries(hipfft PRIVATE ${CUDA_cufft_LIBRARY})
 endif()
 
-# nvcc can not recognize shared libraray file name with suffix other than *.so when linking.
-if (NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
-  rocm_set_soversion(hipfft ${hipfft_SOVERSION})
-endif()
-
 # Target properties
 set_target_properties(hipfft PROPERTIES CXX_EXTENSIONS NO)
 set_target_properties(hipfft PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")

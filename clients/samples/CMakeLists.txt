@@ -64,6 +64,7 @@ foreach( sample ${sample_list} )
   endif()
 
   if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" OR BUILD_WITH_LIB STREQUAL "CUDA")
+    #FIXME: fix it with hip::host and hip::device separately when hip::host got fixed
     get_target_property(HIPHCC_LOCATION hip::hip_hcc IMPORTED_LOCATION_RELEASE)
     target_link_libraries(${sample} PRIVATE ${HIPHCC_LOCATION})
   endif()
