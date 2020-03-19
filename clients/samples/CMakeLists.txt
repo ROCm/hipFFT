@@ -57,7 +57,7 @@ foreach( sample ${sample_list} )
    endif()
   endif()
 
-  target_link_libraries(${sample} PRIVATE roc::hipfft)
+  target_link_libraries(${sample} PRIVATE hip::hipfft)
 
   if (BUILD_WITH_LIB STREQUAL "CUDA")
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )

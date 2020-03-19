@@ -7,11 +7,6 @@ Download pre-built packages either from [ROCm's package servers](https://rocm.gi
 
 ## Quickstart hipFFT build
 
-#### Bash helper build script (Ubuntu only)
-The root of this repository has a helper bash script `install.sh` to build and install hipFFT on Ubuntu with a single command.  It does not take a lot of options and hard-codes configuration that can be specified through invoking cmake directly, but it's a great way to get started quickly and can serve as an example of how to build/install.  A few commands in the script need sudo access, so it may prompt you for a password.
-*  `./install -h` -- shows help
-*  `./install -id` -- build library, build dependencies and install (-d flag only needs to be passed once on a system)
-
 ## Manual build (all supported platforms)
 If you use a distro other than Ubuntu, or would like more control over the build process, the [hipfft build wiki](https://github.com/ROCmSoftwarePlatform/hipFFT/wiki/Build) has helpful information on how to configure cmake and manually build.
 

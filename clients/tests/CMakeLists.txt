@@ -85,7 +85,7 @@ target_include_directories( hipfft-test
 )
 
 target_link_libraries( hipfft-test PRIVATE
-  roc::hipfft
+  hip::hipfft
   ${GTEST_LIBRARIES}
   ${FFTW_LIBRARIES}
   ${Boost_LIBRARIES}
