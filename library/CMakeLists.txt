@@ -59,7 +59,7 @@ include(src/CMakeLists.txt)
 
 # Create hipFFT library
 add_library(hipfft ${hipfft_source} ${hipfft_headers_public})
-add_library(roc::hipfft ALIAS hipfft)
+add_library(hip::hipfft ALIAS hipfft)
 
 # Target compile definitions
 if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
@@ -120,10 +120,10 @@ rocm_install_targets(TARGETS hipfft
 )
 
 # Export targets
-rocm_export_targets(TARGETS roc::hipfft
+rocm_export_targets(TARGETS hip::hipfft
                     PREFIX hipfft
                     DEPENDS PACKAGE hip
-                    NAMESPACE roc::
+                    NAMESPACE hip::
 )
 
 # Symbolic links
