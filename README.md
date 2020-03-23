@@ -11,12 +11,12 @@ Download pre-built packages either from [ROCm's package servers](https://rocm.gi
 ### Clients build dependency
 * hipFFT clients build depend on FFTW, gtest, boost program-options.
 
-mkdir build && cd build
-cmake -LH .. shows all build options, in which include specific options for this project with prefix "BUILD_*".
+`mkdir build && cd build`
+`cmake -LH ..`  shows all build options, in which include specific options for this project with prefix "BUILD_*".
 
 hipFFT build supports stardard compiler such as g++, clang, etc, as well as hipcc with various backends.
 
-Here are cmake build examples on various scenarios:
+Here are cmake build examples under various scenarios:
 
 | Hardware target |                     Case                  |                                 Build command line                                   |
 | --------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
