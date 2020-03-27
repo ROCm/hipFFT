@@ -38,29 +38,7 @@ endif()
 
 # ROCm cmake package
 set(PROJECT_EXTERN_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern)
-find_package(ROCM QUIET CONFIG PATHS ${CMAKE_PREFIX_PATH})
-if(NOT ROCM_FOUND)
-  set(rocm_cmake_tag "master" CACHE STRING "rocm-cmake tag to download")
-  file(DOWNLOAD https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip
-       ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip STATUS status LOG log)
-
-  list(GET status 0 status_code)
-  list(GET status 1 status_string)
-
-  if(NOT status_code EQUAL 0)
-    message(FATAL_ERROR "error: downloading
-    'https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip' failed
-    status_code: ${status_code}
-    status_string: ${status_string}
-    log: ${log}
-    ")
-  endif()
-
-  execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip
-                  WORKING_DIRECTORY ${PROJECT_EXTERN_DIR})
-
-  find_package(ROCM REQUIRED CONFIG PATHS ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag})
-endif()
+find_package(ROCM REQUIRED CONFIG PATHS ${CMAKE_PREFIX_PATH})
 
 include(ROCMSetupVersion)
 include(ROCMCreatePackage)
