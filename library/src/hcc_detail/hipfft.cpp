@@ -58,6 +58,8 @@
 
 struct hipfftHandle_t
 {
+    // Due to hipExec** compatibility to cuFFT, we have to reserve all 4 types
+    // rocfft handle separately here.
     rocfft_plan           ip_forward;
     rocfft_plan           op_forward;
     rocfft_plan           ip_inverse;
