@@ -29,10 +29,12 @@ Here are cmake build examples under various scenarios:
 ## Quick CUDA porting guide
 * [Hipfy](https://github.com/ROCm-Developer-Tools/HIP/blob/master/hipify-clang) your code and fix all unspported CUDA features or user-defined macros.
 * Build it with HIP-nvcc and run on NVIDIA device.
-* Build it with HIP-hcc/HIP-clang and run on AMD device.
+* Build it with HIP-clang and run on AMD device.
 
 See more details [here](https://rocm-documentation.readthedocs.io/en/latest/Programming_Guides/HIP-porting-guide.html "here")
 
 ## Functions supported
 A list of [exported functions](https://github.com/ROCmSoftwarePlatform/hipFFT/wiki/Exported-functions) from hipfft can be found on the wiki
+
+hipFFT does not support hcc build directly, and HIP-hcc build will be deprecated soon. 
 
