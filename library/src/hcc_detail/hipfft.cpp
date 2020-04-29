@@ -929,7 +929,7 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
     hipfftHandle p;
     HIP_FFT_CHECK_AND_RETURN(
         hipfftPlanMany(&p, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch));
-    ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_get_work_buffer_size(p->ip_forward, workSize));
+    *workSize = p->workBufferSize;
     HIP_FFT_CHECK_AND_RETURN(hipfftDestroy(p));
 
     return HIPFFT_SUCCESS;

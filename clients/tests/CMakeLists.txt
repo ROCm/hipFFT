@@ -96,8 +96,11 @@ if (BUILD_WITH_LIB STREQUAL "CUDA")
   target_link_libraries( hipfft-test PRIVATE ${CUDA_LIBRARIES} )
 endif()
 
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" OR BUILD_WITH_LIB STREQUAL "CUDA")
-  #FIXME: fix it with hip::host and hip::device separately when hip::host got fixed
+if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
+  get_target_property(AMDHIP64_LOCATION hip::amdhip64 IMPORTED_LOCATION_RELEASE)
+  target_link_libraries(hipfft-test PRIVATE ${AMDHIP64_LOCATION})
+elseif(BUILD_WITH_LIB STREQUAL "CUDA")
+  # Keep CUDA build to link the old hcc library. Might update later.
   get_target_property(HIPHCC_LOCATION hip::hip_hcc IMPORTED_LOCATION_RELEASE)
   target_link_libraries(hipfft-test PRIVATE ${HIPHCC_LOCATION})
 endif()

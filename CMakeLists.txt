@@ -80,7 +80,7 @@ string( TOUPPER "${BUILD_WITH_COMPILER}" BUILD_WITH_COMPILER )
 string( TOUPPER "${BUILD_WITH_LIB}" BUILD_WITH_LIB )
 
 if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
-  set (BUILD_WITH_LIB "CUDA")
+  set (BUILD_WITH_LIB "CUDA") # This may change after rocFFT fully support on NV platform
   set( HIP_PLATFORM "nvcc" )
 
   set( CMAKE_C_COMPILE_OPTIONS_PIC "-Xcompiler ${CMAKE_C_COMPILE_OPTIONS_PIC}" )
