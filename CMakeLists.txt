@@ -54,6 +54,13 @@ set (BUILD_WITH_LIB "ROCM" CACHE STRING
 option(BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF)
 option(BUILD_CLIENTS_SAMPLES "Build examples" OFF)
 
+# Look for libamdhip64
+find_library(
+  LIBAMDHIP64_LIBRARY
+  NAMES libamdhip64.so
+  HINTS "${CMAKE_PREFIX_PATH}/lib" )
+message("amdhip64: ${LIBAMDHIP64_LIBRARY}")
+
 # Set internal BUILD_WITH_COMPILER.
 # TODO: more validity check.
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
