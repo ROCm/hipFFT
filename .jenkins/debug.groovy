@@ -11,9 +11,9 @@ import java.nio.file.Path
 
 def runCI =
 {
-    nodeDetails, jobName, buildCommand, label ->
+    nodeDetails, jobName, buildCommand ->
 
-    def prj = new rocProject('hipFFT-internal', 'PreCheckin')
+    def prj = new rocProject('hipFFT-internal', 'Debug')
     // customize for project
     prj.paths.build_command = buildCommand
     prj.libraryDependencies = ['rocFFT-internal']
@@ -32,25 +32,10 @@ def runCI =
         project.paths.construct_build_prefix()
 
         commonGroovy = load "${project.paths.project_src_prefix}/.jenkins/common.groovy"
-        commonGroovy.runCompileCommand(platform, project,jobName)
+        commonGroovy.runCompileCommand(platform, project, jobName)
     }
 
-    def testCommand =
-    {
-        platform, project->
-
-        def gfilter = "*"
-        commonGroovy.runTestCommand(platform, project, gfilter)
-    }
-
-    def packageCommand =
-    {
-        platform, project->
-
-        commonGroovy.runPackageCommand(platform, project, jobName, label)
-    }
-
-    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, testCommand, packageCommand)
+    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, null, null)
 }
 
 def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
