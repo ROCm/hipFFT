@@ -23,7 +23,7 @@
 #include <cufft.h>
 #include <hip/hip_runtime.h>
 
-hipfftResult_t cufftResultToHipReult(cufftResult_t cufft_result)
+hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
 {
     switch(cufft_result)
     {
@@ -115,17 +115,17 @@ libraryPropertyType hipfftLibraryPropertyTypeToCufftLibraryPropertyType(
 
 hipfftResult hipfftPlan1d(hipfftHandle* plan, int nx, hipfftType type, int batch)
 {
-    return cufftResultToHipReult(cufftPlan1d(plan, nx, hipfftTypeToCufftType(type), batch));
+    return cufftResultToHipResult(cufftPlan1d(plan, nx, hipfftTypeToCufftType(type), batch));
 }
 
 hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipfftType type)
 {
-    return cufftResultToHipReult(cufftPlan2d(plan, nx, ny, hipfftTypeToCufftType(type)));
+    return cufftResultToHipResult(cufftPlan2d(plan, nx, ny, hipfftTypeToCufftType(type)));
 }
 
 hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType type)
 {
-    return cufftResultToHipReult(cufftPlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type)));
+    return cufftResultToHipResult(cufftPlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type)));
 }
 
 hipfftResult hipfftPlanMany(hipfftHandle* plan,
@@ -140,7 +140,7 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
                             hipfftType    type,
                             int           batch)
 {
-    return cufftResultToHipReult(cufftPlanMany(plan,
+    return cufftResultToHipResult(cufftPlanMany(plan,
                                                rank,
                                                n,
                                                inembed,
@@ -157,26 +157,26 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
 
 hipfftResult hipfftCreate(hipfftHandle* plan)
 {
-    return cufftResultToHipReult(cufftCreate(plan));
+    return cufftResultToHipResult(cufftCreate(plan));
 }
 
 hipfftResult
     hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftMakePlan1d(plan, nx, hipfftTypeToCufftType(type), batch, workSize));
 }
 
 hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftMakePlan2d(plan, nx, ny, hipfftTypeToCufftType(type), workSize));
 }
 
 hipfftResult
     hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftMakePlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type), workSize));
 }
 
@@ -193,7 +193,7 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                 int          batch,
                                 size_t*      workSize)
 {
-    return cufftResultToHipReult(cufftMakePlanMany(plan,
+    return cufftResultToHipResult(cufftMakePlanMany(plan,
                                                    rank,
                                                    n,
                                                    inembed,
@@ -220,7 +220,7 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
                                   long long int  batch,
                                   size_t*        workSize)
 {
-    return cufftResultToHipReult(cufftMakePlanMany64(plan,
+    return cufftResultToHipResult(cufftMakePlanMany64(plan,
                                                      rank,
                                                      n,
                                                      inembed,
@@ -238,17 +238,17 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
 
 hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t* workSize)
 {
-    return cufftResultToHipReult(cufftEstimate1d(nx, hipfftTypeToCufftType(type), batch, workSize));
+    return cufftResultToHipResult(cufftEstimate1d(nx, hipfftTypeToCufftType(type), batch, workSize));
 }
 
 hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(cufftEstimate2d(nx, ny, hipfftTypeToCufftType(type), workSize));
+    return cufftResultToHipResult(cufftEstimate2d(nx, ny, hipfftTypeToCufftType(type), workSize));
 }
 
 hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftEstimate3d(nx, ny, nz, hipfftTypeToCufftType(type), workSize));
 }
 
@@ -264,7 +264,7 @@ hipfftResult hipfftEstimateMany(int        rank,
                                 int        batch,
                                 size_t*    workSize)
 {
-    return cufftResultToHipReult(cufftEstimateMany(rank,
+    return cufftResultToHipResult(cufftEstimateMany(rank,
                                                    n,
                                                    inembed,
                                                    istride,
@@ -282,20 +282,20 @@ hipfftResult hipfftEstimateMany(int        rank,
 hipfftResult
     hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftGetSize1d(plan, nx, hipfftTypeToCufftType(type), batch, workSize));
 }
 
 hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftGetSize2d(plan, nx, ny, hipfftTypeToCufftType(type), workSize));
 }
 
 hipfftResult
     hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftGetSize3d(plan, nx, ny, nz, hipfftTypeToCufftType(type), workSize));
 }
 
@@ -312,7 +312,7 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
                                int          batch,
                                size_t*      workSize)
 {
-    return cufftResultToHipReult(cufftGetSizeMany(plan,
+    return cufftResultToHipResult(cufftGetSizeMany(plan,
                                                   rank,
                                                   n,
                                                   inembed,
@@ -339,7 +339,7 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  long long int  batch,
                                  size_t*        workSize)
 {
-    return cufftResultToHipReult(cufftGetSizeMany64(plan,
+    return cufftResultToHipResult(cufftGetSizeMany64(plan,
                                                     rank,
                                                     n,
                                                     inembed,
@@ -355,19 +355,19 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
 
 hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
 {
-    return cufftResultToHipReult(cufftGetSize(plan, workSize));
+    return cufftResultToHipResult(cufftGetSize(plan, workSize));
 }
 
 /*===========================================================================*/
 
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 {
-    return cufftResultToHipReult(cufftSetAutoAllocation(plan, autoAllocate));
+    return cufftResultToHipResult(cufftSetAutoAllocation(plan, autoAllocate));
 }
 
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
 {
-    return cufftResultToHipReult(cufftSetWorkArea(plan, workArea));
+    return cufftResultToHipResult(cufftSetWorkArea(plan, workArea));
 }
 
 /*===========================================================================*/
@@ -375,17 +375,17 @@ hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
 hipfftResult
     hipfftExecC2C(hipfftHandle plan, hipfftComplex* idata, hipfftComplex* odata, int direction)
 {
-    return cufftResultToHipReult(cufftExecC2C(plan, idata, odata, direction));
+    return cufftResultToHipResult(cufftExecC2C(plan, idata, odata, direction));
 }
 
 hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal* idata, hipfftComplex* odata)
 {
-    return cufftResultToHipReult(cufftExecR2C(plan, idata, odata));
+    return cufftResultToHipResult(cufftExecR2C(plan, idata, odata));
 }
 
 hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex* idata, hipfftReal* odata)
 {
-    return cufftResultToHipReult(cufftExecC2R(plan, idata, odata));
+    return cufftResultToHipResult(cufftExecC2R(plan, idata, odata));
 }
 
 hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
@@ -393,38 +393,38 @@ hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
                            hipfftDoubleComplex* odata,
                            int                  direction)
 {
-    return cufftResultToHipReult(cufftExecZ2Z(plan, idata, odata, direction));
+    return cufftResultToHipResult(cufftExecZ2Z(plan, idata, odata, direction));
 }
 
 hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* idata, hipfftDoubleComplex* odata)
 {
-    return cufftResultToHipReult(cufftExecD2Z(plan, idata, odata));
+    return cufftResultToHipResult(cufftExecD2Z(plan, idata, odata));
 }
 
 hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* idata, hipfftDoubleReal* odata)
 {
-    return cufftResultToHipReult(cufftExecZ2D(plan, idata, odata));
+    return cufftResultToHipResult(cufftExecZ2D(plan, idata, odata));
 }
 
 /*===========================================================================*/
 
 hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream)
 {
-    return cufftResultToHipReult(cufftSetStream(plan, stream));
+    return cufftResultToHipResult(cufftSetStream(plan, stream));
 }
 
 hipfftResult hipfftDestroy(hipfftHandle plan)
 {
-    return cufftResultToHipReult(cufftDestroy(plan));
+    return cufftResultToHipResult(cufftDestroy(plan));
 }
 
 hipfftResult hipfftGetVersion(int* version)
 {
-    return cufftResultToHipReult(cufftGetVersion(version));
+    return cufftResultToHipResult(cufftGetVersion(version));
 }
 
 hipfftResult hipfftGetProperty(hipfftLibraryPropertyType type, int* value)
 {
-    return cufftResultToHipReult(
+    return cufftResultToHipResult(
         cufftGetProperty(hipfftLibraryPropertyTypeToCufftLibraryPropertyType(type), value));
 }
