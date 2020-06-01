@@ -79,7 +79,7 @@ target_include_directories( hipfft-test
   PRIVATE
     $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
     $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${FFTW_INCLUDES}>
+    $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
     $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
 )

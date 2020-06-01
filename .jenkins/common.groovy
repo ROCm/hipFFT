@@ -24,15 +24,15 @@ def runCompileCommand(platform, project, jobName)
                 export FFTW_ROOT=/fftw
                 export FFTW_INCLUDE_PATH=\${FFTW_ROOT}/include
                 export FFTW_LIB_PATH=\${FFTW_ROOT}/lib
-                export LD_LIBRARY_PATH=\${FFTW_LIB_PATH}:\$LD_LIBRARY_PATH
+                export LD_LIBRARY_PATH=\${FFTW_LIB_PATH}:/opt/rocm/lib:/opt/rocm/hip/lib
                 export CPLUS_INCLUDE_PATH=\${FFTW_INCLUDE_PATH}:\${CPLUS_INCLUDE_PATH}
                 export CMAKE_PREFIX_PATH=\${FFTW_LIB_PATH}/cmake/fftw3:\${CMAKE_PREFIX_PATH}
                 export CMAKE_PREFIX_PATH=\${FFTW_LIB_PATH}/cmake/fftw3f:\${CMAKE_PREFIX_PATH}
                 
                 cd ${project.paths.project_build_prefix}
-                mkdir build && cd build
+                mkdir -p build/release && cd build/release
                 ${getDependenciesCommand}
-                LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/hip/lib ${hipClang} ${cmake} ${project.paths.build_command}
+                ${hipClang} ${cmake} ${project.paths.build_command}
             """
 
     platform.runCommand(this, command)
@@ -43,8 +43,8 @@ def runTestCommand (platform, project, gfilter)
     String sudo = auxiliary.sudo(platform.jenkinsLabel)
     def command = """#!/usr/bin/env bash
                     set -x
-                    cd ${project.paths.project_build_prefix}/build/clients/staging
-                    ${sudo} LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/hip/lib GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./hipfft-test --gtest_output=xml --gtest_color=yes --gtest_filter=${gfilter}
+                    cd ${project.paths.project_build_prefix}/build/release/clients/staging
+                    ${sudo} GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./hipfft-test --gtest_output=xml --gtest_color=yes --gtest_filter=${gfilter}
                 """
 
     platform.runCommand(this, command)
@@ -61,7 +61,7 @@ def runPackageCommand(platform, project, jobName, label='')
 
     command = """
             set -x
-            cd ${project.paths.project_build_prefix}/build
+            cd ${project.paths.project_build_prefix}/build/release
             make package
             mkdir -p package
             if [ ! -z "$label" ]
@@ -78,7 +78,7 @@ def runPackageCommand(platform, project, jobName, label='')
         """
 
     platform.runCommand(this, command)
-    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/package/*.${ext}""")
+    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release/package/*.${ext}""")
 }
 
 
