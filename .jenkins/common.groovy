@@ -17,6 +17,8 @@ def runCompileCommand(platform, project, jobName)
 
     String cmake = platform.jenkinsLabel.contains('centos') ? "cmake3" : "cmake" 
     String hipClang = platform.jenkinsLabel.contains('hipClang') ? "HIP_COMPILER=clang" : ""
+    String path = platform.jenkinsLabel.contains('centos7') ? "export PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH" : ":"
+
     def command = """#!/usr/bin/env bash
                 set -x
                 
@@ -32,6 +34,7 @@ def runCompileCommand(platform, project, jobName)
                 cd ${project.paths.project_build_prefix}
                 mkdir -p build/release && cd build/release
                 ${getDependenciesCommand}
+                ${path}
                 ${hipClang} ${cmake} ${project.paths.build_command}
             """
 
