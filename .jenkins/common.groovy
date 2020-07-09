@@ -59,7 +59,6 @@ def runPackageCommand(platform, project, jobName, label='')
     def command
 
     label = label != '' ? '-' + label.toLowerCase() : ''
-    ext = platform.jenkinsLabel.contains('ubuntu') ? "deb" : "rpm"
     manager = platform.jenkinsLabel.contains('ubuntu') ? "dpkg -c" : "rpm -qlp"
 
     command = """
@@ -76,12 +75,12 @@ def runPackageCommand(platform, project, jobName, label='')
                     ls
                 done
             fi
-            mv *.${ext} package/
-            ${manager} package/*.${ext}
+            mv ?(*.deb|*.rpm) package/
+            ${manager} package/?(*.deb|*.rpm)
         """
 
     platform.runCommand(this, command)
-    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release/package/*.${ext}""")
+    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release/package/?(*.deb|*.rpm)""")
 }
 
 
