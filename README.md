@@ -21,10 +21,9 @@ Here are cmake build examples under various scenarios:
 | Hardware target |                     Case                  |                                 Build command line                                   |
 | --------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
 |     AMD GPU     |  Build a project using HIP language APIs + hipFFT with standard host compiler | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
-|     AMD GPU     |  Build a project using HIP language APIs + hipFFT + device kernels with HIP-hcc| HIP_PLATFORM=hcc cmake  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipccDCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
-|     AMD GPU     |  Build a project using HIP language APIs + hipFFT + device kernels with HIP-clang | HIP_PLATFORM=hcc HIP_COMPILER=clang  cmake  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipccDCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
-|  NVIDIA GPU     |  Build a project using HIP language APIs + hipFFT with standard host compiler | cmake -DCMAKE_CXX_COMPILER=g++  -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_WITH_LIB=CUDA -L .. |
-|  NVIDIA GPU     |  Build a project using HIP language APIs + hipFFT + device kernels with HIP-nvcc | HIP_PLATFORM=nvcc cmake  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc  -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
+|     AMD GPU     |  Build a project using HIP language APIs + hipFFT + device kernels with HIP-clang | cmake -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
+|  NVIDIA GPU     |  Build a project using HIP language APIs + hipFFT with standard host compiler | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_WITH_LIB=CUDA -L .. |
+|  NVIDIA GPU     |  Build a project using HIP language APIs + hipFFT + device kernels with HIP-nvcc | HIP_PLATFORM=nvcc cmake -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
 
 ## Quick CUDA porting guide
 * [Hipfy](https://github.com/ROCm-Developer-Tools/HIP/blob/master/hipify-clang) your code and fix all unspported CUDA features or user-defined macros.
@@ -35,6 +34,3 @@ See more details [here](https://rocm-documentation.readthedocs.io/en/latest/Prog
 
 ## Functions supported
 A list of [exported functions](https://github.com/ROCmSoftwarePlatform/hipFFT/wiki/Exported-functions) from hipfft can be found on the wiki
-
-hipFFT does not support hcc build directly, and HIP-hcc build will be deprecated soon. 
-
