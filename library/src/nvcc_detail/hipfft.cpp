@@ -141,16 +141,16 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
                             int           batch)
 {
     return cufftResultToHipResult(cufftPlanMany(plan,
-                                               rank,
-                                               n,
-                                               inembed,
-                                               istride,
-                                               idist,
-                                               onembed,
-                                               ostride,
-                                               odist,
-                                               hipfftTypeToCufftType(type),
-                                               batch));
+                                                rank,
+                                                n,
+                                                inembed,
+                                                istride,
+                                                idist,
+                                                onembed,
+                                                ostride,
+                                                odist,
+                                                hipfftTypeToCufftType(type),
+                                                batch));
 }
 
 /*===========================================================================*/
@@ -194,17 +194,17 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                 size_t*      workSize)
 {
     return cufftResultToHipResult(cufftMakePlanMany(plan,
-                                                   rank,
-                                                   n,
-                                                   inembed,
-                                                   istride,
-                                                   idist,
-                                                   onembed,
-                                                   ostride,
-                                                   odist,
-                                                   hipfftTypeToCufftType(type),
-                                                   batch,
-                                                   workSize));
+                                                    rank,
+                                                    n,
+                                                    inembed,
+                                                    istride,
+                                                    idist,
+                                                    onembed,
+                                                    ostride,
+                                                    odist,
+                                                    hipfftTypeToCufftType(type),
+                                                    batch,
+                                                    workSize));
 }
 
 hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
@@ -221,24 +221,25 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
                                   size_t*        workSize)
 {
     return cufftResultToHipResult(cufftMakePlanMany64(plan,
-                                                     rank,
-                                                     n,
-                                                     inembed,
-                                                     istride,
-                                                     idist,
-                                                     onembed,
-                                                     ostride,
-                                                     odist,
-                                                     hipfftTypeToCufftType(type),
-                                                     batch,
-                                                     workSize));
+                                                      rank,
+                                                      n,
+                                                      inembed,
+                                                      istride,
+                                                      idist,
+                                                      onembed,
+                                                      ostride,
+                                                      odist,
+                                                      hipfftTypeToCufftType(type),
+                                                      batch,
+                                                      workSize));
 }
 
 /*===========================================================================*/
 
 hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t* workSize)
 {
-    return cufftResultToHipResult(cufftEstimate1d(nx, hipfftTypeToCufftType(type), batch, workSize));
+    return cufftResultToHipResult(
+        cufftEstimate1d(nx, hipfftTypeToCufftType(type), batch, workSize));
 }
 
 hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t* workSize)
@@ -265,16 +266,16 @@ hipfftResult hipfftEstimateMany(int        rank,
                                 size_t*    workSize)
 {
     return cufftResultToHipResult(cufftEstimateMany(rank,
-                                                   n,
-                                                   inembed,
-                                                   istride,
-                                                   idist,
-                                                   onembed,
-                                                   ostride,
-                                                   odist,
-                                                   hipfftTypeToCufftType(type),
-                                                   batch,
-                                                   workSize));
+                                                    n,
+                                                    inembed,
+                                                    istride,
+                                                    idist,
+                                                    onembed,
+                                                    ostride,
+                                                    odist,
+                                                    hipfftTypeToCufftType(type),
+                                                    batch,
+                                                    workSize));
 }
 
 /*===========================================================================*/
@@ -313,17 +314,17 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
                                size_t*      workSize)
 {
     return cufftResultToHipResult(cufftGetSizeMany(plan,
-                                                  rank,
-                                                  n,
-                                                  inembed,
-                                                  istride,
-                                                  idist,
-                                                  onembed,
-                                                  ostride,
-                                                  odist,
-                                                  hipfftTypeToCufftType(type),
-                                                  batch,
-                                                  workSize));
+                                                   rank,
+                                                   n,
+                                                   inembed,
+                                                   istride,
+                                                   idist,
+                                                   onembed,
+                                                   ostride,
+                                                   odist,
+                                                   hipfftTypeToCufftType(type),
+                                                   batch,
+                                                   workSize));
 }
 
 hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
@@ -340,17 +341,17 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  size_t*        workSize)
 {
     return cufftResultToHipResult(cufftGetSizeMany64(plan,
-                                                    rank,
-                                                    n,
-                                                    inembed,
-                                                    istride,
-                                                    idist,
-                                                    onembed,
-                                                    ostride,
-                                                    odist,
-                                                    hipfftTypeToCufftType(type),
-                                                    batch,
-                                                    workSize));
+                                                     rank,
+                                                     n,
+                                                     inembed,
+                                                     istride,
+                                                     idist,
+                                                     onembed,
+                                                     ostride,
+                                                     odist,
+                                                     hipfftTypeToCufftType(type),
+                                                     batch,
+                                                     workSize));
 }
 
 hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)

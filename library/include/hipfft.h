@@ -30,12 +30,12 @@
 #include <hip/hip_runtime_api.h>
 #include <hip/library_types.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef _WIN32
 #include <cstddef>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 typedef enum hipfftResult_t
