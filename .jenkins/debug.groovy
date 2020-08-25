@@ -56,7 +56,7 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
     {
         properties(auxiliary.addCommonProperties([pipelineTriggers([cron('0 1 * * *')])]))
         stage(label + ' ' + urlJobName) {
-            runCI([ubuntu16:['gfx906']], urlJobName, buildCommand, label)
+            runCI([ubuntu18:['gfx906']], urlJobName, buildCommand, label)
         }
     }
 }
@@ -75,12 +75,12 @@ ci: {
             properties(auxiliary.addCommonProperties(property))
     }
 
-    def hostJobNameList = ["compute-rocm-dkms-no-npi":([ubuntu16:['gfx900'],centos7:['gfx906'],sles15sp1:['gfx906']])]
+    def hostJobNameList = ["compute-rocm-dkms-no-npi":([ubuntu18:['gfx900'],centos7:['gfx906'],sles15sp1:['gfx906']])]
 
-    def hipClangJobNameList = ["compute-rocm-dkms-no-npi":([ubuntu16:['gfx900'],centos7:['gfx906'],sles15sp1:['gfx906']])]
+    def hipClangJobNameList = ["compute-rocm-dkms-no-npi":([ubuntu18:['gfx900'],centos7:['gfx906'],sles15sp1:['gfx906']])]
 
-    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ..'
-    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_CLIENTS_SAMPLES=ON -L ..'
+    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
+    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=Debug -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
 
     setupCI(urlJobName, hostJobNameList, hostBuildCommand, runCI, 'g++')
     setupCI(urlJobName, hipClangJobNameList, hipClangBuildCommand, runCI, 'hip-clang')

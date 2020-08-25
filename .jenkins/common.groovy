@@ -18,6 +18,7 @@ def runCompileCommand(platform, project, jobName)
     String cmake = platform.jenkinsLabel.contains('centos') ? "cmake3" : "cmake" 
     String hipClang = platform.jenkinsLabel.contains('hipClang') ? "HIP_COMPILER=clang" : ""
     String path = platform.jenkinsLabel.contains('centos7') ? "export PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH" : ":"
+    String dir = jobName.contains('Debug') ? "debug" : "release"
 
     def command = """#!/usr/bin/env bash
                 set -x
@@ -32,10 +33,11 @@ def runCompileCommand(platform, project, jobName)
                 export CMAKE_PREFIX_PATH=\${FFTW_LIB_PATH}/cmake/fftw3f:\${CMAKE_PREFIX_PATH}
                 
                 cd ${project.paths.project_build_prefix}
-                mkdir -p build/release && cd build/release
+                mkdir -p build/${dir} && cd build/${dir}
                 ${getDependenciesCommand}
                 ${path}
                 ${hipClang} ${cmake} ${project.paths.build_command}
+                make -j16
             """
 
     platform.runCommand(this, command)
@@ -59,28 +61,19 @@ def runPackageCommand(platform, project, jobName, label='')
     def command
 
     label = label != '' ? '-' + label.toLowerCase() : ''
-    manager = platform.jenkinsLabel.contains('ubuntu') ? "dpkg -c" : "rpm -qlp"
+    String ext = platform.jenkinsLabel.contains('ubuntu') ? "deb" : "rpm"
+    String dir = jobName.contains('Debug') ? "debug" : "release"
 
     command = """
             set -x
-            cd ${project.paths.project_build_prefix}/build/release
+            cd ${project.paths.project_build_prefix}/build/${dir}
             make package
             mkdir -p package
-            if [ ! -z "$label" ]
-            then
-                for f in hipfft*.${ext}
-                do
-                    echo f
-                    mv "\$f" "hipfft-internal${label}-\${f#*-}"
-                    ls
-                done
-            fi
-            mv ?(*.deb|*.rpm) package/
-            ${manager} package/?(*.deb|*.rpm)
+            mv *.${ext} package/
         """
 
     platform.runCommand(this, command)
-    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release/package/?(*.deb|*.rpm)""")
+    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/${dir}/package/*.${ext}""")
 }
 
 
