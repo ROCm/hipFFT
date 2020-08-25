@@ -69,6 +69,10 @@ def runPackageCommand(platform, project, jobName, label='')
             cd ${project.paths.project_build_prefix}/build/${dir}
             make package
             mkdir -p package
+            for f in hipfft*.$ext
+            do 
+                mv "\$f" "hipfft${label}-\${f#*-}"
+            done
             mv *.${ext} package/
         """
 
