@@ -70,11 +70,6 @@ if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
    endif()
 endif()
 
-# Target compile features
-if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
-  target_compile_features(hipfft PRIVATE cxx_nullptr)
-endif()
-
 # Target include directories
 target_include_directories(hipfft
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>

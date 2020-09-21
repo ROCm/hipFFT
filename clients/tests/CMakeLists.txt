@@ -69,11 +69,6 @@ if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
    endif()
 endif()
 
-# Target compile features
-if(NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
-  target_compile_features( hipfft-test PRIVATE cxx_static_assert cxx_nullptr cxx_auto_type )
-endif()
-
 # Target include directories
 target_include_directories( hipfft-test
   PRIVATE
