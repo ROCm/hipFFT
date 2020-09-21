@@ -41,10 +41,6 @@ foreach( sample ${sample_list} )
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
   )
 
-  if(NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
-    target_compile_features( ${sample} PRIVATE cxx_static_assert cxx_nullptr cxx_auto_type )
-  endif()
-
   set_target_properties( ${sample} PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
   set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 
