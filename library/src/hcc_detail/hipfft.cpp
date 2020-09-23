@@ -68,6 +68,7 @@ struct hipfftHandle_t
     void*                 workBuffer;
     size_t                workBufferSize;
     bool                  autoAllocate;
+    bool                  autoAllocated;
 
     hipfftHandle_t()
         : ip_forward(nullptr)
@@ -78,6 +79,7 @@ struct hipfftHandle_t
         , workBuffer(nullptr)
         , workBufferSize(0)
         , autoAllocate(true)
+        , autoAllocated(false)
     {
     }
 };
@@ -526,11 +528,12 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
     {
         if(plan->autoAllocate)
         {
-            if(plan->workBuffer)
+            if(plan->workBuffer && plan->autoAllocated)
                 if(hipFree(plan->workBuffer) != hipSuccess)
                     return HIPFFT_ALLOC_FAILED;
             if(hipMalloc(&plan->workBuffer, workBufferSize) != hipSuccess)
                 return HIPFFT_ALLOC_FAILED;
+            plan->autoAllocated = true;
         }
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_execution_info_set_work_buffer(plan->info, plan->workBuffer, workBufferSize));
@@ -979,6 +982,9 @@ hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
 {
+    if(plan->workBuffer && plan->autoAllocated)
+        hipFree(plan->workBuffer);
+    plan->autoAllocated = false;
     ROC_FFT_CHECK_INVALID_VALUE(
         rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
     return HIPFFT_SUCCESS;
@@ -1146,7 +1152,7 @@ hipfftResult hipfftDestroy(hipfftHandle plan)
         if(plan->op_inverse != nullptr)
             ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_inverse));
 
-        if(plan->autoAllocate)
+        if(plan->autoAllocated)
             hipFree(plan->workBuffer);
 
         ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_destroy(plan->info));
