@@ -967,16 +967,7 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 {
     if(plan != nullptr)
-    {
-        if(autoAllocate == 0)
-        {
-            plan->autoAllocate = false;
-        }
-        else
-        {
-            plan->autoAllocate = true;
-        }
-    }
+        plan->autoAllocate = bool(autoAllocate);
     return HIPFFT_SUCCESS;
 }
 
