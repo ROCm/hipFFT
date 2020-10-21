@@ -19,6 +19,15 @@ Download pre-built packages either from [ROCm's package servers].
 
 [ROCm's package servers]: https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html
 
+## Transitioning from rocFFT
+
+If you are transitioning from the hipFFT version included in rocFFT to
+this standalone hipFFT version; please modify your build following
+this example:
+
+* previously: `hipcc hipfft_1d_z2z.cpp -L/opt/rocm/lib -lrocfft`
+* during transition: `hipcc -I/opt/rocm/hipfft/include hipfft_1d_z2z.cpp -L/opt/rocm/lib -lhipfft -lrocfft`
+
 ## Building from source
 
 ### Library build dependencies
