@@ -60,7 +60,7 @@ Here are some CMake build examples:
 ## Quick CUDA porting guide
 
 If you have existing CUDA code and want to transition to HIP:
-* [HIPIFY] your code and fix all unspported CUDA features or user-defined macros.
+* [HIPIFY] your code and fix all unsupported CUDA features or user-defined macros.
 * Build with HIP-nvcc to run on an Nvidia device.
 * Build with HIP-clang to run on an AMD device.
 
