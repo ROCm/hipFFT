@@ -124,6 +124,18 @@ rocm_export_targets(TARGETS hip::hipfft
 # Symbolic links
 rocm_install_symlink_subdir(hipfft)
 
+# During transition to standalone hipFFT repository, don't install
+# symlinks to hipFFT headers.  Once the hipFFT headers are removed
+# from rocFFT, we can delete this..
+if(CMAKE_HOST_WIN32)
+else()
+    install(CODE "
+        file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft.h)
+        file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft-version.h)
+        file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft-export.h)
+    ")
+endif()
+
 # Package specific CPACK vars
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
   set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
