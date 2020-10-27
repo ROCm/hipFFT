@@ -68,6 +68,7 @@ struct hipfftHandle_t
     void*                 workBuffer;
     size_t                workBufferSize;
     bool                  autoAllocate;
+    bool                  workBufferNeedsFree;
 
     hipfftHandle_t()
         : ip_forward(nullptr)
@@ -78,6 +79,7 @@ struct hipfftHandle_t
         , workBuffer(nullptr)
         , workBufferSize(0)
         , autoAllocate(true)
+        , workBufferNeedsFree(false)
     {
     }
 };
@@ -526,11 +528,12 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
     {
         if(plan->autoAllocate)
         {
-            if(plan->workBuffer)
+            if(plan->workBuffer && plan->workBufferNeedsFree)
                 if(hipFree(plan->workBuffer) != hipSuccess)
                     return HIPFFT_ALLOC_FAILED;
             if(hipMalloc(&plan->workBuffer, workBufferSize) != hipSuccess)
                 return HIPFFT_ALLOC_FAILED;
+            plan->workBufferNeedsFree = true;
         }
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_execution_info_set_work_buffer(plan->info, plan->workBuffer, workBufferSize));
@@ -963,15 +966,16 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
 
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 {
-    if(plan != nullptr && autoAllocate == 0)
-    {
-        plan->autoAllocate = false;
-    }
+    if(plan != nullptr)
+        plan->autoAllocate = bool(autoAllocate);
     return HIPFFT_SUCCESS;
 }
 
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
 {
+    if(plan->workBuffer && plan->workBufferNeedsFree)
+        hipFree(plan->workBuffer);
+    plan->workBufferNeedsFree = false;
     ROC_FFT_CHECK_INVALID_VALUE(
         rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
     return HIPFFT_SUCCESS;
@@ -1139,7 +1143,7 @@ hipfftResult hipfftDestroy(hipfftHandle plan)
         if(plan->op_inverse != nullptr)
             ROC_FFT_CHECK_INVALID_VALUE(rocfft_plan_destroy(plan->op_inverse));
 
-        if(plan->autoAllocate)
+        if(plan->workBufferNeedsFree)
             hipFree(plan->workBuffer);
 
         ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_destroy(plan->info));
