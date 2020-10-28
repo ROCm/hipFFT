@@ -2,7 +2,7 @@
 // If you are interested in running your own Jenkins, please raise a github issue for assistance.
 import static groovy.io.FileType.FILES
 
-def runCompileCommand(platform, project, jobName)
+def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
 {
     project.paths.construct_build_prefix()
 
@@ -11,7 +11,7 @@ def runCompileCommand(platform, project, jobName)
     {
         project.libraryDependencies.each
         { libraryName ->
-            getDependenciesCommand += auxiliary.getLibrary(libraryName, platform.jenkinsLabel, 'develop')
+            getDependenciesCommand += auxiliary.getLibrary(libraryName, platform.jenkinsLabel, 'develop', sameOrg)
         }
     }
 
