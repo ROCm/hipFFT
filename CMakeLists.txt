@@ -34,6 +34,9 @@ else( )
   set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "Install path prefix, prepended onto install directories" )
 endif( )
 
+# Workaround for missing llvm cmake files in /opt/rocm/lib/cmake. Remove when this is fixed
+list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
+
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
