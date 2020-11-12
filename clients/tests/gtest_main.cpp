@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 /// @file
-/// @brief googletest based unit tester for rocfft
+/// @brief googletest based unit tester for hipfft
 ///
 
 #include <gtest/gtest.h>
@@ -31,7 +31,8 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-int verbose = 0;
+int  verbose         = 0;
+bool use_fftw_wisdom = false;
 
 int main(int argc, char* argv[])
 {
@@ -41,7 +42,7 @@ int main(int argc, char* argv[])
     ::testing::InitGoogleTest(&argc, argv);
 
     // Declare the supported options.
-    po::options_description desc("rocFFT Runtime Test command line options");
+    po::options_description desc("hipFFT Runtime Test command line options");
     desc.add_options()("help,h", "produces this help message")(
         "verbose,v",
         po::value<int>()->default_value(0)->implicit_value(1),

@@ -1,0 +1,3 @@
+[submodule "rocFFT"]
+	path = rocFFT
+	url = https://github.com/ROCmSoftwarePlatform/rocFFT.git
