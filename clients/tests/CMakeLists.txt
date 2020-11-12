@@ -56,6 +56,10 @@ find_package( Threads REQUIRED )
 set(hipfft_test_source
   gtest_main.cpp
   simple_test.cpp
+  accuracy_test.cpp
+  accuracy_test_1D.cpp
+  accuracy_test_2D.cpp
+  accuracy_test_3D.cpp
   )
 
 add_executable( hipfft-test ${hipfft_test_source} ${hipfft_test_includes} )
