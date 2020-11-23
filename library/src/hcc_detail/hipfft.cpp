@@ -84,7 +84,6 @@ struct hipfftHandle_t
     }
 };
 
-// Internal usage
 struct hipfft_plan_description_t
 {
     rocfft_array_type inArrayType, outArrayType;
@@ -105,9 +104,6 @@ struct hipfft_plan_description_t
     }
 };
 
-/*! \brief Creates a 1D FFT plan configuration for the size and data type. The
- * batch parameter tells how many 1D transforms to perform
- */
 hipfftResult hipfftPlan1d(hipfftHandle* plan, int nx, hipfftType type, int batch)
 {
     hipfftHandle handle = nullptr;
@@ -117,9 +113,6 @@ hipfftResult hipfftPlan1d(hipfftHandle* plan, int nx, hipfftType type, int batch
     return hipfftMakePlan1d(*plan, nx, type, batch, nullptr);
 }
 
-/*! \brief Creates a 2D FFT plan configuration according to the sizes and data
- * type.
- */
 hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipfftType type)
 {
     hipfftHandle handle = nullptr;
@@ -129,9 +122,6 @@ hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipfftType type)
     return hipfftMakePlan2d(*plan, nx, ny, type, nullptr);
 }
 
-/*! \brief Creates a 3D FFT plan configuration according to the sizes and data
- * type.
- */
 hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType type)
 {
     hipfftHandle handle = nullptr;
@@ -552,8 +542,6 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
     return HIPFFT_SUCCESS;
 }
 
-/*===========================================================================*/
-
 hipfftResult hipfftCreate(hipfftHandle* plan)
 {
     hipfftHandle h = new hipfftHandle_t;
@@ -562,10 +550,6 @@ hipfftResult hipfftCreate(hipfftHandle* plan)
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief Assume hipfftCreate has been called. Creates a 1D FFT plan
- * configuration for the size and data type. The batch parameter tells how many
- * 1D transforms to perform
- */
 hipfftResult
     hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
 {
@@ -584,9 +568,6 @@ hipfftResult
         plan, 1, lengths, type, number_of_transforms, desc, workSize, false);
 }
 
-/*! \brief Assume hipfftCreate has been called. Creates a 2D FFT plan
- * configuration according to the sizes and data type.
- */
 hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
 {
 
@@ -605,9 +586,6 @@ hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type
         plan, 2, lengths, type, number_of_transforms, desc, workSize, false);
 }
 
-/*! \brief Assume hipfftCreate has been called. Creates a 3D FFT plan
- * configuration according to the sizes and data type.
- */
 hipfftResult
     hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
 {
@@ -628,49 +606,6 @@ hipfftResult
         plan, 3, lengths, type, number_of_transforms, desc, workSize, false);
 }
 
-/*! \brief
-
-    Creates a FFT plan according to the dimension rank, sizes specified in the
-   array n.
-    The batch parameter tells hipfft how many transforms to perform. Used in
-   complicated usage case like flexbile input & output layout
-
-    \details
-    plan 	Pointer to the hipfftHandle object
-
-    rank 	Dimensionality of n.
-
-    n 	    Array of size rank, describing the size of each dimension, n[0]
-   being the size of the outermost and n[rank-1] innermost (contiguous)
-   dimension of a transform.
-
-    inembed 	Define the number of elements in each dimension the input array.
-                Pointer of size rank that indicates the storage dimensions of
-   the input data in memory.
-                If set to NULL all other advanced data layout parameters are
-   ignored.
-
-    istride 	The distance between two successive input elements in the least
-   significant (i.e., innermost) dimension
-
-    idist 	    The distance between the first element of two consecutive
-   matrices/vetors in a batch of the input data
-
-    onembed 	Define the number of elements in each dimension the output
-   array.
-                Pointer of size rank that indicates the storage dimensions of
-   the output data in memory.
-                If set to NULL all other advanced data layout parameters are
-   ignored.
-
-    ostride 	The distance between two successive output elements in the
-   output array in the least significant (i.e., innermost) dimension
-
-    odist 	    The distance between the first element of two consecutive
-   matrices/vectors in a batch of the output data
-
-    batch 	    number of transforms
- */
 hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                 int          rank,
                                 int*         n,
@@ -779,8 +714,6 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
     return HIPFFT_NOT_IMPLEMENTED;
 }
 
-/*===========================================================================*/
-
 hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t* workSize)
 {
     hipfftHandle plan = nullptr;
@@ -820,22 +753,6 @@ hipfftResult hipfftEstimateMany(int        rank,
     return ret;
 }
 
-/*! \brief gives an accurate estimate of the work area size required for a plan
-
-    Once plan generation has been done, either with the original API or the
-   extensible API,
-    this call returns the actual size of the work area required to support the
-   plan.
-    Callers who choose to manage work area allocation within their application
-   must use this call after plan generation,
-    and after any hipfftSet*() calls subsequent to plan generation, if those
-   calls might alter the required work space size.
-
- */
-
-/*! \brief gives an accurate estimate of the work area size required for a plan
- */
-
 hipfftResult hipfftGetSize_internal(hipfftHandle plan, hipfftType type, size_t* workSize)
 {
 
@@ -855,9 +772,6 @@ hipfftResult hipfftGetSize_internal(hipfftHandle plan, hipfftType type, size_t* 
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief gives an accurate estimate of the work area size required for a plan
- */
-
 hipfftResult
     hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
 {
@@ -875,9 +789,6 @@ hipfftResult
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief gives an accurate estimate of the work area size required for a plan
- */
-
 hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
 {
     if(nx < 0 || ny < 0)
@@ -892,9 +803,6 @@ hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type,
 
     return HIPFFT_SUCCESS;
 }
-
-/*! \brief gives an accurate estimate of the work area size required for a plan
- */
 
 hipfftResult
     hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
@@ -911,9 +819,6 @@ hipfftResult
 
     return HIPFFT_SUCCESS;
 }
-
-/*! \brief gives an accurate estimate of the work area size required for a plan
- */
 
 hipfftResult hipfftGetSizeMany(hipfftHandle plan,
                                int          rank,
@@ -940,8 +845,6 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
 
 hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
 {
-    // return hipfftGetSize_internal(plan, type, workArea);
-
     *workSize = plan->workBufferSize;
     return HIPFFT_SUCCESS;
 }
@@ -962,8 +865,6 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
     return HIPFFT_NOT_IMPLEMENTED;
 }
 
-/*============================================================================================*/
-
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
 {
     if(plan != nullptr)
@@ -981,14 +882,6 @@ hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
     return HIPFFT_SUCCESS;
 }
 
-/*============================================================================================*/
-
-/*! \brief
-    executes a single-precision complex-to-complex transform plan in the
-   transform direction as specified by direction parameter.
-    If idata and odata are the same, this method does an in-place transform,
-   otherwise an outofplace transform.
- */
 hipfftResult
     hipfftExecC2C(hipfftHandle plan, hipfftComplex* idata, hipfftComplex* odata, int direction)
 {
@@ -1012,9 +905,6 @@ hipfftResult
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief
-    executes a single-precision real-to-complex, forward, cuFFT transform plan.
- */
 hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal* idata, hipfftComplex* odata)
 {
 
@@ -1030,9 +920,6 @@ hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal* idata, hipfftComplex* 
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief
-    executes a single-precision real-to-complex, inverse, cuFFT transform plan.
- */
 hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex* idata, hipfftReal* odata)
 {
 
@@ -1048,12 +935,6 @@ hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex* idata, hipfftReal* 
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief
-    executes a double-precision complex-to-complex transform plan in the
-   transform direction as specified by direction parameter.
-    If idata and odata are the same, this method does an in-place transform,
-   otherwise an outofplace transform.
- */
 hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
                            hipfftDoubleComplex* idata,
                            hipfftDoubleComplex* odata,
@@ -1080,9 +961,6 @@ hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
     return HIPFFT_SUCCESS;
 }
 
-/*! \brief
-    executes a double-precision real-to-complex, forward, cuFFT transform plan.
- */
 hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* idata, hipfftDoubleComplex* odata)
 {
 
@@ -1113,17 +991,6 @@ hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* idata, hipfft
     return HIPFFT_SUCCESS;
 }
 
-/*============================================================================================*/
-
-// Helper functions
-
-/*! \brief
-    Associates a HIP stream with a cuFFT plan. All kernel launched with this
-   plan execution are associated with this stream
-    until the plan is destroyed or the reset to another stream. Returns an error
-   in the multiple GPU case as multiple GPU plans perform operations in their
-   own streams.
-*/
 hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream)
 {
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_set_stream(plan->info, stream));
