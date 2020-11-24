@@ -47,8 +47,9 @@ automatically.
 User managed simple plans
 -------------------------
 
-These planning routines assume that you have created a plan
-(`hipfftHandle`) yourself.
+These planning routines assume that you have allocated a plan
+(`hipfftHandle`) yourself; and that you will manage a work area as
+well.
 
 If you want to manage your own work buffer... XXX
 
@@ -67,6 +68,43 @@ If you want to manage your own work buffer... XXX
 
 More advanced plans
 -------------------
+
+.. doxygenfunction:: hipfftMakePlanMany
+
+
+Estimating work area sizes
+--------------------------
+
+These call return estimates of the work area required to support a
+plan generated with the same parameters (either with the simple or
+extensible API).  Callers who choose to manage work area allocation
+within their application must use this call after plan generation, and
+after any hipfftSet*() calls subsequent to plan generation, if those
+calls might alter the required work space size.
+
+.. doxygenfunction:: hipfftEstimate1d
+
+.. doxygenfunction:: hipfftEstimate2d
+
+.. doxygenfunction:: hipfftEstimate3d
+
+.. doxygenfunction:: hipfftEstimateMany
+
+
+Accurate work area sizes
+------------------------
+
+After plan generation is complete, an accurate work area size can be
+obtained with these routines.
+
+.. doxygenfunction:: hipfftGetSize1d
+
+.. doxygenfunction:: hipfftGetSize2d
+
+.. doxygenfunction:: hipfftGetSize3d
+
+.. doxygenfunction:: hipfftGetSizeMany
+
 
 Executing plans
 ---------------

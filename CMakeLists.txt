@@ -130,7 +130,9 @@ message(STATUS "BUILD_WITH_COMPILER = " ${BUILD_WITH_COMPILER})
 # Dependencies
 include(cmake/dependencies.cmake)
 
-rocm_setup_version( VERSION "0.0.1" )
+set ( VERSION_STRING "1.0.1" )
+rocm_setup_version( VERSION ${VERSION_STRING} )
+
 set( hipfft_SOVERSION 0.1 ) # This is incremented when the ABI to the library changes
 
 add_subdirectory( library )
