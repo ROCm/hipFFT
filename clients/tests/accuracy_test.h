@@ -23,7 +23,7 @@
 
 class hipfft_accuracy_test
     : public ::testing::TestWithParam<
-          std::tuple<std::vector<size_t>, rocfft_precision, rocfft_transform_type>>
+          std::tuple<std::vector<size_t>, size_t, rocfft_precision, rocfft_transform_type>>
 {
 protected:
     void SetUp() override {}
