@@ -6,3 +6,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 [hipfft.readthedocs.io]: https://rocfft.readthedocs.io/en/latest/
 
 ## Unreleased
+
+### Fixes
+
+- Fix batch support for `hipfftMakePlanMany`.

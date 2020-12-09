@@ -179,14 +179,16 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
 
         if(re_calc_strides_in_desc)
         {
-            if(desc->inArrayType == rocfft_array_type_real) // real-to-complex in-place
+            if(desc->inArrayType == rocfft_array_type_real) // real-to-complex
             {
-                size_t dist = 2 * (1 + lengths[0] / 2);
-
+                size_t idist = 2 * (1 + lengths[0] / 2);
+                size_t odist = 1 + lengths[0] / 2;
                 for(size_t i = 1; i < dim; i++)
                 {
-                    i_strides[i] = dist;
-                    dist *= lengths[i];
+                    i_strides[i] = idist;
+                    idist *= lengths[i];
+                    o_strides[i] = odist;
+                    odist *= lengths[i];
                 }
 
                 ROC_FFT_CHECK_INVALID_VALUE(
@@ -201,16 +203,32 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                                             dim,
                                                             o_strides,
                                                             desc->outDist));
+
+                ROC_FFT_CHECK_INVALID_VALUE(
+                    rocfft_plan_description_set_data_layout(op_forward_desc,
+                                                            desc->inArrayType,
+                                                            desc->outArrayType,
+                                                            0,
+                                                            0,
+                                                            dim,
+                                                            i_strides,
+                                                            desc->inDist,
+                                                            dim,
+                                                            o_strides,
+                                                            desc->outDist));
             }
             else if(desc->outArrayType == rocfft_array_type_real) // complex-to-real
             {
-                size_t dist = 1 + (lengths[0]) / 2;
-
+                size_t idist = 1 + lengths[0] / 2;
+                size_t odist = 2 * (1 + lengths[0] / 2);
                 for(size_t i = 1; i < dim; i++)
                 {
-                    i_strides[i] = dist;
-                    dist *= lengths[i];
+                    i_strides[i] = idist;
+                    idist *= lengths[i];
+                    o_strides[i] = odist;
+                    odist *= lengths[i];
                 }
+
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(ip_inverse_desc,
                                                             desc->inArrayType,
@@ -238,10 +256,6 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
             }
             else
             {
-                // Set the inStrides to deal with contiguous data
-                for(size_t i = 1; i < dim; i++)
-                    i_strides[i] = lengths[i - 1] * i_strides[i - 1];
-
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(ip_forward_desc,
                                                             desc->inArrayType,
@@ -652,6 +666,11 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
 
     size_t i_strides[3] = {1, 1, 1};
     size_t o_strides[3] = {1, 1, 1};
+    for(size_t i = 1; i < rank; i++)
+    {
+        i_strides[i] = lengths[i - 1] * i_strides[i - 1];
+        o_strides[i] = lengths[i - 1] * o_strides[i - 1];
+    }
 
     if(inembed != nullptr)
     {

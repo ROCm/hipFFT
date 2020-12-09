@@ -24,6 +24,7 @@
 #include <hipfft.h>
 
 void hipfft_transform(const std::vector<size_t>                                  length,
+                      const size_t                                               nbatch,
                       const rocfft_precision                                     precision,
                       const rocfft_transform_type                                transformType,
                       const std::vector<size_t>&                                 cpu_istride,
@@ -41,7 +42,6 @@ void hipfft_transform(const std::vector<size_t>                                 
     const size_t dim      = length.size();
     const size_t istride0 = 1;
     const size_t ostride0 = 1;
-    const size_t nbatch   = 1;
     hipfftHandle plan;
     hipfftResult fft_status;
     hipError_t   hip_status;
@@ -69,21 +69,30 @@ void hipfft_transform(const std::vector<size_t>                                 
     info << "\tilength:";
     for(auto i : ilength)
         info << " " << i;
+    info << "\n\tnbatch: " << nbatch;
     info << "\n\tolength:";
     for(auto i : olength)
         info << " " << i;
+    info << "\n\tcpu_istride:";
+    for(auto i : cpu_istride)
+        info << " " << i;
+    info << "\n\tcpu_idist: " << cpu_idist;
+    info << "\n\tcpu_ostride:";
+    for(auto i : cpu_ostride)
+        info << " " << i;
+    info << "\n\tcpu_odist: " << cpu_odist;
     info << "\n\tgpu_istride:";
     for(auto i : gpu_istride)
         info << " " << i;
-    info << "\n\tgpu_idist: " << gpu_idist << "\n";
-    info << "\tgpu_ostride:";
+    info << "\n\tgpu_idist: " << gpu_idist;
+    info << "\n\tgpu_ostride:";
     for(auto i : gpu_ostride)
         info << " " << i;
-    info << "\n\tgpu_odist: " << gpu_odist << "\n";
+    info << "\n\tgpu_odist: " << gpu_odist;
     if(precision == rocfft_precision_single)
-        info << "\tsingle-precision\n";
+        info << "\n\tsingle-precision\n";
     else
-        info << "\tdouble-precision\n";
+        info << "\n\tdouble-precision\n";
 
     if(transformType == rocfft_transform_type_complex_forward
        || transformType == rocfft_transform_type_complex_inverse)
@@ -92,7 +101,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         otype = rocfft_array_type_complex_interleaved;
         if(precision == rocfft_precision_single)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_C2C,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2C, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2C);
@@ -102,7 +128,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         }
         if(precision == rocfft_precision_double)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_Z2Z,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2Z, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2Z);
@@ -117,7 +160,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         otype = rocfft_array_type_hermitian_interleaved;
         if(precision == rocfft_precision_single)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_R2C,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_R2C, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_R2C);
@@ -127,7 +187,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         }
         if(precision == rocfft_precision_double)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_D2Z,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_D2Z, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_D2Z);
@@ -142,7 +219,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         otype = rocfft_array_type_real;
         if(precision == rocfft_precision_single)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_C2R,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2R, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2R);
@@ -152,7 +246,24 @@ void hipfft_transform(const std::vector<size_t>                                 
         }
         if(precision == rocfft_precision_double)
         {
-            if(dim == 1)
+            if(nbatch > 1)
+            {
+                int n[3];
+                for(int i = 0; i < dim; ++i)
+                    n[i] = (int)length[i];
+                fft_status = hipfftPlanMany(&plan,
+                                            dim,
+                                            n,
+                                            nullptr,
+                                            1,
+                                            gpu_idist,
+                                            nullptr,
+                                            1,
+                                            gpu_odist,
+                                            HIPFFT_Z2D,
+                                            nbatch);
+            }
+            else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2D, 1);
             else if(dim == 2)
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2D);
@@ -244,9 +355,13 @@ void hipfft_transform(const std::vector<size_t>                                 
     if(cpu_output_thread && cpu_output_thread->joinable())
         cpu_output_thread->join();
 
-    // printbuffer(precision, itype, cpu_input_copy, olength, cpu_istride, 1, cpu_idist);
-    // printbuffer(precision, otype, cpu_output, olength, cpu_ostride, 1, cpu_odist);
-    // printbuffer(precision, otype, gpu_output, olength, gpu_ostride, 1, gpu_odist);
+    // std::cout << info.str() << std::endl;
+    // std::cout << "cpu_input:" << std::endl;
+    // printbuffer(precision, itype, cpu_input_copy, ilength, cpu_istride, nbatch, cpu_idist);
+    // std::cout << "cpu_output:" << std::endl;
+    // printbuffer(precision, otype, cpu_output, olength, cpu_ostride, nbatch, cpu_odist);
+    // std::cout << "gpu_output:" << std::endl;
+    // printbuffer(precision, otype, gpu_output, olength, gpu_ostride, nbatch, gpu_odist);
 
     // Compute the Linf and L2 distance between the CPU and GPU output:
     std::vector<std::pair<size_t, size_t>> linf_failures;
@@ -285,11 +400,11 @@ void hipfft_transform(const std::vector<size_t>                                 
 TEST_P(hipfft_accuracy_test, vs_fftw)
 {
     const std::vector<size_t>   length        = std::get<0>(GetParam());
-    const rocfft_precision      precision     = std::get<1>(GetParam());
-    const rocfft_transform_type transformType = std::get<2>(GetParam());
+    const size_t                nbatch        = std::get<1>(GetParam());
+    const rocfft_precision      precision     = std::get<2>(GetParam());
+    const rocfft_transform_type transformType = std::get<3>(GetParam());
 
-    const size_t dim    = length.size();
-    const size_t nbatch = 1;
+    const size_t dim = length.size();
 
     // Input cpu parameters
     auto ilength = length;
@@ -341,6 +456,7 @@ TEST_P(hipfft_accuracy_test, vs_fftw)
 
     // GPU computation and comparison
     hipfft_transform(length,
+                     nbatch,
                      precision,
                      transformType,
                      cpu_istride,

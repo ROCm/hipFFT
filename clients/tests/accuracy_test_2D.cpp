@@ -38,22 +38,26 @@ INSTANTIATE_TEST_SUITE_P(
     pow2_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow2_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     pow2_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow2_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(pow2_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow2_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(pow2_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow2_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
 
@@ -62,22 +66,26 @@ INSTANTIATE_TEST_SUITE_P(
     pow3_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow3_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     pow3_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow3_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(pow3_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow3_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(pow3_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow3_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
 
@@ -86,22 +94,26 @@ INSTANTIATE_TEST_SUITE_P(
     pow5_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow5_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     pow5_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow5_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(pow5_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow5_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(pow5_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow5_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
 
@@ -110,22 +122,26 @@ INSTANTIATE_TEST_SUITE_P(
     pow7_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow7_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     pow7_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow7_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(pow7_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow7_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(pow7_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vpow7_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
 
@@ -134,22 +150,26 @@ INSTANTIATE_TEST_SUITE_P(
     mix_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vmix_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     mix_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vmix_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(mix_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vmix_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(mix_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vmix_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
 
@@ -158,21 +178,25 @@ INSTANTIATE_TEST_SUITE_P(
     prime_2D_complex_forward,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vprime_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_forward)));
 INSTANTIATE_TEST_SUITE_P(
     prime_2D_complex_inverse,
     hipfft_accuracy_test,
     ::testing::Combine(::testing::ValuesIn(generate_lengths(vprime_range)),
+                       ::testing::ValuesIn(batch_range),
                        ::testing::ValuesIn(precision_range),
                        ::testing::Values(rocfft_transform_type_complex_inverse)));
 INSTANTIATE_TEST_SUITE_P(prime_2D_real_forward,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vprime_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_forward)));
 INSTANTIATE_TEST_SUITE_P(prime_2D_real_inverse,
                          hipfft_accuracy_test,
                          ::testing::Combine(::testing::ValuesIn(generate_lengths(vprime_range)),
+                                            ::testing::ValuesIn(batch_range),
                                             ::testing::ValuesIn(precision_range),
                                             ::testing::Values(rocfft_transform_type_real_inverse)));
