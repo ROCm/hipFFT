@@ -50,6 +50,41 @@ TEST(hipfftTest, Create1dPlan)
     EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
 }
 
+TEST(hipfftTest, CreatePlanMany)
+{
+    hipfftHandle plan;
+    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+
+    int const  rank    = 3;
+    int        n[3]    = {64, 128, 23};
+    int*       inembed = nullptr;
+    int const  istride = 1;
+    int const  idist   = 0;
+    int*       onembed = nullptr;
+    int const  ostride = 1;
+    int const  odist   = 0;
+    hipfftType type    = HIPFFT_C2C;
+    int const  batch   = 1000;
+
+    EXPECT_TRUE(hipfftSetAutoAllocation(plan, 0) == HIPFFT_SUCCESS);
+
+    EXPECT_TRUE(hipfftMakePlanMany(plan,
+                                   rank,
+                                   (int*)n,
+                                   inembed,
+                                   istride,
+                                   idist,
+                                   onembed,
+                                   ostride,
+                                   odist,
+                                   type,
+                                   batch,
+                                   nullptr)
+                == HIPFFT_SUCCESS);
+
+    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+}
+
 TEST(hipfftTest, CheckBufferSizeC2C)
 {
     hipfftHandle plan;
@@ -154,6 +189,19 @@ TEST(hipfftTest, CheckBufferSizeZ2D)
     }
 #endif
 
+    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+}
+
+TEST(hipfftTest, CheckNullWorkBuffer)
+{
+    hipfftHandle plan;
+    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    size_t n        = 2048;
+    size_t batch    = 1000;
+    size_t workSize = 0;
+
+    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize) == HIPFFT_SUCCESS);
+    EXPECT_TRUE(hipfftSetWorkArea(plan, nullptr) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
 }
 

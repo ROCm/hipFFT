@@ -160,8 +160,6 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                      size_t*                    workSize,
                                      bool                       re_calc_strides_in_desc)
 {
-    size_t workBufferSize = 0;
-
     rocfft_plan_description ip_forward_desc = nullptr;
     rocfft_plan_description op_forward_desc = nullptr;
     rocfft_plan_description ip_inverse_desc = nullptr;
@@ -502,27 +500,26 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
         return HIPFFT_PARSE_ERROR;
     }
 
-    size_t tmpBufferSize = 0;
-    if(plan->ip_forward)
+    size_t workBufferSize = 0;
+    size_t tmpBufferSize  = 0;
+
+    bool const has_forward = type != HIPFFT_C2R && type != HIPFFT_Z2D;
+    if(has_forward)
     {
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_plan_get_work_buffer_size(plan->ip_forward, &tmpBufferSize));
         workBufferSize = std::max(workBufferSize, tmpBufferSize);
-    }
-    if(plan->op_forward)
-    {
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_plan_get_work_buffer_size(plan->op_forward, &tmpBufferSize));
         workBufferSize = std::max(workBufferSize, tmpBufferSize);
     }
-    if(plan->ip_inverse)
+
+    bool const has_inverse = type != HIPFFT_R2C && type != HIPFFT_D2Z;
+    if(has_inverse)
     {
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_plan_get_work_buffer_size(plan->ip_inverse, &tmpBufferSize));
         workBufferSize = std::max(workBufferSize, tmpBufferSize);
-    }
-    if(plan->op_inverse)
-    {
         ROC_FFT_CHECK_INVALID_VALUE(
             rocfft_plan_get_work_buffer_size(plan->op_inverse, &tmpBufferSize));
         workBufferSize = std::max(workBufferSize, tmpBufferSize);
@@ -538,9 +535,9 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
             if(hipMalloc(&plan->workBuffer, workBufferSize) != hipSuccess)
                 return HIPFFT_ALLOC_FAILED;
             plan->workBufferNeedsFree = true;
+            ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_set_work_buffer(
+                plan->info, plan->workBuffer, workBufferSize));
         }
-        ROC_FFT_CHECK_INVALID_VALUE(
-            rocfft_execution_info_set_work_buffer(plan->info, plan->workBuffer, workBufferSize));
     }
 
     if(workSize != nullptr)
@@ -896,8 +893,11 @@ hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
     if(plan->workBuffer && plan->workBufferNeedsFree)
         hipFree(plan->workBuffer);
     plan->workBufferNeedsFree = false;
-    ROC_FFT_CHECK_INVALID_VALUE(
-        rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
+    if(workArea)
+    {
+        ROC_FFT_CHECK_INVALID_VALUE(
+            rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
+    }
     return HIPFFT_SUCCESS;
 }
 
