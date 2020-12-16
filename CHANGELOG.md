@@ -10,3 +10,5 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Fixes
 
 - Fix batch support for `hipfftMakePlanMany`.
+
+- Fix work area handling during plan creation and `hipfftSetWorkArea`.
