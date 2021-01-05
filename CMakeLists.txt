@@ -130,6 +130,24 @@ message(STATUS "BUILD_WITH_COMPILER = " ${BUILD_WITH_COMPILER})
 # Dependencies
 include(cmake/dependencies.cmake)
 
+if( BUILD_CLIENTS_TESTS )
+  find_package(Git QUIET)
+  if( GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" )
+    message(STATUS "rocFFT submodule update")
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if( NOT GIT_SUBMOD_RESULT EQUAL "0" )
+      message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually.")
+    endif( )
+  endif( )
+
+  if( NOT EXISTS "${PROJECT_SOURCE_DIR}/rocFFT/CMakeLists.txt" )
+    message(FATAL_ERROR "The rocFFT submodule is not present!  Please update git submodules and try again.")
+  endif( )
+endif( )
+
+# Version
 set ( VERSION_STRING "1.0.1" )
 rocm_setup_version( VERSION ${VERSION_STRING} )
 
@@ -145,3 +163,4 @@ if( BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   add_subdirectory( clients )
 endif( )
+
