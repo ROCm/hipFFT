@@ -429,7 +429,11 @@ int main(int argc, char* argv[])
     }
 
     // Input data:
-    const auto input = compute_input(precision, itype, length, istride, idist, nbatch);
+    std::vector<size_t> slength, sistride;
+    slength.assign(length.begin(), length.end());
+    sistride.assign(istride.begin(), istride.end());
+    const auto input
+        = compute_input(precision, itype, slength, sistride, size_t(idist), size_t(nbatch));
 
     if(verbose > 1)
     {

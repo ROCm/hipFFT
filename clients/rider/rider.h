@@ -21,7 +21,7 @@
 #ifndef RIDER_H
 #define RIDER_H
 
-#include "client_utils.h"
+#include "../../rocFFT/clients/client_utils.h"
 #include "hipfft.h"
 
 // This is used to either wrap a HIP function call, or to explicitly check a variable

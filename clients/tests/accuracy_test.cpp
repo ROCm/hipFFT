@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #include "accuracy_test.h"
-#include "gpubuf.h"
+#include "../../rocFFT/library/include/gpubuf.h"
 #include <boost/scope_exit.hpp>
 #include <hipfft.h>
 

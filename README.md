@@ -41,13 +41,18 @@ To build the hipFFT library:
 * The clients (samples, tests etc) included with the hipFFT source
   depend on FFTW, gtest, and boost program-options.
 
+* The rider and test clients also require the rocFFT source tree to
+  build:
+
+    git submodule update --init
+
 ### Building hipFFT
 
 To show all build options:
 
     mkdir build && cd build
     cmake -LH ..
-    
+
 Here are some CMake build examples:
 
 | Hardware target | Case                                                                             | Build command line                                                                                                                                    |
@@ -68,6 +73,3 @@ More information about porting to HIP is available on the [HIP porting guide].
 
 [HIPIFY]: https://github.com/ROCm-Developer-Tools/HIPIFY
 [HIP porting guide]: https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-porting-guide.html
-
-
-
