@@ -164,7 +164,7 @@ set( HIPFFT_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDI
 
 rocm_create_package(
     NAME ${package_name}
-    DESCRIPTION "Radeon Open Compute FFT marshalling library"
+    DESCRIPTION "ROCm FFT marshalling library"
     MAINTAINER "hipfft-maintainer@amd.com"
     LDCONFIG
     LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
