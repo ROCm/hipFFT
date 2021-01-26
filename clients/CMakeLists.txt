@@ -62,11 +62,26 @@ if( BUILD_CLIENTS_SAMPLES )
 endif( )
 
 if( BUILD_CLIENTS_TESTS )
+  find_package( GTest )
+  if( NOT GTEST_FOUND )
+    include( ExternalProject )
+    ExternalProject_Add( gtest
+      URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
+      PREFIX ${CMAKE_CURRENT_BINARY_DIR}
+      INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property( gtest source_dir binary_dir )
+    set( GTEST_INCLUDE_DIRS
+      ${CMAKE_CURRENT_BINARY_DIR}/src/gtest/googletest/include
+    )
+    set( GTEST_LIBRARIES
+      ${CMAKE_CURRENT_BINARY_DIR}/src/gtest-build/lib/libgtest.a
+      ${CMAKE_CURRENT_BINARY_DIR}/src/gtest-build/lib/libgtest_main.a
+    )
+  endif( )
   add_subdirectory( tests )
 endif( )
 
 if( BUILD_CLIENTS_RIDER )
   add_subdirectory( rider )
 endif( )
-
-
