@@ -46,25 +46,52 @@ if(NOT Boost_LIBRARIES)
   set(Boost_LIBRARIES Boost::program_options)
 endif()
 
-
-find_package( GTest REQUIRED )
 find_package( FFTW 3.0 REQUIRED MODULE COMPONENTS FLOAT DOUBLE )
 
 set( THREADS_PREFER_PTHREAD_FLAG ON )
 find_package( Threads REQUIRED )
 
-set(hipfft_test_source
+set( hipfft-test_source
   gtest_main.cpp
   simple_test.cpp
   accuracy_test.cpp
   accuracy_test_1D.cpp
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
-  )
+)
 
-add_executable( hipfft-test ${hipfft_test_source} ${hipfft_test_includes} )
+set( hipfft-test_includes
+  accuracy_test.h
+)
 
-# Target compile definitions
+add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
+
+set( hipfft-test_include_dirs
+  $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
+  $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
+  $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+)
+
+set( hipfft-test_link_libs
+  ${FFTW_LIBRARIES}
+  ${Boost_LIBRARIES}
+  Threads::Threads
+)
+
+if( LIBAMDHIP64_LIBRARY )
+  list( APPEND hipfft-test_link_libs hip::amdhip64 )
+endif( )
+
+if( GTEST_FOUND )
+  list( APPEND hipfft-test_include_dirs $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}> )
+  list( APPEND hipfft-test_link_libs ${GTEST_LIBRARIES} )
+else( )
+  add_dependencies( hipfft-test gtest )
+  list( APPEND hipfft-test_include_dirs ${GTEST_INCLUDE_DIRS} )
+  list( APPEND hipfft-test_link_libs ${GTEST_LIBRARIES} )
+endif( )
+
 if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
    if (BUILD_WITH_LIB STREQUAL "ROCM")
      target_compile_definitions(hipfft-test PRIVATE __HIP_PLATFORM_HCC__)
@@ -73,40 +100,16 @@ if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
    endif()
 endif()
 
-# Target include directories
-target_include_directories( hipfft-test
-  PRIVATE
-    $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-)
+if (BUILD_WITH_LIB STREQUAL "CUDA")
+  list( APPEND hipfft-test_link_libs ${CUDA_LIBRARIES} )
+endif()
+
+target_include_directories( hipfft-test PRIVATE ${hipfft-test_include_dirs} )
 
 target_link_libraries( hipfft-test PRIVATE
   hip::hipfft
-  ${GTEST_LIBRARIES}
-  ${FFTW_LIBRARIES}
-  ${Boost_LIBRARIES}
-  Threads::Threads
+  ${hipfft-test_link_libs}
 )
-
-if (BUILD_WITH_LIB STREQUAL "CUDA")
-  target_link_libraries( hipfft-test PRIVATE ${CUDA_LIBRARIES} )
-endif()
-
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
-  if(LIBAMDHIP64_LIBRARY)
-    target_link_libraries(hipfft-test PRIVATE hip::amdhip64)
-  else()
-    get_target_property(AMDHIP64_LOCATION hip::amdhip64 IMPORTED_LOCATION_RELEASE)
-    target_link_libraries(hipfft-test PRIVATE ${AMDHIP64_LOCATION})
-  endif()
-elseif(BUILD_WITH_LIB STREQUAL "CUDA")
-  # Keep CUDA build to link the old hcc library. Might update later.
-  get_target_property(HIPHCC_LOCATION hip::hip_hcc IMPORTED_LOCATION_RELEASE)
-  target_link_libraries(hipfft-test PRIVATE ${HIPHCC_LOCATION})
-endif()
 
 set_target_properties( hipfft-test PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
 set_target_properties( hipfft-test
