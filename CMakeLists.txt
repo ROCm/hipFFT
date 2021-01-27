@@ -148,7 +148,7 @@ if( BUILD_CLIENTS_TESTS )
 endif( )
 
 # Version
-set ( VERSION_STRING "1.0.1" )
+set ( VERSION_STRING "1.0.2" )
 rocm_setup_version( VERSION ${VERSION_STRING} )
 
 set( hipfft_SOVERSION 0.1 ) # This is incremented when the ABI to the library changes
