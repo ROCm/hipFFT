@@ -1,4 +1,4 @@
-// Copyright (c) 2020 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2020 - 2021 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,9 +21,11 @@
 #include "../../rocFFT/clients/tests/accuracy_test.h"
 #include "../../rocFFT/clients/tests/rocfft_against_fftw.h"
 
-class hipfft_accuracy_test
-    : public ::testing::TestWithParam<
-          std::tuple<std::vector<size_t>, size_t, rocfft_precision, rocfft_transform_type>>
+class hipfft_accuracy_test : public ::testing::TestWithParam<std::tuple<std::vector<size_t>,
+                                                                        size_t,
+                                                                        rocfft_precision,
+                                                                        rocfft_transform_type,
+                                                                        rocfft_result_placement>>
 {
 protected:
     void SetUp() override {}

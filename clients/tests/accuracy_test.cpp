@@ -1,4 +1,4 @@
-// Copyright (c) 2020 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2020 - 2021 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cassert>
+
+#include "../../rocFFT/shared/gpubuf.h"
 #include "accuracy_test.h"
-#include "../../rocFFT/library/include/gpubuf.h"
 #include <boost/scope_exit.hpp>
 #include <hipfft.h>
 
@@ -27,6 +29,7 @@ void hipfft_transform(const std::vector<size_t>                                 
                       const size_t                                               nbatch,
                       const rocfft_precision                                     precision,
                       const rocfft_transform_type                                transformType,
+                      const rocfft_result_placement                              placement,
                       const std::vector<size_t>&                                 cpu_istride,
                       const std::vector<size_t>&                                 cpu_ostride,
                       const size_t                                               cpu_idist,
@@ -35,73 +38,48 @@ void hipfft_transform(const std::vector<size_t>                                 
                       const rocfft_array_type                                    cpu_otype,
                       const std::vector<std::vector<char, fftwAllocator<char>>>& cpu_input_copy,
                       const std::vector<std::vector<char, fftwAllocator<char>>>& cpu_output,
-                      const std::pair<double, double>& cpu_output_L2Linfnorm,
-                      std::thread*                     cpu_output_thread)
+                      const VectorNorms&                                         cpu_output_norm,
+                      std::thread*                                               cpu_output_thread)
 
 {
-    const size_t dim      = length.size();
-    const size_t istride0 = 1;
-    const size_t ostride0 = 1;
+    const size_t dim = length.size();
     hipfftHandle plan;
     hipfftResult fft_status;
     hipError_t   hip_status;
 
-    rocfft_array_type itype, otype;
+    rocfft_params gpu_params;
+    gpu_params.length         = length;
+    gpu_params.precision      = precision;
+    gpu_params.placement      = placement;
+    gpu_params.transform_type = transformType;
+    gpu_params.nbatch         = nbatch;
 
-    std::stringstream info;
-    info << "\nGPU params:\n";
+    gpu_params.istride
+        = compute_stride(gpu_params.ilength(),
+                         {},
+                         gpu_params.placement == rocfft_placement_inplace
+                             && gpu_params.transform_type == rocfft_transform_type_real_forward);
+    gpu_params.idist = set_idist(
+        gpu_params.placement, gpu_params.transform_type, gpu_params.length, gpu_params.istride);
+    gpu_params.isize.push_back(gpu_params.idist * gpu_params.nbatch);
 
-    auto olength = length;
-    if(transformType == rocfft_transform_type_real_forward)
-        olength[dim - 1] = olength[dim - 1] / 2 + 1;
-
-    auto ilength = length;
-    if(transformType == rocfft_transform_type_real_inverse)
-        ilength[dim - 1] = ilength[dim - 1] / 2 + 1;
-
-    auto gpu_istride
-        = compute_stride(ilength, istride0, transformType == rocfft_transform_type_real_forward);
-    auto gpu_ostride
-        = compute_stride(olength, ostride0, transformType == rocfft_transform_type_real_inverse);
-    const auto gpu_idist = set_idist(rocfft_placement_inplace, transformType, length, gpu_istride);
-    const auto gpu_odist = set_odist(rocfft_placement_inplace, transformType, length, gpu_ostride);
-
-    info << "\tilength:";
-    for(auto i : ilength)
-        info << " " << i;
-    info << "\n\tnbatch: " << nbatch;
-    info << "\n\tolength:";
-    for(auto i : olength)
-        info << " " << i;
-    info << "\n\tcpu_istride:";
-    for(auto i : cpu_istride)
-        info << " " << i;
-    info << "\n\tcpu_idist: " << cpu_idist;
-    info << "\n\tcpu_ostride:";
-    for(auto i : cpu_ostride)
-        info << " " << i;
-    info << "\n\tcpu_odist: " << cpu_odist;
-    info << "\n\tgpu_istride:";
-    for(auto i : gpu_istride)
-        info << " " << i;
-    info << "\n\tgpu_idist: " << gpu_idist;
-    info << "\n\tgpu_ostride:";
-    for(auto i : gpu_ostride)
-        info << " " << i;
-    info << "\n\tgpu_odist: " << gpu_odist;
-    if(precision == rocfft_precision_single)
-        info << "\n\tsingle-precision\n";
-    else
-        info << "\n\tdouble-precision\n";
+    gpu_params.ostride
+        = compute_stride(gpu_params.olength(),
+                         {},
+                         gpu_params.placement == rocfft_placement_inplace
+                             && gpu_params.transform_type == rocfft_transform_type_real_inverse);
+    gpu_params.odist = set_odist(
+        gpu_params.placement, gpu_params.transform_type, gpu_params.length, gpu_params.ostride);
+    gpu_params.osize.push_back(gpu_params.odist * gpu_params.nbatch);
 
     if(transformType == rocfft_transform_type_complex_forward
        || transformType == rocfft_transform_type_complex_inverse)
     {
-        itype = rocfft_array_type_complex_interleaved;
-        otype = rocfft_array_type_complex_interleaved;
-        if(precision == rocfft_precision_single)
+        gpu_params.itype = rocfft_array_type_complex_interleaved;
+        gpu_params.otype = rocfft_array_type_complex_interleaved;
+        if(gpu_params.precision == rocfft_precision_single)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -111,12 +89,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_C2C,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2C, 1);
@@ -124,11 +102,10 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2C);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_C2C);
-            info << "\ttype: C2C\n";
         }
-        if(precision == rocfft_precision_double)
+        if(gpu_params.precision == rocfft_precision_double)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -138,12 +115,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_Z2Z,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2Z, 1);
@@ -151,16 +128,15 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2Z);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_Z2Z);
-            info << "\ttype: Z2Z\n";
         }
     }
-    else if(transformType == rocfft_transform_type_real_forward)
+    else if(gpu_params.transform_type == rocfft_transform_type_real_forward)
     {
-        itype = rocfft_array_type_real;
-        otype = rocfft_array_type_hermitian_interleaved;
-        if(precision == rocfft_precision_single)
+        gpu_params.itype = rocfft_array_type_real;
+        gpu_params.otype = rocfft_array_type_hermitian_interleaved;
+        if(gpu_params.precision == rocfft_precision_single)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -170,12 +146,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_R2C,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_R2C, 1);
@@ -183,11 +159,10 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_R2C);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_R2C);
-            info << "\ttype: R2C\n";
         }
-        if(precision == rocfft_precision_double)
+        if(gpu_params.precision == rocfft_precision_double)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -197,12 +172,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_D2Z,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_D2Z, 1);
@@ -210,16 +185,15 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_D2Z);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_D2Z);
-            info << "\ttype: D2Z\n";
         }
     }
-    else if(transformType == rocfft_transform_type_real_inverse)
+    else if(gpu_params.transform_type == rocfft_transform_type_real_inverse)
     {
-        itype = rocfft_array_type_hermitian_interleaved;
-        otype = rocfft_array_type_real;
-        if(precision == rocfft_precision_single)
+        gpu_params.itype = rocfft_array_type_hermitian_interleaved;
+        gpu_params.otype = rocfft_array_type_real;
+        if(gpu_params.precision == rocfft_precision_single)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -229,12 +203,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_C2R,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2R, 1);
@@ -242,11 +216,10 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2R);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_C2R);
-            info << "\ttype: C2R\n";
         }
-        if(precision == rocfft_precision_double)
+        if(gpu_params.precision == rocfft_precision_double)
         {
-            if(nbatch > 1)
+            if(gpu_params.nbatch > 1)
             {
                 int n[3];
                 for(int i = 0; i < dim; ++i)
@@ -256,12 +229,12 @@ void hipfft_transform(const std::vector<size_t>                                 
                                             n,
                                             nullptr,
                                             1,
-                                            gpu_idist,
+                                            gpu_params.idist,
                                             nullptr,
                                             1,
-                                            gpu_odist,
+                                            gpu_params.odist,
                                             HIPFFT_Z2D,
-                                            nbatch);
+                                            gpu_params.nbatch);
             }
             else if(dim == 1)
                 fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2D, 1);
@@ -269,129 +242,172 @@ void hipfft_transform(const std::vector<size_t>                                 
                 fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2D);
             else if(dim == 3)
                 fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_Z2D);
-            info << "\ttype: Z2D\n";
         }
     }
     EXPECT_TRUE(fft_status == HIPFFT_SUCCESS) << "hipFFT plan creation failure";
 
     auto gpu_input = allocate_host_buffer<fftwAllocator<char>>(
-        precision, itype, length, gpu_istride, gpu_idist, nbatch);
+        gpu_params.precision, gpu_params.itype, {gpu_params.idist * gpu_params.nbatch});
 
     copy_buffers(cpu_input_copy,
                  gpu_input,
-                 ilength,
-                 nbatch,
-                 precision,
+                 gpu_params.ilength(),
+                 gpu_params.nbatch,
+                 gpu_params.precision,
                  cpu_itype,
                  cpu_istride,
                  cpu_idist,
-                 itype,
-                 gpu_istride,
-                 gpu_idist);
+                 gpu_params.itype,
+                 gpu_params.istride,
+                 gpu_params.idist,
+                 {0},
+                 {0});
 
-    auto gpu_buffer_size = buffer_sizes(precision, otype, gpu_idist, nbatch)[0];
-    gpu_buffer_size      = std::max(gpu_buffer_size, cpu_input_copy[0].size());
-
-    gpubuf gpu_buffer;
-    hip_status = gpu_buffer.alloc(gpu_buffer_size);
+    gpubuf gpu_output_buffer, gpu_input_buffer;
+    hip_status = gpu_input_buffer.alloc(gpu_input[0].size());
     ASSERT_TRUE(hip_status == hipSuccess)
-        << "hipMalloc failure for input buffer size " << gpu_buffer_size;
+        << "hipMalloc failure for input buffer size " << gpu_input[0].size();
+    if(placement == rocfft_placement_notinplace)
+    {
+        hip_status = gpu_output_buffer.alloc(gpu_params.obuffer_sizes()[0]);
+        ASSERT_TRUE(hip_status == hipSuccess)
+            << "hipMalloc failure for output buffer size " << gpu_params.obuffer_sizes()[0];
+    }
 
     hip_status = hipMemcpy(
-        gpu_buffer.data(), gpu_input[0].data(), gpu_input[0].size(), hipMemcpyHostToDevice);
+        gpu_input_buffer.data(), gpu_input[0].data(), gpu_input[0].size(), hipMemcpyHostToDevice);
     EXPECT_TRUE(hip_status == hipSuccess) << "hipMemcpy failure";
 
-    switch(transformType)
+    void* ibuf = (void*)gpu_input_buffer.data();
+    void* obuf;
+    if(placement == rocfft_placement_inplace)
+        obuf = ibuf;
+    else
+        obuf = (void*)gpu_output_buffer.data();
+
+    switch(gpu_params.transform_type)
     {
     case(rocfft_transform_type_complex_forward):
     case(rocfft_transform_type_complex_inverse):
-        if(precision == rocfft_precision_single)
+        if(gpu_params.precision == rocfft_precision_single)
             hipfftExecC2C(plan,
-                          (hipfftComplex*)gpu_buffer.data(),
-                          (hipfftComplex*)gpu_buffer.data(),
-                          transformType == rocfft_transform_type_complex_forward ? HIPFFT_FORWARD
-                                                                                 : HIPFFT_BACKWARD);
+                          (hipfftComplex*)ibuf,
+                          (hipfftComplex*)obuf,
+                          gpu_params.transform_type == rocfft_transform_type_complex_forward
+                              ? HIPFFT_FORWARD
+                              : HIPFFT_BACKWARD);
         else
             hipfftExecZ2Z(plan,
-                          (hipfftDoubleComplex*)gpu_buffer.data(),
-                          (hipfftDoubleComplex*)gpu_buffer.data(),
-                          transformType == rocfft_transform_type_complex_forward ? HIPFFT_FORWARD
-                                                                                 : HIPFFT_BACKWARD);
+                          (hipfftDoubleComplex*)ibuf,
+                          (hipfftDoubleComplex*)obuf,
+                          gpu_params.transform_type == rocfft_transform_type_complex_forward
+                              ? HIPFFT_FORWARD
+                              : HIPFFT_BACKWARD);
         break;
     case(rocfft_transform_type_real_forward):
-        if(precision == rocfft_precision_single)
-            hipfftExecR2C(plan, (hipfftReal*)gpu_buffer.data(), (hipfftComplex*)gpu_buffer.data());
+        if(gpu_params.precision == rocfft_precision_single)
+            hipfftExecR2C(plan, (hipfftReal*)ibuf, (hipfftComplex*)obuf);
         else
-            hipfftExecD2Z(plan,
-                          (hipfftDoubleReal*)gpu_buffer.data(),
-                          (hipfftDoubleComplex*)gpu_buffer.data());
+            hipfftExecD2Z(plan, (hipfftDoubleReal*)ibuf, (hipfftDoubleComplex*)obuf);
         break;
     case(rocfft_transform_type_real_inverse):
-        if(precision == rocfft_precision_single)
-            hipfftExecC2R(plan, (hipfftComplex*)gpu_buffer.data(), (hipfftReal*)gpu_buffer.data());
+        if(gpu_params.precision == rocfft_precision_single)
+            hipfftExecC2R(plan, (hipfftComplex*)ibuf, (hipfftReal*)obuf);
         else
-            hipfftExecZ2D(plan,
-                          (hipfftDoubleComplex*)gpu_buffer.data(),
-                          (hipfftDoubleReal*)gpu_buffer.data());
+            hipfftExecZ2D(plan, (hipfftDoubleComplex*)ibuf, (hipfftDoubleReal*)obuf);
         break;
     }
     EXPECT_TRUE(fft_status == HIPFFT_SUCCESS) << "hipFFT plan execution failure";
 
     auto gpu_output = allocate_host_buffer<fftwAllocator<char>>(
-        precision, otype, olength, gpu_istride, gpu_odist, nbatch);
-    hip_status = hipMemcpy(
-        gpu_output[0].data(), gpu_buffer.data(), gpu_output[0].size(), hipMemcpyDeviceToHost);
+        gpu_params.precision, gpu_params.otype, {gpu_params.odist * gpu_params.nbatch});
+    hip_status = hipMemcpy(gpu_output[0].data(), obuf, gpu_output[0].size(), hipMemcpyDeviceToHost);
     EXPECT_TRUE(hip_status == hipSuccess) << "hipMemcpy failure";
 
-    info << "\tbuffer size: " << cpu_input_copy[0].size() << " " << gpu_buffer_size << " "
-         << gpu_output[0].size() << "\n";
+    // std::cout << "gpu_buffer: " << gpu_buffer_size << std::endl;
+    // std::cout << "gpu_input:  " << gpu_input[0].size() << std::endl;
+    // std::cout << "gpu_output: " << gpu_output[0].size() << std::endl;
+
+    // std::cout << "cpu_input:" << std::endl;
+    // printbuffer(precision,
+    //             cpu_itype,
+    //             cpu_input_copy,
+    //             gpu_params.ilength(),
+    //             cpu_istride,
+    //             nbatch,
+    //             cpu_idist,
+    //             {0});
+    // std::cout << "cpu_output:" << std::endl;
+    // printbuffer(gpu_params.precision,
+    //             gpu_params.otype,
+    //             cpu_output,
+    //             gpu_params.olength(),
+    //             gpu_params.ostride,
+    //             gpu_params.nbatch,
+    //             gpu_params.odist,
+    //             {0});
+    // std::cout << "gpu_input:" << std::endl;
+    // printbuffer(gpu_params.precision,
+    //             gpu_params.itype,
+    //             gpu_input,
+    //             gpu_params.ilength(),
+    //             gpu_params.istride,
+    //             gpu_params.nbatch,
+    //             gpu_params.idist,
+    //             {0});
+    // std::cout << "gpu_output:" << std::endl;
+    // printbuffer(gpu_params.precision,
+    //             gpu_params.otype,
+    //             gpu_output,
+    //             gpu_params.olength(),
+    //             gpu_params.ostride,
+    //             gpu_params.nbatch,
+    //             gpu_params.odist,
+    //             {0});
+
+    // std::cout << gpu_params.str() << std::endl;
 
     // Compute the Linf and L2 norm of the GPU output:
-    std::pair<double, double> L2LinfnormGPU;
-    std::thread               normthread([&]() {
-        L2LinfnormGPU
-            = LinfL2norm(gpu_output, olength, nbatch, precision, otype, gpu_ostride, gpu_odist);
+    VectorNorms gpu_norm;
+    std::thread normthread([&]() {
+        gpu_norm = norm(gpu_output,
+                        gpu_params.olength(),
+                        gpu_params.nbatch,
+                        gpu_params.precision,
+                        gpu_params.otype,
+                        gpu_params.ostride,
+                        gpu_params.odist,
+                        {0});
     });
     if(cpu_output_thread && cpu_output_thread->joinable())
         cpu_output_thread->join();
-
-    // std::cout << info.str() << std::endl;
-    // std::cout << "cpu_input:" << std::endl;
-    // printbuffer(precision, itype, cpu_input_copy, ilength, cpu_istride, nbatch, cpu_idist);
-    // std::cout << "cpu_output:" << std::endl;
-    // printbuffer(precision, otype, cpu_output, olength, cpu_ostride, nbatch, cpu_odist);
-    // std::cout << "gpu_output:" << std::endl;
-    // printbuffer(precision, otype, gpu_output, olength, gpu_ostride, nbatch, gpu_odist);
 
     // Compute the Linf and L2 distance between the CPU and GPU output:
     std::vector<std::pair<size_t, size_t>> linf_failures;
     const auto                             total_length
         = std::accumulate(length.begin(), length.end(), 1, std::multiplies<size_t>());
-    const double linf_cutoff
-        = type_epsilon(precision) * cpu_output_L2Linfnorm.first * log(total_length);
-    auto linfl2diff = LinfL2diff(cpu_output,
-                                 gpu_output,
-                                 olength,
-                                 nbatch,
-                                 precision,
-                                 cpu_otype,
-                                 cpu_ostride,
-                                 cpu_odist,
-                                 otype,
-                                 gpu_ostride,
-                                 gpu_odist,
-                                 linf_failures,
-                                 linf_cutoff);
+    const double linf_cutoff = type_epsilon(precision) * cpu_output_norm.l_inf * log(total_length);
+    auto         diff        = distance(cpu_output,
+                         gpu_output,
+                         gpu_params.olength(),
+                         gpu_params.nbatch,
+                         gpu_params.precision,
+                         cpu_otype,
+                         cpu_ostride,
+                         cpu_odist,
+                         gpu_params.otype,
+                         gpu_params.ostride,
+                         gpu_params.odist,
+                         linf_failures,
+                         linf_cutoff,
+                         {0},
+                         {0});
     normthread.join();
 
-    EXPECT_TRUE(std::isfinite(L2LinfnormGPU.first))
-        << L2LinfnormGPU.first << " " << cpu_output_L2Linfnorm.first;
-    EXPECT_TRUE(std::isfinite(L2LinfnormGPU.second))
-        << L2LinfnormGPU.second << " " << cpu_output_L2Linfnorm.second;
-    EXPECT_TRUE(linfl2diff.second / cpu_output_L2Linfnorm.second
-                < sqrt(log(total_length)) * type_epsilon(precision))
-        << "L2 diff failure " << linfl2diff.second / cpu_output_L2Linfnorm.second << " "
-        << info.str();
+    EXPECT_TRUE(std::isfinite(gpu_norm.l_inf)) << gpu_norm.l_inf << " " << cpu_output_norm.l_inf;
+    EXPECT_TRUE(std::isfinite(gpu_norm.l_2)) << gpu_norm.l_2 << " " << cpu_output_norm.l_2;
+    EXPECT_TRUE(diff.l_2 / cpu_output_norm.l_2 < sqrt(log(total_length)) * type_epsilon(precision))
+        << "L_2 diff failure " << diff.l_2 / cpu_output_norm.l_2 << " " << gpu_params.str();
 
     fft_status = hipfftDestroy(plan);
     EXPECT_TRUE(fft_status == HIPFFT_SUCCESS) << "hipFFT plan destroy failure";
@@ -399,52 +415,60 @@ void hipfft_transform(const std::vector<size_t>                                 
 
 TEST_P(hipfft_accuracy_test, vs_fftw)
 {
-    const std::vector<size_t>   length        = std::get<0>(GetParam());
-    const size_t                nbatch        = std::get<1>(GetParam());
-    const rocfft_precision      precision     = std::get<2>(GetParam());
-    const rocfft_transform_type transformType = std::get<3>(GetParam());
+    rocfft_params params;
+    params.length         = std::get<0>(GetParam());
+    params.nbatch         = std::get<1>(GetParam());
+    params.precision      = std::get<2>(GetParam());
+    params.transform_type = std::get<3>(GetParam());
+    params.placement      = std::get<4>(GetParam());
 
-    const size_t dim = length.size();
+    // CPU parameters
+    params.istride
+        = compute_stride(params.ilength(),
+                         params.istride,
+                         params.placement == rocfft_placement_inplace
+                             && params.transform_type == rocfft_transform_type_real_forward);
+    params.itype = contiguous_itype(params.transform_type);
+    params.idist
+        = set_idist(params.placement, params.transform_type, params.length, params.istride);
+    params.isize.push_back(params.idist * params.nbatch);
 
-    // Input cpu parameters
-    auto ilength = length;
-    if(transformType == rocfft_transform_type_real_inverse)
-        ilength[dim - 1] = ilength[dim - 1] / 2 + 1;
-    const auto cpu_istride = compute_stride(ilength, 1);
-    const auto cpu_itype   = contiguous_itype(transformType);
-    const auto cpu_idist
-        = set_idist(rocfft_placement_notinplace, transformType, length, cpu_istride);
-
-    // Output cpu parameters
-    auto olength = length;
-    if(transformType == rocfft_transform_type_real_forward)
-        olength[dim - 1] = olength[dim - 1] / 2 + 1;
-    const auto cpu_ostride = compute_stride(olength, 1);
-    const auto cpu_odist
-        = set_odist(rocfft_placement_notinplace, transformType, length, cpu_ostride);
-    auto cpu_otype = contiguous_otype(transformType);
+    params.ostride
+        = compute_stride(params.olength(),
+                         params.ostride,
+                         params.placement == rocfft_placement_inplace
+                             && params.transform_type == rocfft_transform_type_real_inverse);
+    params.odist
+        = set_odist(params.placement, params.transform_type, params.length, params.ostride);
+    params.otype = contiguous_otype(params.transform_type);
+    params.osize.push_back(params.odist * params.nbatch);
 
     // Generate input
-    auto cpu_input = compute_input<fftwAllocator<char>>(
-        precision, cpu_itype, length, cpu_istride, cpu_idist, nbatch);
+    auto cpu_input      = compute_input<fftwAllocator<char>>(params);
     auto cpu_input_copy = cpu_input; // copy of input (might get overwritten by FFTW).
 
     // FFTW computation
-    decltype(cpu_input)       cpu_output;
-    std::pair<double, double> cpu_output_L2Linfnorm;
-    std::thread               cpu_output_thread([&]() {
-        cpu_output = fftw_via_rocfft(length,
-                                     cpu_istride,
-                                     cpu_ostride,
-                                     nbatch,
-                                     cpu_idist,
-                                     cpu_odist,
-                                     precision,
-                                     transformType,
+    decltype(cpu_input) cpu_output;
+    VectorNorms         cpu_output_norm;
+    std::thread         cpu_output_thread([&]() {
+        cpu_output = fftw_via_rocfft(params.length,
+                                     params.istride,
+                                     params.ostride,
+                                     params.nbatch,
+                                     params.idist,
+                                     params.odist,
+                                     params.precision,
+                                     params.transform_type,
                                      cpu_input);
 
-        cpu_output_L2Linfnorm
-            = LinfL2norm(cpu_output, olength, nbatch, precision, cpu_otype, cpu_ostride, cpu_odist);
+        cpu_output_norm = norm(cpu_output,
+                               params.olength(),
+                               params.nbatch,
+                               params.precision,
+                               params.otype,
+                               params.ostride,
+                               params.odist,
+                               {0});
     });
 
     // Clean up threads if transform throws...
@@ -455,25 +479,26 @@ TEST_P(hipfft_accuracy_test, vs_fftw)
     };
 
     // GPU computation and comparison
-    hipfft_transform(length,
-                     nbatch,
-                     precision,
-                     transformType,
-                     cpu_istride,
-                     cpu_ostride,
-                     cpu_idist,
-                     cpu_odist,
-                     cpu_itype,
-                     cpu_otype,
+    hipfft_transform(params.length,
+                     params.nbatch,
+                     params.precision,
+                     params.transform_type,
+                     params.placement,
+                     params.istride,
+                     params.ostride,
+                     params.idist,
+                     params.odist,
+                     params.itype,
+                     params.otype,
                      cpu_input_copy,
                      cpu_output,
-                     cpu_output_L2Linfnorm,
+                     cpu_output_norm,
                      &cpu_output_thread);
 
     if(cpu_output_thread.joinable())
         cpu_output_thread.join();
-    ASSERT_TRUE(std::isfinite(cpu_output_L2Linfnorm.first));
-    ASSERT_TRUE(std::isfinite(cpu_output_L2Linfnorm.second));
+    ASSERT_TRUE(std::isfinite(cpu_output_norm.l_inf));
+    ASSERT_TRUE(std::isfinite(cpu_output_norm.l_2));
 
     SUCCEED();
 }
