@@ -25,7 +25,7 @@
 
 // clang-format off
 #define hipfftVersionMajor @hipfft_VERSION_MAJOR@
-#define hipffteVersionMinor @hipfft_VERSION_MINOR@
+#define hipfftVersionMinor @hipfft_VERSION_MINOR@
 #define hipfftVersionPatch @hipfft_VERSION_PATCH@
 #define hipfftVersionTweak @hipfft_VERSION_TWEAK@
 // clang-format on
