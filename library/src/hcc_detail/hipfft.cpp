@@ -1,4 +1,4 @@
-// Copyright (c) 2016 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2016 - 2021 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -189,6 +189,9 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                     odist *= lengths[i];
                 }
 
+                desc->inDist  = idist;
+                desc->outDist = odist;
+
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(ip_forward_desc,
                                                             desc->inArrayType,
@@ -201,6 +204,19 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                                             dim,
                                                             o_strides,
                                                             desc->outDist));
+
+                idist = lengths[0];
+                odist = 1 + lengths[0] / 2;
+                for(size_t i = 1; i < dim; i++)
+                {
+                    i_strides[i] = idist;
+                    idist *= lengths[i];
+                    o_strides[i] = odist;
+                    odist *= lengths[i];
+                }
+
+                desc->inDist  = idist;
+                desc->outDist = odist;
 
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(op_forward_desc,
@@ -227,6 +243,9 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                     odist *= lengths[i];
                 }
 
+                desc->inDist  = idist;
+                desc->outDist = odist;
+
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(ip_inverse_desc,
                                                             desc->inArrayType,
@@ -239,6 +258,20 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                                             dim,
                                                             o_strides,
                                                             desc->outDist));
+
+                idist = 1 + lengths[0] / 2;
+                odist = lengths[0];
+                for(size_t i = 1; i < dim; i++)
+                {
+                    i_strides[i] = idist;
+                    idist *= lengths[i];
+                    o_strides[i] = odist;
+                    odist *= lengths[i];
+                }
+
+                desc->inDist  = idist;
+                desc->outDist = odist;
+
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(op_inverse_desc,
                                                             desc->inArrayType,
@@ -254,6 +287,16 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
             }
             else
             {
+
+                size_t dist = lengths[0];
+                for(size_t i = 1; i < dim; i++)
+                {
+                    dist *= lengths[i];
+                }
+
+                desc->inDist  = dist;
+                desc->outDist = dist;
+
                 ROC_FFT_CHECK_INVALID_VALUE(
                     rocfft_plan_description_set_data_layout(ip_forward_desc,
                                                             desc->inArrayType,
@@ -659,7 +702,7 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
 
     hipfft_plan_description_t desc;
 
-    bool re_calc_strides_in_desc = ((inembed == nullptr) || (onembed == nullptr)) ? true : false;
+    bool re_calc_strides_in_desc = (inembed == nullptr) || (onembed == nullptr);
 
     size_t i_strides[3] = {1, 1, 1};
     size_t o_strides[3] = {1, 1, 1};
@@ -698,15 +741,11 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
 
     for(size_t i = 0; i < rank; i++)
         desc.inStrides[i] = i_strides[i];
-
-    if(idist != 0)
-        desc.inDist = idist;
+    desc.inDist = idist;
 
     for(size_t i = 0; i < rank; i++)
         desc.outStrides[i] = o_strides[i];
-
-    if(odist != 0)
-        desc.outDist = odist;
+    desc.outDist = odist;
 
     hipfftResult ret = hipfftMakePlan_internal(
         plan, rank, lengths, type, number_of_transforms, &desc, workSize, re_calc_strides_in_desc);
