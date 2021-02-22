@@ -27,7 +27,13 @@
 find_package(Git REQUIRED)
 
 # HIP
-find_package(hip REQUIRED)
+list(APPEND CMAKE_MODULE_PATH /opt/rocm/hip/cmake)
+if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+  find_package(hip REQUIRED)
+else()
+  find_package(HIP REQUIRED)
+  list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
+endif()
 
 # Either rocfft or cufft is required
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
@@ -38,7 +44,17 @@ endif()
 
 # ROCm cmake package
 set(PROJECT_EXTERN_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern)
-find_package(ROCM REQUIRED CONFIG PATHS ${CMAKE_PREFIX_PATH})
+find_package( ROCM CONFIG QUIET PATHS /opt/rocm )
+if( NOT ROCM_FOUND )
+  set( rocm_cmake_tag "master" CACHE STRING "rocm-cmake tag to download" )
+  file( DOWNLOAD https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip
+    ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip )
+
+  execute_process( COMMAND ${CMAKE_COMMAND} -E tar xzf ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip
+    WORKING_DIRECTORY ${PROJECT_EXTERN_DIR} )
+
+  find_package( ROCM REQUIRED CONFIG PATHS ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag} )
+endif( )
 
 include(ROCMSetupVersion)
 include(ROCMCreatePackage)

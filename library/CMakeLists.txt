@@ -115,11 +115,20 @@ rocm_install_targets(TARGETS hipfft
 )
 
 # Export targets
-rocm_export_targets(TARGETS hip::hipfft
+
+if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+    rocm_export_targets(TARGETS hip::hipfft
                     PREFIX hipfft
                     DEPENDS PACKAGE hip
                     NAMESPACE hip::
-)
+    )
+else()
+	rocm_export_targets(TARGETS hip::hipfft
+                    PREFIX hipfft
+		    DEPENDS HIP MODULE
+                    NAMESPACE hip::
+        )
+endif()
 
 # Symbolic links
 rocm_install_symlink_subdir(hipfft)
