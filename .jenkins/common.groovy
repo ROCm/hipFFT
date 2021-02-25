@@ -37,7 +37,7 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
                 ${getDependenciesCommand}
                 ${path}
                 ${hipClang} ${cmake} ${project.paths.build_command}
-                make -j16
+                make -j\$(nproc)
             """
 
     platform.runCommand(this, command)

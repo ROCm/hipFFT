@@ -65,8 +65,7 @@ TEST(hipfftTest, CreatePlanMany)
     int const  odist   = 0;
     hipfftType type    = HIPFFT_C2C;
     int const  batch   = 1000;
-
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan, 0) == HIPFFT_SUCCESS);
+    size_t     workSize;
 
     EXPECT_TRUE(hipfftMakePlanMany(plan,
                                    rank,
@@ -79,8 +78,10 @@ TEST(hipfftTest, CreatePlanMany)
                                    odist,
                                    type,
                                    batch,
-                                   nullptr)
+                                   &workSize)
                 == HIPFFT_SUCCESS);
+
+    EXPECT_TRUE(hipfftSetAutoAllocation(plan, 0) == HIPFFT_SUCCESS);
 
     EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
 }
