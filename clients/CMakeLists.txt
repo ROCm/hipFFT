@@ -54,9 +54,6 @@ if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
 endif( )
 
-# Hip headers required of all clients; clients use hip to allocate device memory
-find_package( hip REQUIRED CONFIG PATHS )
-
 if( BUILD_CLIENTS_SAMPLES )
   add_subdirectory( samples )
 endif( )

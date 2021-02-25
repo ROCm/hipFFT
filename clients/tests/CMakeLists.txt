@@ -71,6 +71,7 @@ set( hipfft-test_include_dirs
   $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../rocFFT/library/include>
 )
 
 set( hipfft-test_link_libs

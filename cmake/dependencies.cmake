@@ -27,7 +27,7 @@
 find_package(Git REQUIRED)
 
 # HIP
-find_package(hip REQUIRED)
+find_package(HIP REQUIRED)
 
 # Either rocfft or cufft is required
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
