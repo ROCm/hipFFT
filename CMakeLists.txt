@@ -34,8 +34,9 @@ else( )
   set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "Install path prefix, prepended onto install directories" )
 endif( )
 
-# Workaround for missing llvm cmake files in /opt/rocm/lib/cmake. Remove when this is fixed
+# Workarounds..
 list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
+list( APPEND CMAKE_MODULE_PATH /opt/rocm/hip/cmake )
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
@@ -62,7 +63,6 @@ find_library(
   LIBAMDHIP64_LIBRARY
   NAMES libamdhip64.so
   HINTS "${CMAKE_PREFIX_PATH}/lib" )
-message("amdhip64: ${LIBAMDHIP64_LIBRARY}")
 
 # Set internal BUILD_WITH_COMPILER.
 # TODO: more validity check.
@@ -121,7 +121,6 @@ message(STATUS "BUILD_WITH_COMPILER = " ${BUILD_WITH_COMPILER})
 include(cmake/dependencies.cmake)
 
 if( BUILD_CLIENTS_TESTS )
-  find_package(Git QUIET)
   if( GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" )
     message(STATUS "rocFFT submodule update")
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
@@ -138,10 +137,12 @@ if( BUILD_CLIENTS_TESTS )
 endif( )
 
 # Version
-set ( VERSION_STRING "1.0.2" )
-rocm_setup_version( VERSION ${VERSION_STRING} )
+set( VERSION_STRING "1.0.2" )
+set( hipfft_SOVERSION 0.1 )
 
-set( hipfft_SOVERSION 0.1 ) # This is incremented when the ABI to the library changes
+if( ROCM_FOUND )
+  rocm_setup_version( VERSION ${VERSION_STRING} )
+endif( )
 
 add_subdirectory( library )
 
