@@ -21,13 +21,16 @@
 #
 # #############################################################################
 
-# Dependencies
-
 # Git
 find_package(Git REQUIRED)
 
 # HIP
-find_package(HIP REQUIRED)
+if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+  find_package(hip REQUIRED)
+else()
+  find_package(HIP REQUIRED)
+  list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
+endif()
 
 # Either rocfft or cufft is required
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
@@ -36,12 +39,13 @@ else()
   find_package(CUDA REQUIRED)
 endif()
 
-# ROCm cmake package
-set(PROJECT_EXTERN_DIR ${CMAKE_CURRENT_BINARY_DIR}/extern)
-find_package(ROCM REQUIRED CONFIG PATHS ${CMAKE_PREFIX_PATH})
-
-include(ROCMSetupVersion)
-include(ROCMCreatePackage)
-include(ROCMInstallTargets)
-include(ROCMPackageConfigHelpers)
-include(ROCMInstallSymlinks)
+# ROCm
+find_package( ROCM CONFIG PATHS /opt/rocm )
+if( ROCM_FOUND )
+  message(STATUS "Found ROCm")
+  include(ROCMSetupVersion)
+  include(ROCMCreatePackage)
+  include(ROCMInstallTargets)
+  include(ROCMPackageConfigHelpers)
+  include(ROCMInstallSymlinks)
+endif( )

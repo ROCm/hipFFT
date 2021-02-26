@@ -106,66 +106,63 @@ endif()
 include(GenerateExportHeader)
 generate_export_header(hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft-export.h)
 
-# Install targets
-rocm_install_targets(TARGETS hipfft
-                     INCLUDE
-                       ${CMAKE_SOURCE_DIR}/library/include
-                       ${CMAKE_BINARY_DIR}/include
-                     PREFIX hipfft
-)
+# Packaing...
+if( ROCM_FOUND )
+  rocm_install_targets( TARGETS hipfft
+                        INCLUDE
+                          ${CMAKE_SOURCE_DIR}/library/include
+                          ${CMAKE_BINARY_DIR}/include
+                        PREFIX hipfft )
+  rocm_export_targets( TARGETS hip::hipfft
+                       PREFIX hipfft
+                       DEPENDS PACKAGE hip
+                       NAMESPACE hip:: )
+  rocm_install_symlink_subdir( hipfft )
 
-# Export targets
-rocm_export_targets(TARGETS hip::hipfft
-                    PREFIX hipfft
-                    DEPENDS PACKAGE hip
-                    NAMESPACE hip::
-)
 
-# Symbolic links
-rocm_install_symlink_subdir(hipfft)
-
-# During transition to standalone hipFFT repository, don't install
-# symlinks to hipFFT headers.  Once the hipFFT headers are removed
-# from rocFFT, we can delete this..
-if(CMAKE_HOST_WIN32)
-else()
-    install(CODE "
+  # During transition to standalone hipFFT repository, don't install
+  # symlinks to hipFFT headers.  Once the hipFFT headers are removed
+  # from rocFFT, we can delete this..
+  if(CMAKE_HOST_WIN32)
+  else()
+      install(CODE "
         file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft.h)
         file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft-version.h)
         file(REMOVE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/include/hipfft-export.h)
-    ")
-endif()
+      ")
+  endif()
 
-# Package specific CPACK vars
-if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
-  set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
-  set( CPACK_RPM_PACKAGE_REQUIRES "rocfft >= 1.0.0" )
-else()
-  set( CPACK_DEBIAN_PACKAGE_DEPENDS "cufft (>= 10.0.0)" )
-  set( CPACK_RPM_PACKAGE_REQUIRES "cufft >= 10.0.0" )
-endif()
+  # Package specific CPACK vars
+  if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+    set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
+    set( CPACK_RPM_PACKAGE_REQUIRES "rocfft >= 1.0.0" )
+  else()
+    set( CPACK_DEBIAN_PACKAGE_DEPENDS "cufft (>= 10.0.0)" )
+    set( CPACK_RPM_PACKAGE_REQUIRES "cufft >= 10.0.0" )
+  endif()
 
-set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.md" )
+  set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.md" )
 
-if( NOT CPACK_PACKAGING_INSTALL_PREFIX )
-  set( CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" )
+  if( NOT CPACK_PACKAGING_INSTALL_PREFIX )
+    set( CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" )
+  endif( )
+
+  set( CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PREFIX}" "\${CPACK_PACKAGING_INSTALL_PREFIX}/include" "\${CPACK_PACKAGING_INSTALL_PREFIX}/lib" )
+
+  # Give hipfft compiled for CUDA backend a different name
+  if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+      set( package_name hipfft )
+  else( )
+      set( package_name hipfft-alt )
+  endif( )
+
+  set( HIPFFT_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file" )
+
+  rocm_create_package(
+      NAME ${package_name}
+      DESCRIPTION "ROCm FFT marshalling library"
+      MAINTAINER "hipfft-maintainer@amd.com"
+      LDCONFIG
+      LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
+  )
 endif( )
-
-set( CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PREFIX}" "\${CPACK_PACKAGING_INSTALL_PREFIX}/include" "\${CPACK_PACKAGING_INSTALL_PREFIX}/lib" )
-
-# Give hipfft compiled for CUDA backend a different name
-if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
-    set( package_name hipfft )
-else( )
-    set( package_name hipfft-alt )
-endif( )
-
-set( HIPFFT_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file" )
-
-rocm_create_package(
-    NAME ${package_name}
-    DESCRIPTION "ROCm FFT marshalling library"
-    MAINTAINER "hipfft-maintainer@amd.com"
-    LDCONFIG
-    LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
-)

@@ -22,14 +22,12 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 
-find_package(hip)
-
 if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
 endif( )
 
 set( sample_list hipfft_1d_z2z hipfft_1d_d2z hipfft_2d_z2z hipfft_2d_d2z hipfft_3d_z2z
-  hipfft_3d_d2z hipfft_planmany_2d_z2z hipfft_planmany_2d_r2c hipfft_setworkarea)
+  hipfft_3d_d2z hipfft_planmany_2d_z2z hipfft_planmany_2d_r2c hipfft_setworkarea )
 
 foreach( sample ${sample_list} )
 
@@ -62,9 +60,6 @@ foreach( sample ${sample_list} )
   if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
     if(LIBAMDHIP64_LIBRARY)
       target_link_libraries(${sample} PRIVATE hip::amdhip64)
-    else()
-      get_target_property(AMDHIP64_LOCATION hip::amdhip64 IMPORTED_LOCATION_RELEASE)
-      target_link_libraries(${sample} PRIVATE ${AMDHIP64_LOCATION})
     endif()
   elseif(BUILD_WITH_LIB STREQUAL "CUDA")
     # Keep CUDA build to link the old hcc library. Might update later.
