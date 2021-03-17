@@ -443,6 +443,11 @@ TEST_P(hipfft_accuracy_test, vs_fftw)
     params.otype = contiguous_otype(params.transform_type);
     params.osize.push_back(params.odist * params.nbatch);
 
+    if(!params.valid(verbose))
+    {
+        GTEST_SKIP();
+    }
+
     // Generate input
     auto cpu_input      = compute_input<fftwAllocator<char>>(params);
     auto cpu_input_copy = cpu_input; // copy of input (might get overwritten by FFTW).
