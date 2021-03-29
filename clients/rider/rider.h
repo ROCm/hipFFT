@@ -21,8 +21,8 @@
 #ifndef RIDER_H
 #define RIDER_H
 
-#include "../../rocFFT/clients/client_utils.h"
 #include "hipfft.h"
+#include <vector>
 
 // This is used to either wrap a HIP function call, or to explicitly check a variable
 // for an error condition.  If an error occurs, we throw.
@@ -75,15 +75,57 @@ inline hipfftResult lib_V_Throw(hipfftResult       res,
 #define HIP_V_THROW(_status, _message) hip_V_Throw(_status, _message, __LINE__, __FILE__)
 #define LIB_V_THROW(_status, _message) lib_V_Throw(_status, _message, __LINE__, __FILE__)
 
+std::vector<int> compute_stride(const std::vector<int>& length,
+                                const std::vector<int>& stride0   = std::vector<int>(),
+                                const bool              rcpadding = false)
+
+{
+    const int dim = length.size();
+
+    std::vector<int> stride(dim);
+
+    int dimoffset = 0;
+
+    if(stride0.size() == 0)
+    {
+        // Set the contiguous stride:
+        stride[dim - 1] = 1;
+        dimoffset       = 1;
+    }
+    else
+    {
+        // Copy the input values to the end of the stride array:
+        for(int i = 0; i < stride0.size(); ++i)
+        {
+            stride[dim - stride0.size() + i] = stride0[i];
+        }
+    }
+
+    if(stride0.size() < dim)
+    {
+        // Compute any remaining values via recursion.
+        for(int i = dim - dimoffset - stride0.size(); i-- > 0;)
+        {
+            auto lengthip1 = length[i + 1];
+            if(rcpadding && i == dim - 2)
+            {
+                lengthip1 = 2 * (lengthip1 / 2 + 1);
+            }
+            stride[i] = stride[i + 1] * lengthip1;
+        }
+    }
+
+    return stride;
+}
+
 // Check the input and output stride to make sure the values are valid for the transform.
 // If strides are not set, load default values.
-void check_set_iostride(const rocfft_result_placement place,
-                        const rocfft_transform_type   transformType,
-                        const std::vector<size_t>&    length,
-                        const rocfft_array_type       itype,
-                        const rocfft_array_type       otype,
-                        std::vector<size_t>&          istride,
-                        std::vector<size_t>&          ostride)
+void check_set_iostride(const bool              inplace,
+                        const bool              forward,
+                        const hipfftType        transformType,
+                        const std::vector<int>& length,
+                        std::vector<int>&       istride,
+                        std::vector<int>&       ostride)
 {
     if(!istride.empty() && istride.size() != length.size())
     {
@@ -95,21 +137,19 @@ void check_set_iostride(const rocfft_result_placement place,
         throw std::runtime_error("Transform dimension doesn't match output stride length");
     }
 
-    if((transformType == rocfft_transform_type_complex_forward)
-       || (transformType == rocfft_transform_type_complex_inverse))
+    if(transformType == HIPFFT_Z2Z || transformType == HIPFFT_C2C)
     {
         // Complex-to-complex transform
 
         // User-specified strides must match for in-place transforms:
-        if(place == rocfft_placement_inplace && !istride.empty() && !ostride.empty()
-           && istride != ostride)
+        if(inplace && !istride.empty() && !ostride.empty() && istride != ostride)
         {
             throw std::runtime_error("In-place transforms require istride == ostride");
         }
 
         // If the user only specified istride, use that for ostride for in-place
         // transforms.
-        if(place == rocfft_placement_inplace && !istride.empty() && ostride.empty())
+        if(inplace && !istride.empty() && ostride.empty())
         {
             ostride = istride;
         }
@@ -127,8 +167,6 @@ void check_set_iostride(const rocfft_result_placement place,
     else
     {
         // Real/complex transform
-        const bool forward = itype == rocfft_array_type_real;
-        const bool inplace = place == rocfft_placement_inplace;
 
         // Length of complex data
         auto clength = length;
@@ -170,7 +208,7 @@ void check_set_iostride(const rocfft_result_placement place,
             if(forward)
             {
                 // real data
-                istride = compute_stride(length, inplace ? clength[0] * 2 : 0);
+                istride = compute_stride(length, {inplace ? clength[0] * 2 : 0});
             }
             else
             {
@@ -189,7 +227,7 @@ void check_set_iostride(const rocfft_result_placement place,
             else
             {
                 // real data
-                ostride = compute_stride(length, inplace ? clength[0] * 2 : 0);
+                ostride = compute_stride(length, {inplace ? clength[0] * 2 : 0});
             }
         }
     }

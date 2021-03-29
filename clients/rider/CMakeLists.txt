@@ -50,10 +50,8 @@ set(hipfft_rider_source
   rider.cpp
   )
 
-set(hipfft_rider_includes
-  rider.h
-  ../client_utils.h
-  )
+set( hipfft_rider_includes
+     rider.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
