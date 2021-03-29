@@ -1,4 +1,4 @@
-// Copyright (c) 2020 - present Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2020 - 2021 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,18 +21,169 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include <sstream>
 
 #include "rider.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-// NB:
-// hipFFT-rider keeps the same test interface with rocFFT-rider.
-// hipFFT-rider reuses some rocFFT enums to organize test logic internally
-// despite test rocFFT or cuFFT underlying.
-// By the limitation of hipfftPlanMany, user can not specify arbitrary strides
-// for multiple dimensions.
+int input_buffer_size(hipfftType type, int dist, int nbatch)
+{
+    switch(type)
+    {
+    case HIPFFT_Z2D:
+    case HIPFFT_Z2Z:
+        return dist * nbatch * 16;
+    case HIPFFT_D2Z:
+        return dist * nbatch * 8;
+    case HIPFFT_C2R:
+    case HIPFFT_C2C:
+        return dist * nbatch * 8;
+    case HIPFFT_R2C:
+        return dist * nbatch * 4;
+    }
+}
+
+int output_buffer_size(hipfftType type, int dist, int nbatch)
+{
+    switch(type)
+    {
+    case HIPFFT_D2Z:
+    case HIPFFT_Z2Z:
+        return dist * nbatch * 16;
+    case HIPFFT_Z2D:
+        return dist * nbatch * 8;
+    case HIPFFT_R2C:
+    case HIPFFT_C2C:
+        return dist * nbatch * 8;
+    case HIPFFT_C2R:
+        return dist * nbatch * 4;
+    }
+}
+
+std::vector<char> compute_input(hipfftType type, int dist, int nbatch)
+{
+    auto              nbytes = input_buffer_size(type, dist, nbatch);
+    std::vector<char> buffer(nbytes);
+
+    std::random_device rd;
+    std::mt19937       gen(rd());
+
+    switch(type)
+    {
+    case HIPFFT_Z2D:
+    case HIPFFT_Z2Z:
+    {
+        std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+        hipDoubleComplex* x = (hipDoubleComplex*)buffer.data();
+#pragma omp parallel for
+        for(size_t i = 0; i < dist * nbatch; ++i)
+        {
+            x[i].x = dis(gen);
+            x[i].y = dis(gen);
+        }
+    }
+    break;
+    case HIPFFT_D2Z:
+    {
+        std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+        double* x = (double*)buffer.data();
+#pragma omp parallel for
+        for(size_t i = 0; i < dist * nbatch; ++i)
+        {
+            x[i] = dis(gen);
+        }
+    }
+    break;
+    case HIPFFT_C2R:
+    case HIPFFT_C2C:
+    {
+        std::uniform_real_distribution<float> dis(0.0, 1.0);
+
+        hipFloatComplex* x = (hipFloatComplex*)buffer.data();
+#pragma omp parallel for
+        for(size_t i = 0; i < dist * nbatch; ++i)
+        {
+            x[i].x = dis(gen);
+            x[i].y = dis(gen);
+        }
+    }
+    break;
+    case HIPFFT_R2C:
+    {
+        std::uniform_real_distribution<float> dis(0.0, 1.0);
+
+        float* x = (float*)buffer.data();
+#pragma omp parallel for
+        for(size_t i = 0; i < dist * nbatch; ++i)
+        {
+            x[i] = dis(gen);
+        }
+    }
+    break;
+    }
+
+    return buffer;
+}
+
+template <typename T1, typename T2>
+bool increment_rowmajor(std::vector<T1>& index, const std::vector<T2>& length)
+{
+    for(int idim = length.size(); idim-- > 0;)
+    {
+        if(index[idim] < length[idim])
+        {
+            if(++index[idim] == length[idim])
+            {
+                index[idim] = 0;
+                continue;
+            }
+            // we know we were able to increment something and didn't hit the end
+            return true;
+        }
+    }
+    // End the loop when we get back to the start:
+    return !std::all_of(index.begin(), index.end(), [](int i) { return i == 0; });
+}
+
+template <typename Toutput, typename Tstream = std::ostream>
+inline void printbuffer(const Toutput*          output,
+                        const std::vector<int>& length,
+                        const std::vector<int>& stride,
+                        const int               nbatch,
+                        const int               dist,
+                        const int               offset,
+                        Tstream&                stream = std::cout)
+{
+    auto i_base = 0;
+    for(auto b = 0; b < nbatch; b++, i_base += dist)
+    {
+        std::vector<int> index(length.size());
+        std::fill(index.begin(), index.end(), 0);
+        do
+        {
+            const int i
+                = std::inner_product(index.begin(), index.end(), stride.begin(), i_base + offset);
+            stream << output[i] << " ";
+            for(int i = index.size(); i-- > 0;)
+            {
+                if(index[i] == (length[i] - 1))
+                {
+                    stream << "\n";
+                }
+                else
+                {
+                    break;
+                }
+            }
+        } while(increment_rowmajor(index, length));
+        stream << std::endl;
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -46,18 +197,14 @@ int main(int argc, char* argv[])
     int deviceId;
 
     // Transform type parameters:
-    rocfft_transform_type transformType;
-    rocfft_array_type     itype;
-    rocfft_array_type     otype;
+    int        itransformType;
+    hipfftType transformType;
 
     // Number of performance trial samples
     int ntrial;
 
     // Number of batches:
     int nbatch = 1;
-
-    // Scale for transform
-    double scale = 1.0;
 
     // Transform length:
     std::vector<int> length;
@@ -66,7 +213,7 @@ int main(int argc, char* argv[])
     std::vector<int> istride;
     std::vector<int> ostride;
 
-    // Offset to start of buffer (or buffers, for planar format):
+    // Offset to start of buffe:
     std::vector<int> ioffset;
     std::vector<int> ooffset;
 
@@ -86,25 +233,16 @@ int main(int argc, char* argv[])
         ("ntrial,N", po::value<int>(&ntrial)->default_value(1), "Trial size for the problem")
         ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
         ("double", "Double precision transform (default: single)")
-        ("transformType,t", po::value<rocfft_transform_type>(&transformType)
-         ->default_value(rocfft_transform_type_complex_forward),
+        ("transformType,t", po::value<int>(&itransformType)
+         ->default_value(0),
          "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
          "forward\n3) real inverse")
         ( "idist", po::value<int>(&idist)->default_value(0),
           "input distance between successive members when batch size > 1")
         ( "odist", po::value<int>(&odist)->default_value(0),
           "output distance between successive members when batch size > 1")
-        ("scale", po::value<double>(&scale)->default_value(1.0), "Specify the scaling factor ")
         ( "batchSize,b", po::value<int>(&nbatch)->default_value(1),
           "If this value is greater than one, arrays will be used ")
-        ( "itype", po::value<rocfft_array_type>(&itype)
-          ->default_value(rocfft_array_type_unset),
-          "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
-        ( "otype", po::value<rocfft_array_type>(&otype)
-          ->default_value(rocfft_array_type_unset),
-          "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
         ("length",  po::value<std::vector<int>>(&length)->multitoken(), "Lengths.")
         ("istride", po::value<std::vector<int>>(&istride)->multitoken(), "Input strides.")
         ("ostride", po::value<std::vector<int>>(&ostride)->multitoken(), "Output strides.")
@@ -137,12 +275,32 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    const rocfft_result_placement place
-        = vm.count("notInPlace") ? rocfft_placement_notinplace : rocfft_placement_inplace;
-    const rocfft_precision precision
-        = vm.count("double") ? rocfft_precision_double : rocfft_precision_single;
+    const bool inplace          = !bool(vm.count("notInPlace"));
+    const bool double_precision = bool(vm.count("double"));
+    int        direction;
+    switch(itransformType)
+    {
+    case 0:
+        transformType = double_precision ? HIPFFT_Z2Z : HIPFFT_C2C;
+        direction     = HIPFFT_FORWARD;
+        break;
+    case 1:
+        transformType = double_precision ? HIPFFT_Z2Z : HIPFFT_C2C;
+        direction     = HIPFFT_BACKWARD;
+        // backward
+        break;
+    case 2:
+        transformType = double_precision ? HIPFFT_D2Z : HIPFFT_R2C;
+        direction     = HIPFFT_FORWARD;
+        break;
+    case 3:
+        transformType = double_precision ? HIPFFT_Z2D : HIPFFT_C2R;
+        direction     = HIPFFT_BACKWARD;
+        break;
+    }
 
-    if(vm.count("notInPlace"))
+    std::cout << "Placement: ";
+    if(!inplace)
     {
         std::cout << "out-of-place\n";
     }
@@ -158,7 +316,7 @@ int main(int argc, char* argv[])
 
     if(vm.count("length"))
     {
-        std::cout << "length:";
+        std::cout << "Length:";
         for(auto& i : length)
             std::cout << " " << i;
         std::cout << "\n";
@@ -166,7 +324,7 @@ int main(int argc, char* argv[])
 
     if(vm.count("istride"))
     {
-        std::cout << "istride:";
+        std::cout << "Input stride:";
         for(auto& i : istride)
             std::cout << " " << i;
         std::cout << "\n";
@@ -184,7 +342,7 @@ int main(int argc, char* argv[])
     }
     if(vm.count("ostride"))
     {
-        std::cout << "ostride:";
+        std::cout << "Output stride:";
         for(auto& i : ostride)
             std::cout << " " << i;
         std::cout << "\n";
@@ -201,23 +359,23 @@ int main(int argc, char* argv[])
 
     if(idist > 0)
     {
-        std::cout << "idist: " << idist << "\n";
+        std::cout << "Input distance: " << idist << "\n";
     }
     if(odist > 0)
     {
-        std::cout << "odist: " << odist << "\n";
+        std::cout << "Output distance: " << odist << "\n";
     }
 
     if(vm.count("ioffset"))
     {
-        std::cout << "ioffset:";
+        std::cout << "Input offset:";
         for(auto& i : ioffset)
             std::cout << " " << i;
         std::cout << "\n";
     }
     if(vm.count("ooffset"))
     {
-        std::cout << "ooffset:";
+        std::cout << "Output offset:";
         for(auto& i : ooffset)
             std::cout << " " << i;
         std::cout << "\n";
@@ -230,87 +388,65 @@ int main(int argc, char* argv[])
     //HIP_V_THROW(hipSetDevice(deviceId), "set device failed!");
 
     // Set default data formats if not yet specified:
-    const int dim     = length.size();
-    auto      ilength = length;
-    if(transformType == rocfft_transform_type_real_inverse)
+    const int dim = length.size();
+
+    auto ilength = length;
+    if(transformType == HIPFFT_C2R || transformType == HIPFFT_Z2D)
     {
         ilength[dim - 1] = ilength[dim - 1] / 2 + 1;
     }
-    if(istride.size() == 0)
+    if(istride.empty())
     {
-        istride = compute_stride(ilength,
-                                 1,
-                                 place == rocfft_placement_inplace
-                                     && transformType == rocfft_transform_type_real_forward);
+        istride = compute_stride(
+            ilength, {1}, inplace && (transformType == HIPFFT_R2C || transformType == HIPFFT_D2Z));
     }
+
     auto olength = length;
-    if(transformType == rocfft_transform_type_real_forward)
+    if(transformType == HIPFFT_R2C || transformType == HIPFFT_D2Z)
     {
         olength[dim - 1] = olength[dim - 1] / 2 + 1;
     }
-    if(ostride.size() == 0)
+    if(ostride.empty())
     {
-        ostride = compute_stride(olength,
-                                 1,
-                                 place == rocfft_placement_inplace
-                                     && transformType == rocfft_transform_type_real_inverse);
+        ostride = compute_stride(
+            olength, {1}, inplace && (transformType == HIPFFT_C2R || transformType == HIPFFT_Z2D));
     }
-    check_set_iotypes(place, transformType, itype, otype);
+
     if(idist == 0)
     {
-        idist = set_idist(place, transformType, length, istride);
+        idist = std::accumulate(ilength.cbegin(), ilength.cend(), 1, std::multiplies<size_t>());
     }
     if(odist == 0)
     {
-        odist = set_odist(place, transformType, length, ostride);
+        odist = std::accumulate(olength.cbegin(), olength.cend(), 1, std::multiplies<size_t>());
     }
 
     if(verbose > 0)
     {
         std::cout << "FFT  params:\n";
-        std::cout << "\tilength:";
+        std::cout << "\tInput length:";
         for(auto i : ilength)
             std::cout << " " << i;
         std::cout << "\n";
-        std::cout << "\tistride:";
+        std::cout << "\tInput stride:";
         for(auto i : istride)
             std::cout << " " << i;
         std::cout << "\n";
-        std::cout << "\tidist: " << idist << std::endl;
+        std::cout << "\tInput distance: " << idist << std::endl;
 
-        std::cout << "\tolength:";
+        std::cout << "\tOutput length:";
         for(auto i : olength)
             std::cout << " " << i;
         std::cout << "\n";
-        std::cout << "\tostride:";
+        std::cout << "\tOutput stride:";
         for(auto i : ostride)
             std::cout << " " << i;
         std::cout << "\n";
-        std::cout << "\todist: " << odist << std::endl;
+        std::cout << "\tOutput distance: " << odist << std::endl;
     }
 
     hipfftHandle plan;
     LIB_V_THROW(hipfftCreate(&plan), "hipfftCreate failed");
-
-    hipfftType hip_fft_type;
-    if(transformType == rocfft_transform_type_complex_forward
-       || transformType == rocfft_transform_type_complex_inverse)
-    {
-        hip_fft_type = (precision == rocfft_precision_single) ? HIPFFT_C2C : HIPFFT_Z2Z;
-    }
-    else if(transformType == rocfft_transform_type_real_forward)
-    {
-        hip_fft_type = (precision == rocfft_precision_single) ? HIPFFT_R2C : HIPFFT_D2Z;
-    }
-    else if(transformType == rocfft_transform_type_real_inverse)
-    {
-        hip_fft_type = (precision == rocfft_precision_single) ? HIPFFT_C2R : HIPFFT_Z2D;
-    }
-
-    int direction = (transformType == rocfft_transform_type_complex_forward
-                     || transformType == rocfft_transform_type_real_forward)
-                        ? HIPFFT_FORWARD
-                        : HIPFFT_BACKWARD;
 
     int i_stride   = istride[length.size() - 1];
     int o_stride   = ostride[length.size() - 1];
@@ -328,7 +464,7 @@ int main(int argc, char* argv[])
         onembed[2] = o_stride * length[2];
     }
 
-    if(transformType == rocfft_transform_type_real_forward)
+    if(transformType == HIPFFT_R2C || transformType == HIPFFT_D2Z)
     {
         switch(dim)
         {
@@ -360,7 +496,7 @@ int main(int argc, char* argv[])
         }
         }
     }
-    else if(transformType == rocfft_transform_type_real_inverse)
+    else if(transformType == HIPFFT_C2R || transformType == HIPFFT_Z2D)
     {
         switch(dim)
         {
@@ -402,7 +538,7 @@ int main(int argc, char* argv[])
                                onembed,
                                o_stride,
                                odist,
-                               hip_fft_type,
+                               transformType,
                                nbatch),
                 "hipfftPlanMany failed");
 
@@ -418,7 +554,7 @@ int main(int argc, char* argv[])
                                   onembed,
                                   o_stride,
                                   odist,
-                                  hip_fft_type,
+                                  transformType,
                                   nbatch,
                                   &work_buf_size),
                 "hipfftGetSizeMany failed");
@@ -428,92 +564,53 @@ int main(int argc, char* argv[])
         LIB_V_THROW(hipfftSetWorkArea(plan, work_buf), "hipfftSetWorkArea failed");
     }
 
-    // Input data:
-    std::vector<size_t> slength, sistride;
-    slength.assign(length.begin(), length.end());
-    sistride.assign(istride.begin(), istride.end());
-    const auto input
-        = compute_input(precision, itype, slength, sistride, size_t(idist), size_t(nbatch));
-
-    if(verbose > 1)
-    {
-        std::cout << "GPU input:\n";
-        printbuffer(precision, itype, input, ilength, istride, nbatch, idist);
-    }
-
     hipError_t hip_status = hipSuccess;
 
     // GPU input and output buffers:
-    auto               ibuffer_sizes = buffer_sizes(precision, itype, idist, nbatch);
-    std::vector<void*> ibuffer(ibuffer_sizes.size());
-    for(unsigned int i = 0; i < ibuffer.size(); ++i)
-    {
-        hip_status = hipMalloc(&ibuffer[i], ibuffer_sizes[i]);
-        if(hip_status != hipSuccess)
-        {
-            std::cerr << "hipMalloc failed!\n";
-            exit(1);
-        }
-    }
+    auto ibuffer_size = input_buffer_size(transformType, idist, nbatch);
+    auto obuffer_size = output_buffer_size(transformType, odist, nbatch);
 
-    std::vector<void*> obuffer;
-    if(place == rocfft_placement_inplace)
+    void* ibuffer;
+    HIP_V_THROW(hipMalloc(&ibuffer, ibuffer_size), "hipMalloc failed");
+
+    void* obuffer;
+    if(inplace)
     {
         obuffer = ibuffer;
     }
     else
     {
-        auto obuffer_sizes = buffer_sizes(precision, otype, odist, nbatch);
-        obuffer.resize(obuffer_sizes.size());
-        for(unsigned int i = 0; i < obuffer.size(); ++i)
+        HIP_V_THROW(hipMalloc(&obuffer, obuffer_size), "hipMalloc failed");
+    }
+
+    // Input data:
+    const auto input = compute_input(transformType, idist, nbatch);
+
+    if(verbose > 1)
+    {
+        std::cout << "GPU input:\n";
+        switch(transformType)
         {
-            hip_status = hipMalloc(&obuffer[i], obuffer_sizes[i]);
-            if(hip_status != hipSuccess)
-            {
-                std::cerr << "hipMalloc failed!\n";
-                exit(1);
-            }
+        case HIPFFT_Z2D:
+        case HIPFFT_Z2Z:
+            printbuffer((std::complex<double>*)input.data(), ilength, istride, nbatch, idist, 0);
+            break;
+        case HIPFFT_D2Z:
+            printbuffer((double*)input.data(), ilength, istride, nbatch, idist, 0);
+            break;
+        case HIPFFT_C2R:
+        case HIPFFT_C2C:
+            printbuffer((std::complex<float>*)input.data(), ilength, istride, nbatch, idist, 0);
+            break;
+        case HIPFFT_R2C:
+            printbuffer((float*)input.data(), ilength, istride, nbatch, idist, 0);
+            break;
         }
     }
 
-    //Warm up once
     // Copy the input data to the GPU:
-    for(int idx = 0; idx < input.size(); ++idx)
-    {
-        HIP_V_THROW(
-            hipMemcpy(ibuffer[idx], input[idx].data(), input[idx].size(), hipMemcpyHostToDevice),
-            "hipMemcpy failed");
-    }
-
-    switch(hip_fft_type)
-    {
-    case HIPFFT_R2C:
-        hipfftExecR2C(plan, (hipfftReal*)(ibuffer[0]), (hipfftComplex*)(obuffer[0]));
-        break;
-    case HIPFFT_D2Z:
-        hipfftExecD2Z(plan, (hipfftDoubleReal*)(ibuffer[0]), (hipfftDoubleComplex*)(obuffer[0]));
-        break;
-    case HIPFFT_C2R:
-    {
-        hipfftExecC2R(plan, (hipfftComplex*)(ibuffer[0]), (hipfftReal*)(obuffer[0]));
-        break;
-    }
-    case HIPFFT_Z2D:
-        hipfftExecZ2D(plan, (hipfftDoubleComplex*)(ibuffer[0]), (hipfftDoubleReal*)(obuffer[0]));
-        break;
-    case HIPFFT_C2C:
-        LIB_V_THROW(
-            hipfftExecC2C(
-                plan, (hipfftComplex*)(ibuffer[0]), (hipfftComplex*)(obuffer[0]), direction),
-            "hipfftExecC2C failed");
-        break;
-    case HIPFFT_Z2Z:
-        hipfftExecZ2Z(plan,
-                      (hipfftDoubleComplex*)(ibuffer[0]),
-                      (hipfftDoubleComplex*)(obuffer[0]),
-                      direction);
-        break;
-    }
+    HIP_V_THROW(hipMemcpy(ibuffer, input.data(), ibuffer_size, hipMemcpyHostToDevice),
+                "hipMemcpy failed");
 
     // Run the transform several times and record the execution time:
     std::vector<double> gpu_time(ntrial);
@@ -521,49 +618,47 @@ int main(int argc, char* argv[])
     hipEvent_t start, stop;
     HIP_V_THROW(hipEventCreate(&start), "hipEventCreate failed");
     HIP_V_THROW(hipEventCreate(&stop), "hipEventCreate failed");
-    for(int itrial = 0; itrial < gpu_time.size(); ++itrial)
-    {
 
+    // Warm up once (itrial == -1 corresponds to the warm-up trial)
+    for(int itrial = -1; itrial < int(gpu_time.size()); ++itrial)
+    {
         // Copy the input data to the GPU:
-        for(int idx = 0; idx < input.size(); ++idx)
-        {
-            HIP_V_THROW(
-                hipMemcpy(
-                    ibuffer[idx], input[idx].data(), input[idx].size(), hipMemcpyHostToDevice),
-                "hipMemcpy failed");
-        }
+        HIP_V_THROW(hipMemcpy(ibuffer, input.data(), input.size(), hipMemcpyHostToDevice),
+                    "hipMemcpy failed");
 
         HIP_V_THROW(hipEventRecord(start), "hipEventRecord failed");
 
-        switch(hip_fft_type)
+        switch(transformType)
         {
         case HIPFFT_R2C:
-            hipfftExecR2C(plan, (hipfftReal*)(ibuffer[0]), (hipfftComplex*)(obuffer[0]));
+            LIB_V_THROW(hipfftExecR2C(plan, (hipfftReal*)(ibuffer), (hipfftComplex*)(obuffer)),
+                        "hipfftExecR2C failed");
             break;
         case HIPFFT_D2Z:
-            hipfftExecD2Z(
-                plan, (hipfftDoubleReal*)(ibuffer[0]), (hipfftDoubleComplex*)(obuffer[0]));
+            LIB_V_THROW(
+                hipfftExecD2Z(plan, (hipfftDoubleReal*)(ibuffer), (hipfftDoubleComplex*)(obuffer)),
+                "hipfftExecD2Z failed");
             break;
         case HIPFFT_C2R:
-        {
-            hipfftExecC2R(plan, (hipfftComplex*)(ibuffer[0]), (hipfftReal*)(obuffer[0]));
+            LIB_V_THROW(hipfftExecC2R(plan, (hipfftComplex*)(ibuffer), (hipfftReal*)(obuffer)),
+                        "hipfftExecC2R failed");
             break;
-        }
         case HIPFFT_Z2D:
-            hipfftExecZ2D(
-                plan, (hipfftDoubleComplex*)(ibuffer[0]), (hipfftDoubleReal*)(obuffer[0]));
+            LIB_V_THROW(
+                hipfftExecZ2D(plan, (hipfftDoubleComplex*)(ibuffer), (hipfftDoubleReal*)(obuffer)),
+                "hipfftExecZ2D failed");
             break;
         case HIPFFT_C2C:
-            LIB_V_THROW(
-                hipfftExecC2C(
-                    plan, (hipfftComplex*)(ibuffer[0]), (hipfftComplex*)(obuffer[0]), direction),
-                "hipfftExecC2C failed");
+            LIB_V_THROW(hipfftExecC2C(
+                            plan, (hipfftComplex*)(ibuffer), (hipfftComplex*)(obuffer), direction),
+                        "hipfftExecC2C failed");
             break;
         case HIPFFT_Z2Z:
-            hipfftExecZ2Z(plan,
-                          (hipfftDoubleComplex*)(ibuffer[0]),
-                          (hipfftDoubleComplex*)(obuffer[0]),
-                          direction);
+            LIB_V_THROW(hipfftExecZ2Z(plan,
+                                      (hipfftDoubleComplex*)(ibuffer),
+                                      (hipfftDoubleComplex*)(obuffer),
+                                      direction),
+                        "hipfftExecZ2Z failed");
             break;
         }
 
@@ -572,18 +667,37 @@ int main(int argc, char* argv[])
 
         float time;
         hipEventElapsedTime(&time, start, stop);
-        gpu_time[itrial] = time;
-
-        if(verbose > 2)
+        if(itrial > -1)
         {
-            auto output = allocate_host_buffer(precision, otype, olength, ostride, odist, nbatch);
-            for(int idx = 0; idx < output.size(); ++idx)
-            {
-                hipMemcpy(
-                    output[idx].data(), obuffer[idx], output[idx].size(), hipMemcpyDeviceToHost);
-            }
+            gpu_time[itrial] = time;
+        }
+
+        if(verbose > 1)
+        {
+            std::vector<char> output(obuffer_size);
+            HIP_V_THROW(hipMemcpy(output.data(), obuffer, output.size(), hipMemcpyDeviceToHost),
+                        "hipMemcpy failed");
+
             std::cout << "GPU output:\n";
-            printbuffer(precision, otype, output, olength, ostride, nbatch, odist);
+            switch(transformType)
+            {
+            case HIPFFT_D2Z:
+            case HIPFFT_Z2Z:
+                printbuffer(
+                    (std::complex<double>*)output.data(), olength, ostride, nbatch, odist, 0);
+                break;
+            case HIPFFT_Z2D:
+                printbuffer((double*)output.data(), olength, ostride, nbatch, odist, 0);
+                break;
+            case HIPFFT_R2C:
+            case HIPFFT_C2C:
+                printbuffer(
+                    (std::complex<float>*)output.data(), olength, ostride, nbatch, odist, 0);
+                break;
+            case HIPFFT_C2R:
+                printbuffer((float*)output.data(), olength, ostride, nbatch, odist, 0);
+                break;
+            }
         }
     }
 
@@ -594,27 +708,14 @@ int main(int argc, char* argv[])
     }
     std::cout << " ms" << std::endl;
 
-    std::cout << "Execution gflops:  ";
-    const double totsize
-        = std::accumulate(length.begin(), length.end(), 1, std::multiplies<size_t>());
-    const double k
-        = ((itype == rocfft_array_type_real) || (otype == rocfft_array_type_real)) ? 2.5 : 5.0;
-    const double opscount = (double)nbatch * k * totsize * log(totsize) / log(2.0);
-    for(const auto& i : gpu_time)
-    {
-        std::cout << " " << opscount / (1e6 * i);
-    }
-    std::cout << std::endl;
-
     // Clean up:
 
     hipfftDestroy(plan);
     if(work_buf_size)
         hipFree(work_buf);
-    for(auto& buf : ibuffer)
-        hipFree(buf);
-    for(auto& buf : obuffer)
-        hipFree(buf);
+    hipFree(ibuffer);
+    if(!inplace)
+        hipFree(obuffer);
 
     return 0;
 }
