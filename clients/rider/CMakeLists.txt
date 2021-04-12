@@ -56,7 +56,7 @@ set( hipfft_rider_includes
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
 
-find_package( hip REQUIRED CONFIG PATHS )
+#find_package( hip REQUIRED CONFIG PATHS )
 
 # Target compile definitions
 if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
@@ -86,7 +86,7 @@ if (BUILD_WITH_LIB STREQUAL "CUDA")
 endif()
 
 if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" OR BUILD_WITH_LIB STREQUAL "CUDA")
-  target_link_libraries(hipfft-rider PRIVATE hip::host)
+#  target_link_libraries(hipfft-rider PRIVATE hip::host)
 endif()
 
 set_target_properties( hipfft-rider PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
