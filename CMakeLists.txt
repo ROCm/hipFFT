@@ -144,6 +144,13 @@ add_subdirectory( library )
 set(CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE)
 
 # Build clients of the library
+if( BUILD_CLIENTS )
+  set( BUILD_CLIENTS_RIDER ON )
+  set( BUILD_CLIENTS_SAMPLES ON )
+  set( BUILD_CLIENTS_TESTS ON )
+endif( )
+
+# Build clients of the library
 if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   add_subdirectory( clients )
