@@ -23,24 +23,6 @@
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
-# ########################################################################
-# The following check are hacks to get compiles working for CUDA backend
-# These should be removed in the future.
-
-# If hipcc is set as compiler, we are compiling for CUDA backend and
-# nvcc complains of illegal -dumpversion flag because cmake thinks nvcc is a GNU compiler
-# A workaround is setting boost compiler explicitely
-
-# NVCC can not compile fftw.3 header file appropriately before v3.3.5
-# https://github.com/FFTW/fftw3/issues/18
-# v3.3.5 is installed by default on Ubuntu 16, workaround is to trick fftw3
-# into thinking nvcc is an Intel compiler as desribed in above issue
-if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  set( Boost_COMPILER "" )
-  set( BOOST_LIBRARYDIR "/usr/lib/x86_64-linux-gnu/" )  # Don't know why we need this yet
-endif( )
-# ########################################################################
-
 if(NOT Boost_LIBRARIES)
   # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
   set(Boost_LIBRARIES Boost::program_options)
@@ -54,9 +36,6 @@ set( hipfft_rider_includes
      rider.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
-
-
-#find_package( hip REQUIRED CONFIG PATHS )
 
 # Target compile definitions
 if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
@@ -83,10 +62,6 @@ target_link_libraries( hipfft-rider PRIVATE
 
 if (BUILD_WITH_LIB STREQUAL "CUDA")
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
-endif()
-
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" OR BUILD_WITH_LIB STREQUAL "CUDA")
-#  target_link_libraries(hipfft-rider PRIVATE hip::host)
 endif()
 
 set_target_properties( hipfft-rider PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
