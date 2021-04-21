@@ -51,10 +51,12 @@ target_include_directories( hipfft-rider
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
 )
 
-target_link_libraries( hipfft-rider PRIVATE
-  hip::hipfft
-  ${Boost_LIBRARIES}
-)
+
+if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_LIBRARIES})
+else()
+  target_link_libraries( hipfft-rider PRIVATE hip::host hip::hipfft ${Boost_LIBRARIES})
+endif()
 
 if (BUILD_WITH_LIB STREQUAL "CUDA")
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )

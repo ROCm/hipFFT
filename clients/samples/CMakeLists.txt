@@ -26,6 +26,9 @@ if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
 endif( )
 
+
+find_package( hip REQUIRED )
+
 set( sample_list hipfft_1d_z2z hipfft_1d_d2z hipfft_2d_z2z hipfft_2d_d2z hipfft_3d_z2z
   hipfft_3d_d2z hipfft_planmany_2d_z2z hipfft_planmany_2d_r2c hipfft_setworkarea )
 
@@ -33,6 +36,7 @@ foreach( sample ${sample_list} )
 
   add_executable( ${sample} ${sample}.cpp )
 
+    
   target_include_directories( ${sample}
     PRIVATE $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
@@ -51,7 +55,12 @@ foreach( sample ${sample_list} )
    endif()
   endif()
 
-  target_link_libraries(${sample} PRIVATE hip::hipfft)
+  if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+    target_link_libraries(${sample} PRIVATE hip::hipfft)
+  else()
+    target_link_libraries(${sample} PRIVATE hip::host hip::hipfft)
+  endif()
+
 
   if (BUILD_WITH_LIB STREQUAL "CUDA")
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )
@@ -59,7 +68,7 @@ foreach( sample ${sample_list} )
 
   if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
     if(LIBAMDHIP64_LIBRARY)
-      target_link_libraries(${sample} PRIVATE hip::amdhip64)
+      target_link_libraries(${sample} PRIVATE hip::host)
     endif()
   elseif(BUILD_WITH_LIB STREQUAL "CUDA")
     # Keep CUDA build to link the old hcc library. Might update later.
