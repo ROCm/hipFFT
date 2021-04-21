@@ -23,24 +23,6 @@
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
-# ########################################################################
-# The following check are hacks to get compiles working for CUDA backend
-# These should be removed in the future.
-
-# If hipcc is set as compiler, we are compiling for CUDA backend and
-# nvcc complains of illegal -dumpversion flag because cmake thinks nvcc is a GNU compiler
-# A workaround is setting boost compiler explicitely
-
-# NVCC can not compile fftw.3 header file appropriately before v3.3.5
-# https://github.com/FFTW/fftw3/issues/18
-# v3.3.5 is installed by default on Ubuntu 16, workaround is to trick fftw3
-# into thinking nvcc is an Intel compiler as desribed in above issue
-if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  set( Boost_COMPILER "" )
-  set( BOOST_LIBRARYDIR "/usr/lib/x86_64-linux-gnu/" )  # Don't know why we need this yet
-endif( )
-# ########################################################################
-
 if(NOT Boost_LIBRARIES)
   # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
   set(Boost_LIBRARIES Boost::program_options)
@@ -79,6 +61,11 @@ set( hipfft-test_link_libs
   ${Boost_LIBRARIES}
   Threads::Threads
 )
+
+if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  list( APPEND hipfft-test_link_libs hip::amdhip64 )
+endif()
+
 
 if( LIBAMDHIP64_LIBRARY )
   list( APPEND hipfft-test_link_libs hip::amdhip64 )
