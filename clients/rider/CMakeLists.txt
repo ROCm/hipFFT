@@ -20,20 +20,17 @@
 # THE SOFTWARE.
 # #############################################################################
 
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
-
 if(NOT Boost_LIBRARIES)
   # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
   set(Boost_LIBRARIES Boost::program_options)
 endif()
 
-set(hipfft_rider_source
-  rider.cpp
-  )
-
-set( hipfft_rider_includes
-     rider.h )
+set(hipfft_rider_source rider.cpp )
+set( hipfft_rider_includes rider.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
@@ -46,7 +43,6 @@ if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
    endif()
 endif()
 
-# Target include directories
 target_include_directories( hipfft-rider
   PRIVATE
     $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
