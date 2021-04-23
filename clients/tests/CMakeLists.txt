@@ -40,64 +40,52 @@ set( hipfft-test_source
   accuracy_test_1D.cpp
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
-)
+  )
 
 set( hipfft-test_includes
   accuracy_test.h
-)
+  )
 
 add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
 
-set( hipfft-test_include_dirs
+set_target_properties( hipfft-test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
+
+target_include_directories(
+  hipfft-test
+  PRIVATE
   $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../rocFFT/library/include>
-)
+  )
 
-set( hipfft-test_link_libs
+target_link_libraries( hipfft-test
+  PRIVATE
   ${FFTW_LIBRARIES}
   ${Boost_LIBRARIES}
   Threads::Threads
-)
-
-if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  list( APPEND hipfft-test_link_libs hip::amdhip64 )
-endif()
-
-
-if( LIBAMDHIP64_LIBRARY )
-  list( APPEND hipfft-test_link_libs hip::amdhip64 )
-endif( )
+  )
 
 if( GTEST_FOUND )
-  list( APPEND hipfft-test_include_dirs $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}> )
-  list( APPEND hipfft-test_link_libs ${GTEST_LIBRARIES} )
-else( )
+  target_include_directories( hipfft-test PRIVATE $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}> )
+  target_link_libraries( hipfft-test PRIVATE ${GTEST_LIBRARIES} )
+else()
   add_dependencies( hipfft-test gtest )
-  list( APPEND hipfft-test_include_dirs ${GTEST_INCLUDE_DIRS} )
-  list( APPEND hipfft-test_link_libs ${GTEST_LIBRARIES} )
-endif( )
-
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
-   if (BUILD_WITH_LIB STREQUAL "ROCM")
-     target_compile_definitions(hipfft-test PRIVATE __HIP_PLATFORM_HCC__)
-   elseif(BUILD_WITH_LIB STREQUAL "CUDA")
-     target_compile_definitions(hipfft-test PRIVATE __HIP_PLATFORM_NVCC__)
-   endif()
+  target_include_directories( hipfft-test PRIVATE hipfft-test_include_dirs ${GTEST_INCLUDE_DIRS} )
+  target_link_libraries( hipfft-test PRIVATE ${GTEST_LIBRARIES} )
 endif()
 
-if (BUILD_WITH_LIB STREQUAL "CUDA")
-  list( APPEND hipfft-test_link_libs ${CUDA_LIBRARIES} )
+if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  find_package( hip REQUIRED )
+  target_link_libraries( hipfft-test PRIVATE hip::host )
 endif()
 
-target_include_directories( hipfft-test PRIVATE ${hipfft-test_include_dirs} )
+if ( BUILD_WITH_LIB STREQUAL "CUDA" )
+  target_link_libraries( hipfft-test  PRIVATE ${CUDA_LIBRARIES} )
+endif()
 
-target_link_libraries( hipfft-test PRIVATE
-  hip::hipfft
-  ${hipfft-test_link_libs}
-)
+target_link_libraries( hipfft-test  PRIVATE hip::hipfft )
 
 set_target_properties( hipfft-test PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
 set_target_properties( hipfft-test

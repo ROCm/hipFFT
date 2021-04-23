@@ -68,7 +68,7 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     message(FATAL_ERROR "Compiler is too old. Please use g++ 5.4.0 or newer")
   endif( )
 else()
-  if( $ENV{HIP_PLATFORM} MATCHES "nvcc" )
+  if( $ENV{HIP_PLATFORM} MATCHES "nvidia" )
     set (BUILD_WITH_COMPILER "HIP-nvcc")
   else( )
     set( BUILD_WITH_COMPILER "HIP-clang" )
@@ -83,7 +83,7 @@ string( TOUPPER "${BUILD_WITH_LIB}" BUILD_WITH_LIB )
 
 if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   set (BUILD_WITH_LIB "CUDA") # This may change after rocFFT fully support on NV platform
-  set( HIP_PLATFORM "nvcc" )
+  set( HIP_PLATFORM "nvidia" )
 
   set( CMAKE_C_COMPILE_OPTIONS_PIC "-Xcompiler ${CMAKE_C_COMPILE_OPTIONS_PIC}" )
   set( CMAKE_CXX_COMPILE_OPTIONS_PIC "-Xcompiler ${CMAKE_CXX_COMPILE_OPTIONS_PIC}" )
