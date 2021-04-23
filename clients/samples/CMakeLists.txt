@@ -42,7 +42,7 @@ foreach( sample ${sample_list} )
 
   add_executable( ${sample} ${sample}.cpp )
 
-  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON )
+  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
   target_include_directories( ${sample}
     PRIVATE $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>

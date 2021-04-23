@@ -55,12 +55,12 @@ To show all build options:
 
 Here are some CMake build examples:
 
-| Hardware target | Case                                                                             | Build command line                                                                                                                                    |
-| ---             | ---                                                                              | ---                                                                                                                                                   |
-| AMD GPU         | Build a project using HIP language APIs + hipFFT with standard host compiler     | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ..                                   |
-| AMD GPU         | Build a project using HIP language APIs + hipFFT + device kernels with HIP-clang | cmake -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ..                   |
-| NVIDIA GPU      | Build a project using HIP language APIs + hipFFT with standard host compiler     | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_WITH_LIB=CUDA -L ..             |
-| NVIDIA GPU      | Build a project using HIP language APIs + hipFFT + device kernels with HIP-nvcc  | HIP_PLATFORM=nvcc cmake -DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L .. |
+| Hardware target | Case                                                                             | Build command line                                                                                       |
+| ---             | ---                                                                              | ---                                                                                                      |
+| AMD GPU         | Build a project using HIP language APIs + hipFFT with standard host compiler     | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L ..                       |
+| AMD GPU         | Build a project using HIP language APIs + hipFFT + device kernels with HIP-clang | cmake -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L ..                     |
+| NVIDIA GPU      | Build a project using HIP language APIs + hipFFT with standard host compiler     | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -DBUILD_WITH_LIB=CUDA -L .. |
+| NVIDIA GPU      | Build a project using HIP language APIs + hipFFT + device kernels with HIP-nvcc  | HIP_PLATFORM=nvidia cmake -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L .. |
 
 ## Quick CUDA porting guide
 
