@@ -26,54 +26,42 @@ if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
 endif( )
 
-
-find_package( hip REQUIRED )
-
-set( sample_list hipfft_1d_z2z hipfft_1d_d2z hipfft_2d_z2z hipfft_2d_d2z hipfft_3d_z2z
-  hipfft_3d_d2z hipfft_planmany_2d_z2z hipfft_planmany_2d_r2c hipfft_setworkarea )
+set( sample_list
+  hipfft_1d_z2z
+  hipfft_1d_d2z
+  hipfft_2d_z2z
+  hipfft_2d_d2z
+  hipfft_3d_z2z
+  hipfft_3d_d2z
+  hipfft_planmany_2d_z2z
+  hipfft_planmany_2d_r2c
+  hipfft_setworkarea
+  )
 
 foreach( sample ${sample_list} )
 
   add_executable( ${sample} ${sample}.cpp )
 
-    
+  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON )
+
   target_include_directories( ${sample}
     PRIVATE $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-  )
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+    )
 
-  set_target_properties( ${sample} PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
-  set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
-
-  # Target compile definitions
-  if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
-   if (BUILD_WITH_LIB STREQUAL "ROCM")
-     target_compile_definitions(${sample} PRIVATE __HIP_PLATFORM_HCC__)
-   elseif(BUILD_WITH_LIB STREQUAL "CUDA")
-     target_compile_definitions(${sample} PRIVATE __HIP_PLATFORM_NVCC__)
-   endif()
+  if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+    find_package( hip REQUIRED )
+    target_link_libraries( ${sample} PRIVATE hip::host )
   endif()
 
-  if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-    target_link_libraries(${sample} PRIVATE hip::hipfft)
-  else()
-    target_link_libraries(${sample} PRIVATE hip::host hip::hipfft)
-  endif()
-
-
-  if (BUILD_WITH_LIB STREQUAL "CUDA")
+  if ( BUILD_WITH_LIB STREQUAL "CUDA" )
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )
   endif()
 
-  if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
-    if(LIBAMDHIP64_LIBRARY)
-      target_link_libraries(${sample} PRIVATE hip::host)
-    endif()
-  elseif(BUILD_WITH_LIB STREQUAL "CUDA")
-    # Keep CUDA build to link the old hcc library. Might update later.
-    get_target_property(HIPHCC_LOCATION hip::hip_hcc IMPORTED_LOCATION_RELEASE)
-    target_link_libraries(${sample} PRIVATE ${HIPHCC_LOCATION})
-  endif()
-
-endforeach( )
+  target_link_libraries( ${sample} PRIVATE hip::hipfft )
+  
+  set_target_properties( ${sample} PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
+  set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
+  
+endforeach()
