@@ -20,74 +20,41 @@
 # THE SOFTWARE.
 # #############################################################################
 
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
-
-# ########################################################################
-# The following check are hacks to get compiles working for CUDA backend
-# These should be removed in the future.
-
-# If hipcc is set as compiler, we are compiling for CUDA backend and
-# nvcc complains of illegal -dumpversion flag because cmake thinks nvcc is a GNU compiler
-# A workaround is setting boost compiler explicitely
-
-# NVCC can not compile fftw.3 header file appropriately before v3.3.5
-# https://github.com/FFTW/fftw3/issues/18
-# v3.3.5 is installed by default on Ubuntu 16, workaround is to trick fftw3
-# into thinking nvcc is an Intel compiler as desribed in above issue
-if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  set( Boost_COMPILER "" )
-  set( BOOST_LIBRARYDIR "/usr/lib/x86_64-linux-gnu/" )  # Don't know why we need this yet
-endif( )
-# ########################################################################
 
 if(NOT Boost_LIBRARIES)
   # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
   set(Boost_LIBRARIES Boost::program_options)
 endif()
 
-set(hipfft_rider_source
-  rider.cpp
-  )
-
-set( hipfft_rider_includes
-     rider.h )
+set( hipfft_rider_source rider.cpp )
+set( hipfft_rider_includes rider.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
-# Target compile definitions
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT")
-   if (BUILD_WITH_LIB STREQUAL "ROCM")
-     target_compile_definitions(hipfft-rider PRIVATE __HIP_PLATFORM_HCC__)
-   elseif(BUILD_WITH_LIB STREQUAL "CUDA")
-     target_compile_definitions(hipfft-rider PRIVATE __HIP_PLATFORM_NVCC__)
-   endif()
-endif()
+set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
-# Target include directories
 target_include_directories( hipfft-rider
   PRIVATE
-    $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-)
+  $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
+  $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+  )
 
-target_link_libraries( hipfft-rider PRIVATE
-  hip::hipfft
-  ${Boost_LIBRARIES}
-)
+if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  find_package( hip REQUIRED )
+  target_link_libraries( hipfft-rider PRIVATE hip::host )
+endif()
 
-if (BUILD_WITH_LIB STREQUAL "CUDA")
+if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
 endif()
 
-if(BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" OR BUILD_WITH_LIB STREQUAL "CUDA")
-  #FIXME: fix it with hip::host and hip::device separately when hip::host got fixed
-  get_target_property(HIPHCC_LOCATION hip::hip_hcc IMPORTED_LOCATION_RELEASE)
-  target_link_libraries(hipfft-rider PRIVATE ${HIPHCC_LOCATION})
-endif()
+target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_LIBRARIES} )
 
 set_target_properties( hipfft-rider PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
-set_target_properties( hipfft-rider
-  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
+set_target_properties( hipfft-rider PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )

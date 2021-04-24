@@ -34,6 +34,8 @@ else( )
   set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "Install path prefix, prepended onto install directories" )
 endif( )
 
+
+
 # Workarounds..
 list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
 list( APPEND CMAKE_MODULE_PATH /opt/rocm/hip/cmake )
@@ -58,12 +60,6 @@ set (BUILD_WITH_LIB "ROCM" CACHE STRING
 option(BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF)
 option(BUILD_CLIENTS_SAMPLES "Build examples" OFF)
 
-# Look for libamdhip64
-find_library(
-  LIBAMDHIP64_LIBRARY
-  NAMES libamdhip64.so
-  HINTS "${CMAKE_PREFIX_PATH}/lib" )
-
 # Set internal BUILD_WITH_COMPILER.
 # TODO: more validity check.
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
@@ -72,7 +68,7 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     message(FATAL_ERROR "Compiler is too old. Please use g++ 5.4.0 or newer")
   endif( )
 else()
-  if( $ENV{HIP_PLATFORM} MATCHES "nvcc" )
+  if( $ENV{HIP_PLATFORM} MATCHES "nvidia" )
     set (BUILD_WITH_COMPILER "HIP-nvcc")
   else( )
     set( BUILD_WITH_COMPILER "HIP-clang" )
@@ -87,7 +83,7 @@ string( TOUPPER "${BUILD_WITH_LIB}" BUILD_WITH_LIB )
 
 if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   set (BUILD_WITH_LIB "CUDA") # This may change after rocFFT fully support on NV platform
-  set( HIP_PLATFORM "nvcc" )
+  set( HIP_PLATFORM "nvidia" )
 
   set( CMAKE_C_COMPILE_OPTIONS_PIC "-Xcompiler ${CMAKE_C_COMPILE_OPTIONS_PIC}" )
   set( CMAKE_CXX_COMPILE_OPTIONS_PIC "-Xcompiler ${CMAKE_CXX_COMPILE_OPTIONS_PIC}" )
@@ -150,7 +146,14 @@ add_subdirectory( library )
 set(CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE)
 
 # Build clients of the library
-if( BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
+if( BUILD_CLIENTS )
+  set( BUILD_CLIENTS_RIDER ON )
+  set( BUILD_CLIENTS_SAMPLES ON )
+  set( BUILD_CLIENTS_TESTS ON )
+endif( )
+
+# Build clients of the library
+if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   add_subdirectory( clients )
 endif( )

@@ -74,9 +74,9 @@ endif()
 target_include_directories(hipfft
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
                            PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
-                                   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-                                   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
-                                   $<INSTALL_INTERFACE:include>
+                           $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+                           $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
+                           $<INSTALL_INTERFACE:include>
 )
 
 if(BUILD_WITH_LIB STREQUAL "CUDA")
@@ -150,7 +150,7 @@ if( ROCM_FOUND )
   set( CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PREFIX}" "\${CPACK_PACKAGING_INSTALL_PREFIX}/include" "\${CPACK_PACKAGING_INSTALL_PREFIX}/lib" )
 
   # Give hipfft compiled for CUDA backend a different name
-  if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
+  if( BUILD_WITH_LIB STREQUAL "ROCM" )
       set( package_name hipfft )
   else( )
       set( package_name hipfft-alt )
