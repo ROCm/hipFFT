@@ -78,12 +78,12 @@ std::vector<char> compute_input(hipfftType type, int dist, int nbatch)
     {
         std::uniform_real_distribution<double> dis(0.0, 1.0);
 
-        hipDoubleComplex* x = (hipDoubleComplex*)buffer.data();
+        auto x = (std::complex<double>*)buffer.data();
 #pragma omp parallel for
         for(size_t i = 0; i < dist * nbatch; ++i)
         {
-            x[i].x = dis(gen);
-            x[i].y = dis(gen);
+            x[i].real(dis(gen));
+            x[i].imag(dis(gen));
         }
     }
     break;
@@ -104,12 +104,12 @@ std::vector<char> compute_input(hipfftType type, int dist, int nbatch)
     {
         std::uniform_real_distribution<float> dis(0.0, 1.0);
 
-        hipFloatComplex* x = (hipFloatComplex*)buffer.data();
+        auto x = (std::complex<float>*)buffer.data();
 #pragma omp parallel for
         for(size_t i = 0; i < dist * nbatch; ++i)
         {
-            x[i].x = dis(gen);
-            x[i].y = dis(gen);
+            x[i].real(dis(gen));
+            x[i].imag(dis(gen));
         }
     }
     break;
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
     std::vector<int> istride;
     std::vector<int> ostride;
 
-    // Offset to start of buffe:
+    // Offset to start of buffer:
     std::vector<int> ioffset;
     std::vector<int> ooffset;
 
@@ -221,6 +221,9 @@ int main(int argc, char* argv[])
     int idist;
     int odist;
 
+    int itype;
+    int otype; // Ignored; for compatibility with rocfft-rider.
+    
     // Declare the supported options.
 
     // clang-format doesn't handle boost program options very well:
@@ -243,6 +246,8 @@ int main(int argc, char* argv[])
           "output distance between successive members when batch size > 1")
         ( "batchSize,b", po::value<int>(&nbatch)->default_value(1),
           "If this value is greater than one, arrays will be used ")
+        ( "itype", po::value<int>(&itype))
+        ( "otype", po::value<int>(&otype))
         ("length",  po::value<std::vector<int>>(&length)->multitoken(), "Lengths.")
         ("istride", po::value<std::vector<int>>(&istride)->multitoken(), "Input strides.")
         ("ostride", po::value<std::vector<int>>(&ostride)->multitoken(), "Output strides.")
