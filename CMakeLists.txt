@@ -133,7 +133,7 @@ if( BUILD_CLIENTS_TESTS )
 endif( )
 
 # Version
-set( VERSION_STRING "1.0.2" )
+set( VERSION_STRING "1.0.3" )
 set( hipfft_SOVERSION 0.1 )
 
 if( ROCM_FOUND )
