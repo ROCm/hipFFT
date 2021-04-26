@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "hipfft.h"
+#include "hipfftXt.h"
 #include "rocfft.h"
 #include <sstream>
 #include <string>
@@ -58,30 +59,26 @@
 
 struct hipfftHandle_t
 {
+    hipfftType type = HIPFFT_C2C;
+
     // Due to hipExec** compatibility to cuFFT, we have to reserve all 4 types
     // rocfft handle separately here.
-    rocfft_plan           ip_forward;
-    rocfft_plan           op_forward;
-    rocfft_plan           ip_inverse;
-    rocfft_plan           op_inverse;
-    rocfft_execution_info info;
-    void*                 workBuffer;
-    size_t                workBufferSize;
-    bool                  autoAllocate;
-    bool                  workBufferNeedsFree;
+    rocfft_plan           ip_forward          = nullptr;
+    rocfft_plan           op_forward          = nullptr;
+    rocfft_plan           ip_inverse          = nullptr;
+    rocfft_plan           op_inverse          = nullptr;
+    rocfft_execution_info info                = nullptr;
+    void*                 workBuffer          = nullptr;
+    size_t                workBufferSize      = 0;
+    bool                  autoAllocate        = true;
+    bool                  workBufferNeedsFree = false;
 
-    hipfftHandle_t()
-        : ip_forward(nullptr)
-        , op_forward(nullptr)
-        , ip_inverse(nullptr)
-        , op_inverse(nullptr)
-        , info(nullptr)
-        , workBuffer(nullptr)
-        , workBufferSize(0)
-        , autoAllocate(true)
-        , workBufferNeedsFree(false)
-    {
-    }
+    void** load_callback_ptrs       = nullptr;
+    void** load_callback_data       = nullptr;
+    size_t load_callback_lds_bytes  = 0;
+    void** store_callback_ptrs      = nullptr;
+    void** store_callback_data      = nullptr;
+    size_t store_callback_lds_bytes = 0;
 };
 
 struct hipfft_plan_description_t
@@ -542,6 +539,7 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
     default:
         return HIPFFT_PARSE_ERROR;
     }
+    plan->type = type;
 
     size_t workBufferSize = 0;
     size_t tmpBufferSize  = 0;
@@ -1124,6 +1122,144 @@ hipfftResult hipfftGetProperty(hipfftLibraryPropertyType type, int* value)
         *value = patch;
     else
         return HIPFFT_INVALID_TYPE;
+
+    return HIPFFT_SUCCESS;
+}
+
+hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
+                                 void**               callbacks,
+                                 hipfftXtCallbackType cbtype,
+                                 void**               callbackData)
+{
+    if(!plan)
+        return HIPFFT_INVALID_PLAN;
+
+    // check that the input/output type matches what's being requested
+    //
+    // NOTE: cufft explicitly does not save shared memory bytes when
+    // you set a new callback, so zero out our number when setting
+    // pointers
+    switch(cbtype)
+    {
+    case HIPFFT_CB_LD_COMPLEX:
+        if(plan->type != HIPFFT_C2R && plan->type != HIPFFT_C2C)
+            return HIPFFT_INVALID_VALUE;
+        plan->load_callback_ptrs      = callbacks;
+        plan->load_callback_data      = callbackData;
+        plan->load_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_LD_COMPLEX_DOUBLE:
+        if(plan->type != HIPFFT_Z2D && plan->type != HIPFFT_Z2Z)
+            return HIPFFT_INVALID_VALUE;
+        plan->load_callback_ptrs      = callbacks;
+        plan->load_callback_data      = callbackData;
+        plan->load_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_LD_REAL:
+        if(plan->type != HIPFFT_R2C)
+            return HIPFFT_INVALID_VALUE;
+        plan->load_callback_ptrs      = callbacks;
+        plan->load_callback_data      = callbackData;
+        plan->load_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_LD_REAL_DOUBLE:
+        if(plan->type != HIPFFT_D2Z)
+            return HIPFFT_INVALID_VALUE;
+        plan->load_callback_ptrs      = callbacks;
+        plan->load_callback_data      = callbackData;
+        plan->load_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_ST_COMPLEX:
+        if(plan->type != HIPFFT_R2C && plan->type != HIPFFT_C2C)
+            return HIPFFT_INVALID_VALUE;
+        plan->store_callback_ptrs      = callbacks;
+        plan->store_callback_data      = callbackData;
+        plan->store_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_ST_COMPLEX_DOUBLE:
+        if(plan->type != HIPFFT_D2Z && plan->type != HIPFFT_Z2Z)
+            return HIPFFT_INVALID_VALUE;
+        plan->store_callback_ptrs      = callbacks;
+        plan->store_callback_data      = callbackData;
+        plan->store_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_ST_REAL:
+        if(plan->type != HIPFFT_C2R)
+            return HIPFFT_INVALID_VALUE;
+        plan->store_callback_ptrs      = callbacks;
+        plan->store_callback_data      = callbackData;
+        plan->store_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_ST_REAL_DOUBLE:
+        if(plan->type != HIPFFT_Z2D)
+            return HIPFFT_INVALID_VALUE;
+        plan->store_callback_ptrs      = callbacks;
+        plan->store_callback_data      = callbackData;
+        plan->store_callback_lds_bytes = 0;
+        break;
+    case HIPFFT_CB_UNDEFINED:
+        return HIPFFT_INVALID_VALUE;
+    }
+
+    rocfft_status res;
+    res = rocfft_execution_info_set_load_callback(plan->info,
+                                                  plan->load_callback_ptrs,
+                                                  plan->load_callback_data,
+                                                  plan->load_callback_lds_bytes);
+    if(res != rocfft_status_success)
+        return HIPFFT_INVALID_VALUE;
+    res = rocfft_execution_info_set_store_callback(plan->info,
+                                                   plan->store_callback_ptrs,
+                                                   plan->store_callback_data,
+                                                   plan->store_callback_lds_bytes);
+    if(res != rocfft_status_success)
+        return HIPFFT_INVALID_VALUE;
+
+    return HIPFFT_SUCCESS;
+}
+
+hipfftResult hipfftXtClearCallback(hipfftHandle plan, hipfftXtCallbackType cbtype)
+{
+    return hipfftXtSetCallback(plan, nullptr, cbtype, nullptr);
+}
+
+hipfftResult
+    hipfftXtSetCallbackSharedSize(hipfftHandle plan, hipfftXtCallbackType cbtype, size_t sharedSize)
+{
+    if(!plan)
+        return HIPFFT_INVALID_PLAN;
+
+    switch(cbtype)
+    {
+    case HIPFFT_CB_LD_COMPLEX:
+    case HIPFFT_CB_LD_COMPLEX_DOUBLE:
+    case HIPFFT_CB_LD_REAL:
+    case HIPFFT_CB_LD_REAL_DOUBLE:
+        plan->load_callback_lds_bytes = sharedSize;
+        break;
+    case HIPFFT_CB_ST_COMPLEX:
+    case HIPFFT_CB_ST_COMPLEX_DOUBLE:
+    case HIPFFT_CB_ST_REAL:
+    case HIPFFT_CB_ST_REAL_DOUBLE:
+        plan->store_callback_lds_bytes = sharedSize;
+        break;
+    case HIPFFT_CB_UNDEFINED:
+        return HIPFFT_INVALID_VALUE;
+    }
+
+    rocfft_status res;
+    res = rocfft_execution_info_set_load_callback(plan->info,
+                                                  plan->load_callback_ptrs,
+                                                  plan->load_callback_data,
+                                                  plan->load_callback_lds_bytes);
+    if(res != rocfft_status_success)
+        return HIPFFT_INVALID_VALUE;
+    res = rocfft_execution_info_set_store_callback(plan->info,
+                                                   plan->store_callback_ptrs,
+                                                   plan->store_callback_data,
+                                                   plan->store_callback_lds_bytes);
+    if(res != rocfft_status_success)
+        return HIPFFT_INVALID_VALUE;
 
     return HIPFFT_SUCCESS;
 }

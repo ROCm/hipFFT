@@ -33,6 +33,7 @@ set( sample_list
   hipfft_2d_d2z
   hipfft_3d_z2z
   hipfft_3d_d2z
+  hipfft_callback
   hipfft_planmany_2d_z2z
   hipfft_planmany_2d_r2c
   hipfft_setworkarea

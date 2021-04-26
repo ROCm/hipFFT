@@ -7,6 +7,9 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Fixed
 - Cmake updates.
 
+### Added
+- Added callback API in hipfftXt.h header.
+
 ## [(Unreleased) hipFFT 1.0.2 for ROCm 4.2.0]
 
 - No changes.

@@ -38,6 +38,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft-version.h.in"
 # Public hipFFT headers
 set(hipfft_headers_public
   include/hipfft.h
+  include/hipfftXt.h
   ${PROJECT_BINARY_DIR}/include/hipfft-version.h
 )
 

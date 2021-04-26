@@ -19,8 +19,10 @@
 // THE SOFTWARE.
 
 #include "hipfft.h"
+#include "hipfftXt.h"
 #include <cuda_runtime_api.h>
 #include <cufft.h>
+#include <cufftXt.h>
 #include <hip/hip_runtime.h>
 
 hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
@@ -110,6 +112,31 @@ libraryPropertyType hipfftLibraryPropertyTypeToCufftLibraryPropertyType(
 
     default:
         throw "Non existent hipFFT library property type.";
+    }
+}
+
+cufftXtCallbackType_t hipfftCallbackTypeToCufftCallbackType(hipfftXtCallbackType_t type)
+{
+    switch(type)
+    {
+    case HIPFFT_CB_LD_COMPLEX:
+        return CUFFT_CB_LD_COMPLEX;
+    case HIPFFT_CB_LD_COMPLEX_DOUBLE:
+        return CUFFT_CB_LD_COMPLEX_DOUBLE;
+    case HIPFFT_CB_LD_REAL:
+        return CUFFT_CB_LD_REAL;
+    case HIPFFT_CB_LD_REAL_DOUBLE:
+        return CUFFT_CB_LD_REAL_DOUBLE;
+    case HIPFFT_CB_ST_COMPLEX:
+        return CUFFT_CB_ST_COMPLEX;
+    case HIPFFT_CB_ST_COMPLEX_DOUBLE:
+        return CUFFT_CB_ST_COMPLEX_DOUBLE;
+    case HIPFFT_CB_ST_REAL:
+        return CUFFT_CB_ST_REAL;
+    case HIPFFT_CB_ST_REAL_DOUBLE:
+        return CUFFT_CB_ST_REAL_DOUBLE;
+    case HIPFFT_CB_UNDEFINED:
+        return CUFFT_CB_UNDEFINED;
     }
 }
 
@@ -428,4 +455,26 @@ hipfftResult hipfftGetProperty(hipfftLibraryPropertyType type, int* value)
 {
     return cufftResultToHipResult(
         cufftGetProperty(hipfftLibraryPropertyTypeToCufftLibraryPropertyType(type), value));
+}
+
+hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
+                                 void**               callbacks,
+                                 hipfftXtCallbackType cbtype,
+                                 void**               callbackData)
+{
+    return cufftResultToHipResult(cufftXtSetCallback(
+        plan, callbacks, hipfftCallbackTypeToCufftCallbackType(cbtype), callbackData));
+}
+
+hipfftResult hipfftXtClearCallback(hipfftHandle plan, hipfftXtCallbackType cbType)
+{
+    return cufftResultToHipResult(
+        cufftXtClearCallback(plan, hipfftCallbackTypeToCufftCallbackType(cbType)));
+}
+
+hipfftResult
+    hipfftXtSetCallbackSharedSize(hipfftHandle plan, hipfftXtCallbackType cbType, size_t sharedSize)
+{
+    return cufftResultToHipResult(cufftXtSetCallbackSharedSize(
+        plan, hipfftCallbackTypeToCufftCallbackType(cbType), sharedSize));
 }
