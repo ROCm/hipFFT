@@ -50,6 +50,20 @@ add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
 
 set_target_properties( hipfft-test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
+if( GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" )
+  message(STATUS "rocFFT submodule update")
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+  if( NOT GIT_SUBMOD_RESULT EQUAL "0" )
+    message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually.")
+  endif( )
+endif( )
+
+if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/rocFFT/CMakeLists.txt" )
+  message(FATAL_ERROR "The rocFFT submodule is not present!  Please update git submodules and try again. ${CMAKE_CURRENT_SOURCE_DIR}/rocFFT/CMakeLists.txt")
+endif( )
+
 target_include_directories(
   hipfft-test
   PRIVATE
@@ -57,7 +71,7 @@ target_include_directories(
   $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../rocFFT/library/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rocFFT/library/include>
   )
 
 target_link_libraries( hipfft-test

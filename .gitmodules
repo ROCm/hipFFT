@@ -1,3 +1,9 @@
 [submodule "rocFFT"]
 	path = rocFFT
 	url = https://github.com/ROCmSoftwarePlatform/rocFFT.git
+[submodule "clients/tests/rocFFT"]
+	path = clients/tests/rocFFT
+	url = https://github.com/ROCmSoftwarePlatform/rocFFT.git
+[submodule "a/rocFFT"]
+	path = a/rocFFT
+	url = https://github.com/ROCmSoftwarePlatform/rocFFT.git
