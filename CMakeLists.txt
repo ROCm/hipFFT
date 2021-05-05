@@ -29,11 +29,12 @@ set( CMAKE_CXX_STANDARD 14 )
 # Consider removing this in the future
 # This should appear before the project command, because it does not use FORCE
 if( WIN32 )
-  set( CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/package" CACHE PATH "Install path prefix, prepended onto install directories" )
-else( )
-  set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "Install path prefix, prepended onto install directories" )
-endif( )
-
+  set( CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/package" CACHE PATH
+    "Install path prefix, prepended onto install directories" )
+else()
+  set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH
+    "Install path prefix, prepended onto install directories" )
+endif()
 
 
 # Workarounds..
@@ -41,7 +42,8 @@ list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
 list( APPEND CMAKE_MODULE_PATH /opt/rocm/hip/cmake )
 
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
+# MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
   set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
@@ -49,33 +51,28 @@ endif()
 project( hipfft LANGUAGES CXX )
 
 # Build options
-option(BUILD_SHARED_LIBS "Build ${PROJECT_NAME} as a shared library" ON)
-option(BUILD_VERBOSE "Output additional build information" OFF)
+option( BUILD_SHARED_LIBS "Build ${PROJECT_NAME} as a shared library" ON )
+option( BUILD_VERBOSE "Output additional build information" OFF )
 
-set (BUILD_WITH_COMPILER "HOST-default" CACHE INTERNAL
-     "Build ${PROJECT_NAME} with compiler HIP-clang, HIP-nvcc, or jus the host default compiler, i.e. g++")
-set (BUILD_WITH_LIB "ROCM" CACHE STRING
-     "Build ${PROJECT_NAME} with ROCM or CUDA libraries" )
+set( BUILD_WITH_COMPILER "HOST-default" CACHE INTERNAL
+     "Build ${PROJECT_NAME} with compiler HIP-clang, HIP-nvcc, or just the host default compiler, eg g++")
+set( BUILD_WITH_LIB "ROCM" CACHE STRING "Build ${PROJECT_NAME} with ROCM or CUDA libraries" )
 
-option(BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF)
-option(BUILD_CLIENTS_SAMPLES "Build examples" OFF)
+option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF )
+option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 
 # Set internal BUILD_WITH_COMPILER.
-# TODO: more validity check.
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  set (BUILD_WITH_COMPILER "HOST-default")
-  if( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.4.0" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" )
-    message(FATAL_ERROR "Compiler is too old. Please use g++ 5.4.0 or newer")
-  endif( )
+  set( BUILD_WITH_COMPILER "HOST-default" )
 else()
   if( $ENV{HIP_PLATFORM} MATCHES "nvidia" )
-    set (BUILD_WITH_COMPILER "HIP-nvcc")
-  else( )
+    set( BUILD_WITH_COMPILER "HIP-nvcc" )
+  else()
     set( BUILD_WITH_COMPILER "HIP-clang" )
     if( NOT BUILD_WITH_LIB STREQUAL "ROCM" )
       message( FATAL_ERROR "Detected HIP_COMPILER=clang, but BUILD_WITH_LIB is not ROCM!" )
-    endif( )
-  endif( )
+    endif()
+  endif()
 endif()
 
 string( TOUPPER "${BUILD_WITH_COMPILER}" BUILD_WITH_COMPILER )
@@ -99,15 +96,17 @@ if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
 
   set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY}'" )
   set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY}'" )
-  set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
-  set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
-
+  set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN
+    "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
+  set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN
+    "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
 else()
   if( BUILD_WITH_COMPILER STREQUAL "HIP-CLANG" )
-    set( HIP_PLATFORM "hcc" )
+    set( HIP_PLATFORM "amd" )
     set( HIP_COMPILER "clang" )
-    set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING "List of specific machine types for library to target" )
-  endif( )
+    set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING
+      "List of specific machine types for library to target" )
+  endif()
 endif()
 
 # Show the actual compiler(internal option)
@@ -116,45 +115,29 @@ message(STATUS "BUILD_WITH_COMPILER = " ${BUILD_WITH_COMPILER})
 # Dependencies
 include(cmake/dependencies.cmake)
 
-if( BUILD_CLIENTS_TESTS )
-  if( GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" )
-    message(STATUS "rocFFT submodule update")
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
-    if( NOT GIT_SUBMOD_RESULT EQUAL "0" )
-      message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually.")
-    endif( )
-  endif( )
-
-  if( NOT EXISTS "${PROJECT_SOURCE_DIR}/rocFFT/CMakeLists.txt" )
-    message(FATAL_ERROR "The rocFFT submodule is not present!  Please update git submodules and try again.")
-  endif( )
-endif( )
-
 # Version
 set( VERSION_STRING "1.0.3" )
 set( hipfft_SOVERSION 0.1 )
 
 if( ROCM_FOUND )
   rocm_setup_version( VERSION ${VERSION_STRING} )
-endif( )
+endif()
 
 add_subdirectory( library )
 
 # force library install path to lib (CentOS 7 defaults to lib64)
-set(CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE)
+set( CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE )
 
 # Build clients of the library
 if( BUILD_CLIENTS )
   set( BUILD_CLIENTS_RIDER ON )
   set( BUILD_CLIENTS_SAMPLES ON )
   set( BUILD_CLIENTS_TESTS ON )
-endif( )
+endif()
 
 # Build clients of the library
 if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   add_subdirectory( clients )
-endif( )
+endif()
 

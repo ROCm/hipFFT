@@ -20,7 +20,7 @@
 
 #include <cassert>
 
-#include "../../rocFFT/shared/gpubuf.h"
+#include "rocFFT/shared/gpubuf.h"
 #include "accuracy_test.h"
 #include <boost/scope_exit.hpp>
 #include <hipfft.h>
