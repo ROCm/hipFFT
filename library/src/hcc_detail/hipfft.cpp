@@ -157,6 +157,20 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                      size_t*                    workSize,
                                      bool                       re_calc_strides_in_desc)
 {
+    // magic static to handle rocfft setup/cleanup
+    struct rocfft_initializer
+    {
+        rocfft_initializer()
+        {
+            rocfft_setup();
+        }
+        ~rocfft_initializer()
+        {
+            rocfft_cleanup();
+        }
+    };
+    static rocfft_initializer init;
+
     rocfft_plan_description ip_forward_desc = nullptr;
     rocfft_plan_description op_forward_desc = nullptr;
     rocfft_plan_description ip_inverse_desc = nullptr;
