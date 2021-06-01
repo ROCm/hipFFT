@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
 
     int itype;
     int otype; // Ignored; for compatibility with rocfft-rider.
-    
+
     // Declare the supported options.
 
     // clang-format doesn't handle boost program options very well:

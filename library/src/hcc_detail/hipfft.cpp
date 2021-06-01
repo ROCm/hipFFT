@@ -1277,6 +1277,6 @@ hipfftResult
     if(res != rocfft_status_success)
         return HIPFFT_INVALID_VALUE;
 #endif
-    
+
     return HIPFFT_SUCCESS;
 }
