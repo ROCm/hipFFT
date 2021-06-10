@@ -50,7 +50,7 @@ add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
 
 set_target_properties( hipfft-test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
-if( GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" )
+if( GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git" )
   message(STATUS "rocFFT submodule update")
   execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
