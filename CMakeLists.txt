@@ -60,6 +60,7 @@ set( BUILD_WITH_LIB "ROCM" CACHE STRING "Build ${PROJECT_NAME} with ROCM or CUDA
 
 option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF )
 option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
+option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 
 # Set internal BUILD_WITH_COMPILER.
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
@@ -106,6 +107,12 @@ else()
     set( HIP_COMPILER "clang" )
     set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING
       "List of specific machine types for library to target" )
+    
+    if(BUILD_ADDRESS_SANITIZER)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -shared-libasan")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -shared-libasan")
+      add_link_options(-fuse-ld=lld)
+    endif()
   endif()
 endif()
 
