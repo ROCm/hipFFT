@@ -7,7 +7,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Fixed
 - Add calls to rocFFT setup/cleanup.
 
-## [(Unreleased) hipFFT 1.0.3 for ROCm 4.3.0]
+## [hipFFT 1.0.3 for ROCm 4.3.0]
 
 ### Fixed
 - Cmake updates.
@@ -15,7 +15,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Added
 - Added callback API in hipfftXt.h header.
 
-## [(Unreleased) hipFFT 1.0.2 for ROCm 4.2.0]
+## [hipFFT 1.0.2 for ROCm 4.2.0]
 
 - No changes.
 
