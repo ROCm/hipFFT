@@ -30,11 +30,8 @@
 #include <hip/hip_runtime_api.h>
 #include <hip/library_types.h>
 
-#ifndef _WIN32
-#include <cstddef>
-#endif
-
 #ifdef __cplusplus
+#include <cstddef>
 extern "C" {
 #endif
 
