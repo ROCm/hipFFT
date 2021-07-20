@@ -7,6 +7,10 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Fixed
 - Add calls to rocFFT setup/cleanup.
 
+### Added
+
+- Added support for Windows 10 as a build target.
+
 ## [hipFFT 1.0.3 for ROCm 4.3.0]
 
 ### Fixed
