@@ -40,7 +40,35 @@ else()
 endif()
 
 # ROCm
-find_package( ROCM CONFIG PATHS /opt/rocm )
+find_package( ROCM 0.6 CONFIG PATHS /opt/rocm )
+if(NOT ROCM_FOUND)
+  set( rocm_cmake_tag "master" CACHE STRING "rocm-cmake tag to download" )
+  file( DOWNLOAD https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip
+      ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip STATUS status LOG log)
+
+  list(GET status 0 status_code)
+  list(GET status 1 status_string)
+
+  if(NOT status_code EQUAL 0)
+    message(WARNING "error: downloading
+    'https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip' failed
+    status_code: ${status_code}
+    status_string: ${status_string}
+    log: ${log}
+    ")
+  else()
+    message(STATUS "downloading... done")
+
+    execute_process( COMMAND ${CMAKE_COMMAND} -E tar xzvf ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip
+      WORKING_DIRECTORY ${PROJECT_EXTERN_DIR} )
+    execute_process( COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${PROJECT_EXTERN_DIR}/rocm-cmake .
+      WORKING_DIRECTORY ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag} )
+    execute_process( COMMAND ${CMAKE_COMMAND} --build rocm-cmake-${rocm_cmake_tag} --target install
+      WORKING_DIRECTORY ${PROJECT_EXTERN_DIR})
+
+    find_package( ROCM 0.6 CONFIG PATHS ${PROJECT_EXTERN_DIR}/rocm-cmake )
+  endif()
+endif()
 if( ROCM_FOUND )
   message(STATUS "Found ROCm")
   include(ROCMSetupVersion)
@@ -48,4 +76,6 @@ if( ROCM_FOUND )
   include(ROCMInstallTargets)
   include(ROCMPackageConfigHelpers)
   include(ROCMInstallSymlinks)
+else()
+  message(WARNING "Could not find rocm-cmake, packaging will fail.")
 endif( )
