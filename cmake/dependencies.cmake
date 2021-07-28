@@ -43,6 +43,7 @@ endif()
 find_package( ROCM 0.6 CONFIG PATHS /opt/rocm )
 if(NOT ROCM_FOUND)
   set( rocm_cmake_tag "master" CACHE STRING "rocm-cmake tag to download" )
+  set( PROJECT_EXTERN_DIR "${CMAKE_CURRENT_BINARY_DIR}/extern" )
   file( DOWNLOAD https://github.com/RadeonOpenCompute/rocm-cmake/archive/${rocm_cmake_tag}.zip
       ${PROJECT_EXTERN_DIR}/rocm-cmake-${rocm_cmake_tag}.zip STATUS status LOG log)
 
