@@ -4,8 +4,14 @@ Partial documentation for hipFFT is available at [hipFFT].
 
 ## (Unreleased) hipFFT 1.0.5
 
+### Added
+- Added support for Windows 10 as a build target.
+
 ### Changed
-- Packaging split into a runtime package called hipfft and a development package called hipfft-devel. The development package depends on runtime. The runtime package suggests the development package for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging is introduced as a deprecated feature and will be removed in a future rocm release.
+- Packaging split into a runtime package called hipfft and a development package called hipfft-devel. 
+  The development package depends on runtime. The runtime package suggests the development package 
+  for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging 
+  is introduced as a deprecated feature and will be removed in a future rocm release.
 
 ## [(Unreleased) hipFFT 1.0.4 for ROCm 4.4.0]
 
