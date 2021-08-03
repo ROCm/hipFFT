@@ -2,7 +2,7 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## [(Unreleased) hipFFT 1.0.4 for ROCm 4.4.0]
+## [hipFFT 1.0.4 for ROCm 4.4.0]
 
 ### Fixed
 - Add calls to rocFFT setup/cleanup.
