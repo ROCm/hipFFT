@@ -45,22 +45,29 @@ foreach( sample ${sample_list} )
 
   set_target_properties( ${sample} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
-  target_include_directories( ${sample}
-    PRIVATE $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-    )
-
+  target_link_libraries( ${sample} PRIVATE hip::hipfft )
+  
   if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-    find_package( hip REQUIRED )
-    target_link_libraries( ${sample} PRIVATE hip::host )
+    find_package( HIP MODULE REQUIRED )
+    if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+      target_link_libraries( ${sample} PRIVATE hip::host )
+    else()
+      target_compile_definitions( ${sample} PRIVATE __HIP_PLATFORM_NVIDIA__)
+      target_include_directories( ${sample} PRIVATE ${HIP_INCLUDE_DIRS})
+    endif()
   endif()
 
   if ( BUILD_WITH_LIB STREQUAL "CUDA" )
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )
   endif()
 
-  target_link_libraries( ${sample} PRIVATE hip::hipfft )
+  target_include_directories( ${sample}
+    PRIVATE
+    $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+    ${HIP_ROOT_DIR}
+    )
   
   set_target_properties( ${sample} PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
   set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )

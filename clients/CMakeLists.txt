@@ -26,15 +26,25 @@ cmake_minimum_required( VERSION 3.5 )
 # Consider removing this in the future
 # This should appear before the project command, because it does not use FORCE
 if( WIN32 )
-  set( CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/package" CACHE PATH "Install path prefix, prepended onto install directories" )
+  set( CMAKE_INSTALL_PREFIX
+    "${PROJECT_BINARY_DIR}/package"
+    CACHE
+    PATH
+    "Install path prefix, prepended onto install directories" )
 else( )
-  set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "Install path prefix, prepended onto install directories" )
+  set( CMAKE_INSTALL_PREFIX
+    "/opt/rocm"
+    CACHE
+    PATH
+    "Install path prefix, prepended onto install directories" )
 endif( )
 
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does
+# not use CMAKE_BUILD_TYPE
 if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
-  set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
+  set( CMAKE_BUILD_TYPE Release CACHE STRING
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
 
 # This project may compile dependencies for clients
@@ -44,12 +54,13 @@ list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 
 include( build-options )
 
-# This option only works for make/nmake and the ninja generators, but no reason it shouldn't be on all the time
+# This option only works for make/nmake and the ninja generators, but no reason it shouldn't be on
+# all the time
 # This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-# if hipfft is not a target, then we know clients are built separately from the library and we must search
-# for the hipfft package
+# if hipfft is not a target, then we know clients are built separately from the library and we must
+# search for the hipfft package
 if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
 endif( )

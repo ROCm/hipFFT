@@ -104,6 +104,11 @@ set_target_properties( hipfft PROPERTIES CXX_EXTENSIONS NO )
 set_target_properties( hipfft PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 set_target_propertieS( hipfft PROPERTIES DEBUG_POSTFIX "-d" )
 
+if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
+  set_property(TARGET hipfft PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set ( CXX_FLAGS "${CXX_FLAGS} -Xcompiler=-fPIC" )
+endif()
+
 #TODO:
 # hipcc(with nvcc backend) build has problem for share library visibility,
 # need to figure out the reason and enable visibility "hidden" for nvcc eventually.

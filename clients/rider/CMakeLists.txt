@@ -25,10 +25,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
-if(NOT Boost_LIBRARIES)
-  # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
-  set(Boost_LIBRARIES Boost::program_options)
-endif()
 
 set( hipfft_rider_source rider.cpp )
 set( hipfft_rider_includes rider.h )
@@ -44,17 +40,32 @@ target_include_directories( hipfft-rider
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
   )
-
+  
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  find_package( hip REQUIRED )
-  target_link_libraries( hipfft-rider PRIVATE hip::host )
+  if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+    find_package( HIP REQUIRED )
+    target_link_libraries( hipfft-rider PRIVATE hip::host )
+  else()
+
+    target_compile_definitions( hipfft-rider PRIVATE __HIP_PLATFORM_NVIDIA__)
+    target_include_directories( hipfft-rider PRIVATE ${HIP_INCLUDE_DIRS})
+  endif()
+else()
+  if( BUILD_WITH_LIB STREQUAL "CUDA" )
+    # NVCC doesn't like linking with files that don't end in .so, so
+    # we add a hack to remove the version number as the suffix.
+    string(REGEX REPLACE
+      \.${boost_program_options_VERSION} ""
+      Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE
+      ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE})
+  endif()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
 endif()
 
-target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_LIBRARIES} )
+target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )
 
 set_target_properties( hipfft-rider PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
 set_target_properties( hipfft-rider PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )

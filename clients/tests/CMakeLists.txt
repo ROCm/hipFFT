@@ -23,11 +23,6 @@
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
-if(NOT Boost_LIBRARIES)
-  # Fixes a bug in Boost's CMAKE where Boost_LIBRARIES is not set.
-  set(Boost_LIBRARIES Boost::program_options)
-endif()
-
 find_package( FFTW 3.0 REQUIRED MODULE COMPONENTS FLOAT DOUBLE )
 
 set( THREADS_PREFER_PTHREAD_FLAG ON )
@@ -74,12 +69,6 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rocFFT/library/include>
   )
 
-target_link_libraries( hipfft-test
-  PRIVATE
-  ${FFTW_LIBRARIES}
-  ${Boost_LIBRARIES}
-  Threads::Threads
-  )
 
 if( GTEST_FOUND )
   target_include_directories( hipfft-test PRIVATE $<BUILD_INTERFACE:${GTEST_INCLUDE_DIRS}> )
@@ -91,13 +80,35 @@ else()
 endif()
 
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  find_package( hip REQUIRED )
-  target_link_libraries( hipfft-test PRIVATE hip::host )
+  if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+    find_package( HIP MODULE REQUIRED )
+    target_link_libraries( hipfft-test PRIVATE hip::host )
+  else()
+    target_compile_definitions( hipfft-test PRIVATE __HIP_PLATFORM_NVIDIA__)
+    target_include_directories( hipfft-test PRIVATE ${HIP_INCLUDE_DIRS})
+  endif()
+else()
+  if( BUILD_WITH_LIB STREQUAL "CUDA" )
+    # NVCC doesn't like linking with files that don't end in .so, so
+    # we add a hack to remove the version number as the suffix.
+    string(REGEX REPLACE
+      \.${boost_program_options_VERSION} ""
+      Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE
+      ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE})
+  endif()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-test  PRIVATE ${CUDA_LIBRARIES} )
+  target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )
 endif()
+
+target_link_libraries( hipfft-test
+  PRIVATE
+  ${FFTW_LIBRARIES}
+   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} 
+  Threads::Threads
+  )
 
 target_link_libraries( hipfft-test  PRIVATE hip::hipfft )
 

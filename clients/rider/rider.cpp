@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include <cmath>
+#include <complex>
 #include <cstddef>
 #include <iostream>
 #include <numeric>
