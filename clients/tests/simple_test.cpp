@@ -94,7 +94,7 @@ TEST(hipfftTest, CheckBufferSizeC2C)
     size_t workSize = 0;
 
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_C2C, 1, &workSize) == HIPFFT_SUCCESS);
-#ifndef __HIP_PLATFORM_NVCC__
+#ifndef _CUFFT_BACKEND
     // No extra work buffer for C2C
     EXPECT_TRUE(0 == workSize);
 #endif
@@ -110,7 +110,7 @@ TEST(hipfftTest, CheckBufferSizeR2C)
 
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_R2C, 1, &workSize) == HIPFFT_SUCCESS);
 
-#ifndef __HIP_PLATFORM_NVCC__
+#ifndef _CUFFT_BACKEND
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -132,7 +132,7 @@ TEST(hipfftTest, CheckBufferSizeC2R)
 
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_C2R, 1, &workSize) == HIPFFT_SUCCESS);
 
-#ifndef __HIP_PLATFORM_NVCC__
+#ifndef _CUFFT_BACKEND
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -155,7 +155,7 @@ TEST(hipfftTest, CheckBufferSizeD2Z)
 
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_D2Z, batch, &workSize) == HIPFFT_SUCCESS);
 
-#ifndef __HIP_PLATFORM_NVCC__
+#ifndef _CUFFT_BACKEND
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -179,7 +179,7 @@ TEST(hipfftTest, CheckBufferSizeZ2D)
 
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize) == HIPFFT_SUCCESS);
 
-#ifndef __HIP_PLATFORM_NVCC__
+#ifndef _CUFFT_BACKEND
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);

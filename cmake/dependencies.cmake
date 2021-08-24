@@ -25,13 +25,19 @@
 find_package(Git REQUIRED)
 
 # HIP
-if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
-  find_package(hip REQUIRED)
+if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+    find_package( HIP REQUIRED )
+    list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
+  endif()
 else()
-  find_package(HIP REQUIRED)
-  list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
+  if( BUILD_WITH_LIB STREQUAL "CUDA" )
+    set(HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include")
+  else()
+    find_package( HIP REQUIRED )
+  endif()
 endif()
-
+  
 # Either rocfft or cufft is required
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
   find_package(rocfft REQUIRED)
