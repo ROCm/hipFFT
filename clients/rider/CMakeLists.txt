@@ -43,7 +43,11 @@ target_include_directories( hipfft-rider
   
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-    find_package( HIP REQUIRED )
+    if( WIN32 )
+      find_package( HIP CONFIG REQUIRED )
+    else()
+      find_package( HIP MODULE REQUIRED )
+    endif()
     target_link_libraries( hipfft-rider PRIVATE hip::host )
   else()
 
