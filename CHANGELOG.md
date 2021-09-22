@@ -2,7 +2,11 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## (Unreleased) hipFFT 1.0.5
+## hipFFT 1.0.5 for ROCm 4.5.0
+
+### Fixed
+- Add calls to rocFFT setup/cleanup.
+- Cmake fixes for clients and backend support.
 
 ### Added
 - Added support for Windows 10 as a build target.
@@ -13,17 +17,7 @@ Partial documentation for hipFFT is available at [hipFFT].
   for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging
   is introduced as a deprecated feature and will be removed in a future rocm release.
 
-## [(Unreleased) hipFFT 1.0.4 for ROCm 4.4.0]
-
-### Fixed
-- Add calls to rocFFT setup/cleanup.
-- Cmake fixes for clients and backend support.
-
-### Added
-
-- Added support for Windows 10 as a build target.
-
-## [hipFFT 1.0.3 for ROCm 4.3.0]
+## hipFFT 1.0.3 for ROCm 4.3.0
 
 ### Fixed
 - Cmake updates.
@@ -31,11 +25,11 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Added
 - Added callback API in hipfftXt.h header.
 
-## [hipFFT 1.0.2 for ROCm 4.2.0]
+## hipFFT 1.0.2 for ROCm 4.2.0
 
 - No changes.
 
-## [hipFFT 1.0.1 for ROCm 4.1.0]
+## hipFFT 1.0.1 for ROCm 4.1.0
 
 ### Fixed
 - Fix batch support for `hipfftMakePlanMany`.
