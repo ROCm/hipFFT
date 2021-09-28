@@ -269,3 +269,75 @@ TEST(hipfftTest, RunR2C)
     EXPECT_TRUE(nrmse < type_epsilon<double>());
     fftw_free(ref_out);
 }
+
+// ask for a transform whose parameters are only valid out-of-place.
+// since hipFFT generates both in-place and out-place plans up front
+// (because it's not told about the placement until exec time), this
+// ensures that a failure to create an in-place plan doesn't prevent
+// the out-place plan from working.
+TEST(hipfftTest, OutplaceOnly)
+{
+    int   N_in  = 4;
+    int   N_out = N_in / 2 + 1;
+    float in[N_in];
+    for(int i = 0; i < N_in; i++)
+        in[i] = i + (i % 3) - (i % 7);
+
+    hipfftReal*    d_in;
+    hipfftComplex* d_out;
+    hipMalloc(&d_in, N_in * sizeof(hipfftReal));
+    hipMalloc(&d_out, N_out * sizeof(hipfftComplex));
+
+    hipMemcpy(d_in, in, N_in * sizeof(hipfftReal), hipMemcpyHostToDevice);
+
+    hipfftHandle plan;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
+
+    ASSERT_EQ(hipfftPlanMany(&plan, 1, &N_in, &N_in, 1, N_in, &N_out, 1, N_out, HIPFFT_R2C, 1),
+              HIPFFT_SUCCESS);
+
+    ASSERT_EQ(hipfftExecR2C(plan, d_in, d_out), HIPFFT_SUCCESS);
+
+    std::vector<hipfftComplex> out(N_out);
+    hipMemcpy(out.data(), d_out, N_out * sizeof(hipfftComplex), hipMemcpyDeviceToHost);
+
+    // in-place transform isn't really *supposed* to work - this
+    // might or might not fail but we can at least check that it
+    // doesn't blow up.
+    hipfftExecR2C(plan, reinterpret_cast<hipfftReal*>(d_out), d_out);
+
+    hipfftDestroy(plan);
+    hipFree(d_in);
+    hipFree(d_out);
+
+    double ref_in[N_in];
+    for(int i = 0; i < N_in; i++)
+        ref_in[i] = in[i];
+
+    fftw_complex* ref_out;
+    fftw_plan     ref_p;
+
+    ref_out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N_out);
+    ref_p   = fftw_plan_dft_r2c_1d(N_in, ref_in, ref_out, FFTW_ESTIMATE);
+    fftw_execute(ref_p);
+
+    double maxv  = 0;
+    double nrmse = 0; // normalized root mean square error
+    for(int i = 0; i < N_out; i++)
+    {
+        // printf("element %d: FFTW result %f, %f; hipFFT result %f, %f \n", \
+        //   (int)i, ref_out[i][0], ref_out[i][1], out[i].x, out[i].y);
+        double dr = ref_out[i][0] - out[i].x;
+        double di = ref_out[i][1] - out[i].y;
+        maxv      = fabs(ref_out[i][0]) > maxv ? fabs(ref_out[i][0]) : maxv;
+        maxv      = fabs(ref_out[i][1]) > maxv ? fabs(ref_out[i][1]) : maxv;
+
+        nrmse += ((dr * dr) + (di * di));
+    }
+    nrmse /= (double)(N_out);
+    nrmse = sqrt(nrmse);
+    nrmse /= maxv;
+
+    ASSERT_TRUE(nrmse < type_epsilon<double>());
+    fftw_free(ref_out);
+}
