@@ -50,6 +50,7 @@ include( GNUInstallDirs )
 set( BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR} )
 set( LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR} )
 set( INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR} )
+set( CMAKE_INSTALL_INCLUDEDIR  ${CMAKE_INSTALL_INCLUDEDIR}/hipfft )
 
 # nvcc can not recognize shared libraray file name with suffix other than *.so when linking.
 #if (NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
@@ -118,14 +119,12 @@ if( ROCM_FOUND )
   rocm_install_targets( TARGETS hipfft
     INCLUDE
     ${CMAKE_SOURCE_DIR}/library/include
-    ${CMAKE_BINARY_DIR}/include
-    PREFIX hipfft )
+    ${CMAKE_BINARY_DIR}/include )
+    
   rocm_export_targets( TARGETS hip::hipfft
-    PREFIX hipfft
     DEPENDS PACKAGE hip
     NAMESPACE hip:: )
-  rocm_install_symlink_subdir( hipfft )
-
+  
   # Package specific CPACK vars
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
