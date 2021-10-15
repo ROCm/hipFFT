@@ -54,6 +54,21 @@ list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 
 include( build-options )
 
+if( GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git" )
+  message(STATUS "rocFFT submodule update")
+  execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/clients/rocFFT
+    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+  if( NOT GIT_SUBMOD_RESULT EQUAL "0" )
+    message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually.")
+  endif( )
+endif( )
+
+if( NOT EXISTS "${CMAKE_SOURCE_DIR}/clients/rocFFT/CMakeLists.txt" )
+  message(FATAL_ERROR "The rocFFT submodule is not present!  Please update git submodules and try again. ${CMAKE_CURRENT_SOURCE_DIR}/clients/rocFFT/CMakeLists.txt")
+endif( )
+
+
 # This option only works for make/nmake and the ninja generators, but no reason it shouldn't be on
 # all the time
 # This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim

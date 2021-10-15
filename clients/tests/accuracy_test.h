@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "rocFFT/clients/tests/accuracy_test.h"
-#include "rocFFT/clients/tests/rocfft_against_fftw.h"
+#include "../rocFFT/clients/tests/accuracy_test.h"
+#include "../rocFFT/clients/tests/rocfft_against_fftw.h"
 
 class hipfft_accuracy_test : public ::testing::TestWithParam<std::tuple<std::vector<size_t>,
                                                                         size_t,
