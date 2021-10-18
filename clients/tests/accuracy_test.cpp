@@ -72,178 +72,85 @@ void hipfft_transform(const std::vector<size_t>                                 
         gpu_params.placement, gpu_params.transform_type, gpu_params.length, gpu_params.ostride);
     gpu_params.osize.push_back(gpu_params.odist * gpu_params.nbatch);
 
-    if(transformType == rocfft_transform_type_complex_forward
-       || transformType == rocfft_transform_type_complex_inverse)
+    // int array for hipttfPlanMany
+    int n[3];
+    for(int i = 0; i < dim; ++i)
+        n[i] = (int)length[i];
+
+    hipfftType hipfft_transform_type;
+    switch(gpu_params.precision)
     {
-        gpu_params.itype = rocfft_array_type_complex_interleaved;
-        gpu_params.otype = rocfft_array_type_complex_interleaved;
-        if(gpu_params.precision == rocfft_precision_single)
+    case rocfft_precision_single:
+        switch(gpu_params.transform_type)
         {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_C2C,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2C, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2C);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_C2C);
+        case rocfft_transform_type_complex_forward:
+        case rocfft_transform_type_complex_inverse:
+            hipfft_transform_type = HIPFFT_C2C;
+            break;
+        case rocfft_transform_type_real_forward:
+            hipfft_transform_type = HIPFFT_R2C;
+            break;
+        case rocfft_transform_type_real_inverse:
+            hipfft_transform_type = HIPFFT_C2R;
+            break;
+        default:
+            throw std::runtime_error("Invalid transform type");
         }
-        if(gpu_params.precision == rocfft_precision_double)
+        break;
+    case rocfft_precision_double:
+        switch(transformType)
         {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_Z2Z,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2Z, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2Z);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_Z2Z);
+        case rocfft_transform_type_complex_forward:
+        case rocfft_transform_type_complex_inverse:
+            hipfft_transform_type = HIPFFT_Z2Z;
+            break;
+        case rocfft_transform_type_real_forward:
+            hipfft_transform_type = HIPFFT_D2Z;
+            break;
+        case rocfft_transform_type_real_inverse:
+            hipfft_transform_type = HIPFFT_Z2D;
+            break;
+        default:
+            throw std::runtime_error("Invalid transform type");
+        }
+        break;
+    default:
+        throw std::runtime_error("Invalid precision");
+    }
+
+    if(gpu_params.nbatch > 1)
+    {
+        fft_status = hipfftPlanMany(&plan,
+                                    dim,
+                                    n,
+                                    nullptr,
+                                    1,
+                                    gpu_params.idist,
+                                    nullptr,
+                                    1,
+                                    gpu_params.odist,
+                                    hipfft_transform_type,
+                                    gpu_params.nbatch);
+    }
+    else
+    {
+        switch(dim)
+        {
+        case 1:
+            fft_status = hipfftPlan1d(&plan, length[0], hipfft_transform_type, 1);
+            break;
+        case 2:
+            fft_status = hipfftPlan2d(&plan, length[0], length[1], hipfft_transform_type);
+            break;
+        case 3:
+            fft_status
+                = hipfftPlan3d(&plan, length[0], length[1], length[2], hipfft_transform_type);
+            break;
+        default:
+            throw std::runtime_error("Invalid dimension");
         }
     }
-    else if(gpu_params.transform_type == rocfft_transform_type_real_forward)
-    {
-        gpu_params.itype = rocfft_array_type_real;
-        gpu_params.otype = rocfft_array_type_hermitian_interleaved;
-        if(gpu_params.precision == rocfft_precision_single)
-        {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_R2C,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_R2C, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_R2C);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_R2C);
-        }
-        if(gpu_params.precision == rocfft_precision_double)
-        {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_D2Z,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_D2Z, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_D2Z);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_D2Z);
-        }
-    }
-    else if(gpu_params.transform_type == rocfft_transform_type_real_inverse)
-    {
-        gpu_params.itype = rocfft_array_type_hermitian_interleaved;
-        gpu_params.otype = rocfft_array_type_real;
-        if(gpu_params.precision == rocfft_precision_single)
-        {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_C2R,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_C2R, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_C2R);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_C2R);
-        }
-        if(gpu_params.precision == rocfft_precision_double)
-        {
-            if(gpu_params.nbatch > 1)
-            {
-                int n[3];
-                for(int i = 0; i < dim; ++i)
-                    n[i] = (int)length[i];
-                fft_status = hipfftPlanMany(&plan,
-                                            dim,
-                                            n,
-                                            nullptr,
-                                            1,
-                                            gpu_params.idist,
-                                            nullptr,
-                                            1,
-                                            gpu_params.odist,
-                                            HIPFFT_Z2D,
-                                            gpu_params.nbatch);
-            }
-            else if(dim == 1)
-                fft_status = hipfftPlan1d(&plan, length[0], HIPFFT_Z2D, 1);
-            else if(dim == 2)
-                fft_status = hipfftPlan2d(&plan, length[0], length[1], HIPFFT_Z2D);
-            else if(dim == 3)
-                fft_status = hipfftPlan3d(&plan, length[0], length[1], length[2], HIPFFT_Z2D);
-        }
-    }
+
     EXPECT_TRUE(fft_status == HIPFFT_SUCCESS) << "hipFFT plan creation failure";
 
     auto gpu_input = allocate_host_buffer<fftwAllocator<char>>(
