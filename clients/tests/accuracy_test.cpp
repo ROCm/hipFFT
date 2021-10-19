@@ -118,6 +118,27 @@ void hipfft_transform(const std::vector<size_t>                                 
         throw std::runtime_error("Invalid precision");
     }
 
+    switch(hipfft_transform_type)
+    {
+    case HIPFFT_C2C:
+    case HIPFFT_Z2Z:
+        gpu_params.itype = rocfft_array_type_complex_interleaved;
+        gpu_params.otype = rocfft_array_type_complex_interleaved;
+        break;
+    case HIPFFT_R2C:
+    case HIPFFT_D2Z:
+        gpu_params.itype = rocfft_array_type_real;
+        gpu_params.otype = rocfft_array_type_hermitian_interleaved;
+        break;
+    case HIPFFT_C2R:
+    case HIPFFT_Z2D:
+        gpu_params.itype = rocfft_array_type_hermitian_interleaved;
+        gpu_params.otype = rocfft_array_type_real;
+        break;
+    default:
+        throw std::runtime_error("Invalid transform type");
+    }
+
     if(gpu_params.nbatch > 1)
     {
         fft_status = hipfftPlanMany(&plan,
