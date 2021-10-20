@@ -1016,6 +1016,8 @@ static hipfftResult hipfftExec(const rocfft_plan&           rplan,
                                void*                        idata,
                                void*                        odata)
 {
+    if(!rplan)
+        return HIPFFT_EXEC_FAILED;
     if(!idata || !odata)
         return HIPFFT_EXEC_FAILED;
     void*      in[1]  = {(void*)idata};
