@@ -1016,23 +1016,24 @@ static hipfftResult hipfftExec(const rocfft_plan&           rplan,
                                void*                        idata,
                                void*                        odata)
 {
-    void* in[1]  = {(void*)idata};
-    void* out[1] = {(void*)odata};
-    // TODO: now we can get rid of the pragma.
-    const auto ret = rocfft_execute(rplan, in, out, rinfo);
+    if(!idata || !odata)
+        return HIPFFT_EXEC_FAILED;
+    void*      in[1]  = {(void*)idata};
+    void*      out[1] = {(void*)odata};
+    const auto ret    = rocfft_execute(rplan, in, out, rinfo);
     return ret == rocfft_status_success ? HIPFFT_SUCCESS : HIPFFT_EXEC_FAILED;
 }
 
 static hipfftResult hipfftExecForward(hipfftHandle plan, void* idata, void* odata)
 {
-    const bool inplace = odata && (idata == odata);
+    const bool inplace = idata == odata;
     const auto rplan   = get_exec_plan(plan, inplace, HIPFFT_FORWARD);
     return hipfftExec(rplan, plan->info, idata, odata);
 }
 
 static hipfftResult hipfftExecBackward(hipfftHandle plan, void* idata, void* odata)
 {
-    const bool inplace = odata && (idata == odata);
+    const bool inplace = idata == odata;
     const auto rplan   = get_exec_plan(plan, inplace, HIPFFT_BACKWARD);
     return hipfftExec(rplan, plan->info, idata, odata);
 }
