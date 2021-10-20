@@ -41,14 +41,6 @@
         }                                \
     }
 
-#define ROC_FFT_CHECK_EXEC_FAILED(ret)   \
-    {                                    \
-        if(ret != rocfft_status_success) \
-        {                                \
-            return HIPFFT_EXEC_FAILED;   \
-        }                                \
-    }
-
 #define HIP_FFT_CHECK_AND_RETURN(ret) \
     {                                 \
         if(ret != HIPFFT_SUCCESS)     \
@@ -1006,60 +998,66 @@ hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
     return HIPFFT_SUCCESS;
 }
 
-// find the specific plan to execute - check placement and direction
-static rocfft_plan get_exec_plan(hipfftHandle plan, bool inplace, int direction)
+// Find the specific plan to execute - check placement and direction
+static rocfft_plan get_exec_plan(const hipfftHandle plan, const bool inplace, const int direction)
 {
-    if(inplace && direction == HIPFFT_FORWARD)
-        return plan->ip_forward;
-    else if(inplace && direction == HIPFFT_BACKWARD)
-        return plan->ip_inverse;
-    else if(!inplace && direction == HIPFFT_FORWARD)
-        return plan->op_forward;
-    else if(!inplace && direction == HIPFFT_BACKWARD)
-        return plan->op_inverse;
+    switch(direction)
+    {
+    case HIPFFT_FORWARD:
+        return inplace ? plan->ip_forward : plan->op_forward;
+    case HIPFFT_BACKWARD:
+        return inplace ? plan->ip_inverse : plan->op_inverse;
+    }
     return nullptr;
+}
+
+static hipfftResult hipfftExec(const rocfft_plan&           rplan,
+                               const rocfft_execution_info& rinfo,
+                               void*                        idata,
+                               void*                        odata)
+{
+    void* in[1]  = {(void*)idata};
+    void* out[1] = {(void*)odata};
+    // TODO: now we can get rid of the pragma.
+    const auto ret = rocfft_execute(rplan, in, out, rinfo);
+    return ret == rocfft_status_success ? HIPFFT_SUCCESS : HIPFFT_EXEC_FAILED;
+}
+
+static hipfftResult hipfftExecForward(hipfftHandle plan, void* idata, void* odata)
+{
+    const bool inplace = odata && (idata == odata);
+    const auto rplan   = get_exec_plan(plan, inplace, HIPFFT_FORWARD);
+    return hipfftExec(rplan, plan->info, idata, odata);
+}
+
+static hipfftResult hipfftExecBackward(hipfftHandle plan, void* idata, void* odata)
+{
+    const bool inplace = odata && (idata == odata);
+    const auto rplan   = get_exec_plan(plan, inplace, HIPFFT_BACKWARD);
+    return hipfftExec(rplan, plan->info, idata, odata);
 }
 
 hipfftResult
     hipfftExecC2C(hipfftHandle plan, hipfftComplex* idata, hipfftComplex* odata, int direction)
 {
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], direction), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    switch(direction)
+    {
+    case HIPFFT_FORWARD:
+        return hipfftExecForward(plan, idata, odata);
+    case HIPFFT_BACKWARD:
+        return hipfftExecBackward(plan, idata, odata);
+    }
+    return HIPFFT_EXEC_FAILED;
 }
 
 hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal* idata, hipfftComplex* odata)
 {
-
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], HIPFFT_FORWARD), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    return hipfftExecForward(plan, idata, odata);
 }
 
 hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex* idata, hipfftReal* odata)
 {
-
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], HIPFFT_BACKWARD), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    return hipfftExecBackward(plan, idata, odata);
 }
 
 hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
@@ -1067,44 +1065,24 @@ hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
                            hipfftDoubleComplex* odata,
                            int                  direction)
 {
-
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], direction), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    switch(direction)
+    {
+    case HIPFFT_FORWARD:
+        return hipfftExecForward(plan, idata, odata);
+    case HIPFFT_BACKWARD:
+        return hipfftExecBackward(plan, idata, odata);
+    }
+    return HIPFFT_EXEC_FAILED;
 }
 
 hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* idata, hipfftDoubleComplex* odata)
 {
-
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], HIPFFT_FORWARD), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    return hipfftExecForward(plan, idata, odata);
 }
 
 hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* idata, hipfftDoubleReal* odata)
 {
-
-    void* in[1];
-    in[0] = (void*)idata;
-
-    void* out[1];
-    out[0] = (void*)odata;
-
-    ROC_FFT_CHECK_EXEC_FAILED(
-        rocfft_execute(get_exec_plan(plan, in[0] == out[0], HIPFFT_BACKWARD), in, out, plan->info));
-    return HIPFFT_SUCCESS;
+    return hipfftExecBackward(plan, idata, odata);
 }
 
 hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream)
