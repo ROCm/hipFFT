@@ -38,7 +38,7 @@ endif()
 
 
 # Workarounds..
-list( APPEND CMAKE_PREFIX_PATH /opt/rocm )
+list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
 list( APPEND CMAKE_MODULE_PATH /opt/rocm/lib/cmake/hip )
 
 # This has to be initialized before the project() command appears
