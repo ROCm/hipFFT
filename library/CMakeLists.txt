@@ -121,7 +121,18 @@ endif()
 include( GenerateExportHeader )
 generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft-export.h )
 
-# Packaing...
+# Packaging...
+if(WIN32)
+  set(CPACK_SOURCE_GENERATOR "ZIP")
+  set(CPACK_GENERATOR "ZIP")
+  set(CMAKE_INSTALL_PREFIX "C:/hipSDK" CACHE PATH "Install path" FORCE)
+  set(INSTALL_PREFIX "C:/hipSDK")
+  set(CPACK_SET_DESTDIR OFF)
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/hipSDK")
+  set(CPACK_PACKAGING_INSTALL_PREFIX "")
+  set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+endif()
+
 if( ROCM_FOUND )
   rocm_install_targets( TARGETS hipfft
     INCLUDE
@@ -164,3 +175,4 @@ if( ROCM_FOUND )
     LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
     )
 endif()
+
