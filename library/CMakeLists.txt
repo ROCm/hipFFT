@@ -115,17 +115,22 @@ generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hi
 
 # Packaing...
 if( ROCM_FOUND )
-  rocm_install_targets( TARGETS hipfft
-    INCLUDE
-    ${CMAKE_SOURCE_DIR}/library/include
-    ${CMAKE_BINARY_DIR}/include
-    PREFIX hipfft )
+  rocm_install_targets( TARGETS hipfft )
+  
+  install(
+    DIRECTORY
+    "include/"
+    "${PROJECT_BINARY_DIR}/include/"
+    DESTINATION include/hipfft/
+    FILES_MATCHING
+    PATTERN "*.h"
+    PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ )
+  
+  
   rocm_export_targets( TARGETS hip::hipfft
-    PREFIX hipfft
     DEPENDS PACKAGE hip
     NAMESPACE hip:: )
-  rocm_install_symlink_subdir( hipfft )
-
+  
   # Package specific CPACK vars
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
