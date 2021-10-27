@@ -13,7 +13,7 @@ Partial documentation for hipFFT is available at [hipFFT].
   for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging
   is introduced as a deprecated feature and will be removed in a future rocm release.
 
-## [(Unreleased) hipFFT 1.0.4 for ROCm 4.4.0]
+## [hipFFT 1.0.4 for ROCm 4.4.0]
 
 ### Fixed
 - Add calls to rocFFT setup/cleanup.
