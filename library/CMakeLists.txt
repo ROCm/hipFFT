@@ -78,7 +78,7 @@ target_include_directories( hipfft
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
-  $<INSTALL_INTERFACE:include/hipfft>
+  $<INSTALL_INTERFACE:include>
   )
 
 if( ROCFFT_CALLBACKS_ENABLED )
