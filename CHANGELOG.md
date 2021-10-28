@@ -2,6 +2,11 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## (Unreleased) hipFFT 1.0.6
+
+### Fixed
+- Fixed incorrect reporting of rocFFT version.
+
 ## (Unreleased) hipFFT 1.0.5
 
 ### Added
