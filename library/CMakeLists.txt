@@ -31,6 +31,9 @@ if( BUILD_VERBOSE )
   include( ../cmake/verbose.cmake )
 endif()
 
+find_package(HIP REQUIRED)
+set(HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include")
+
 # Configure a header file to pass the hipFFT version
 configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft-version.h.in"
   "${PROJECT_BINARY_DIR}/include/hipfft-version.h"
@@ -79,6 +82,7 @@ target_include_directories( hipfft
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
   $<INSTALL_INTERFACE:include>
+  ${HIP_INCLUDE_DIRS}
   )
 
 if( ROCFFT_CALLBACKS_ENABLED )
