@@ -39,9 +39,12 @@ __device__ hipfftDoubleComplex load_callback(hipfftDoubleComplex* input,
 {
     auto data = static_cast<load_cbdata*>(cbdata);
 
-    // multiply each element by filter element and scale
-    return (input[offset] * data->filter[offset]) * data->scale;
+    // NB: for optimal performance, one may need a custom
+    // multiplication operator.
+    return hipCmul(hipCmul(input[offset], data->filter[offset]),
+                   make_hipDoubleComplex(data->scale, 0));
 }
+
 __device__ auto load_callback_dev = load_callback;
 
 int main()

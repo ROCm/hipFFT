@@ -33,11 +33,14 @@ set( sample_list
   hipfft_2d_d2z
   hipfft_3d_z2z
   hipfft_3d_d2z
-  hipfft_callback
   hipfft_planmany_2d_z2z
   hipfft_planmany_2d_r2c
   hipfft_setworkarea
   )
+
+if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+  list( APPEND sample_list hipfft_callback )
+endif()
 
 foreach( sample ${sample_list} )
 
