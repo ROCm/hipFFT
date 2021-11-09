@@ -39,7 +39,7 @@ endif()
 
 # Workarounds..
 list( APPEND CMAKE_PREFIX_PATH /opt/rocm/llvm /opt/rocm )
-list( APPEND CMAKE_MODULE_PATH /opt/rocm/hip/cmake )
+list( APPEND CMAKE_MODULE_PATH /opt/rocm/lib/cmake/hip )
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.

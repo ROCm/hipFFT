@@ -91,8 +91,8 @@ ci: {
     }
     
     String gBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                            -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
-                            -DCMAKE_MODULE_PATH="/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
+                            -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/include \
+                            -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/share/rocm/cmake" \
                             -DBUILD_CLIENTS_TESTS=ON -L ../..'
 
     setupCI(urlJobName, jobNameList, gBuildCommand, runCI, 'g++')
