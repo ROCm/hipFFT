@@ -24,7 +24,7 @@
 #ifndef HIPFFTXT_H_
 #define HIPFFTXT_H_
 #pragma once
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 
 #ifdef __HIP_PLATFORM_NVCC__
 #include <cufftXt.h>
