@@ -23,8 +23,8 @@
 #include <vector>
 
 #include <hip/hip_runtime.h>
-#include <hipfft.h>
-#include <hipfftXt.h>
+#include <hipfft/hipfft.h>
+#include <hipfft/hipfftXt.h>
 
 struct load_cbdata
 {

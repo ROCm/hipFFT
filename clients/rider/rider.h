@@ -21,7 +21,7 @@
 #ifndef RIDER_H
 #define RIDER_H
 
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 #include <vector>
 
 // This is used to either wrap a HIP function call, or to explicitly check a variable
