@@ -24,8 +24,8 @@
 #ifndef HIPFFT_H_
 #define HIPFFT_H_
 #pragma once
-#include "hipfft-export.h"
-#include "hipfft-version.h"
+#include "hipfft/hipfft-export.h"
+#include "hipfft/hipfft-version.h"
 #include <hip/hip_complex.h>
 #include <hip/hip_runtime_api.h>
 #include <hip/library_types.h>

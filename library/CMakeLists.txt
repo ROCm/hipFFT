@@ -32,15 +32,24 @@ if( BUILD_VERBOSE )
 endif()
 
 # Configure a header file to pass the hipFFT version
-configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft-version.h.in"
-  "${PROJECT_BINARY_DIR}/include/hipfft-version.h"
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft/hipfft-version.h.in"
+  "${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h"
   )
+
+# Copy Public Headers to Build Dir
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft/hipfft.h"
+  "${PROJECT_BINARY_DIR}/include/hipfft/hipfft.h" COPYONLY
+  )
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft/hipfftXt.h"
+  "${PROJECT_BINARY_DIR}/include/hipfft/hipfftXt.h" COPYONLY
+  )
+
 
 # Public hipFFT headers
 set( hipfft_headers_public
-  include/hipfft.h
-  include/hipfftXt.h
-  ${PROJECT_BINARY_DIR}/include/hipfft-version.h
+  include/hipfft/hipfft.h
+  include/hipfft/hipfftXt.h
+  ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h
   )
 
 source_group( "Header Files\\Public" FILES ${hipfft_headers_public} )
@@ -119,7 +128,7 @@ endif()
 
 # Generate export header
 include( GenerateExportHeader )
-generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft-export.h )
+generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-export.h )
 
 # Packaging...
 if(WIN32)
@@ -137,8 +146,8 @@ if( ROCM_FOUND )
   rocm_install_targets( TARGETS hipfft)
   install(
     DIRECTORY
-    "include/"
-    "${PROJECT_BINARY_DIR}/include/"
+    "include/hipfft/"
+    "${PROJECT_BINARY_DIR}/include/hipfft/"
     DESTINATION include/hipfft/
     FILES_MATCHING
     PATTERN "*.h"

@@ -23,7 +23,7 @@
 #include "../rocFFT/shared/gpubuf.h"
 #include "accuracy_test.h"
 #include <boost/scope_exit.hpp>
-#include <hipfft.h>
+#include <hipfft/hipfft.h>
 
 void hipfft_transform(const std::vector<size_t>                                  length,
                       const size_t                                               nbatch,
