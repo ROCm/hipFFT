@@ -38,41 +38,50 @@ int main()
 
     // Create HIP device object and copy data to device
     // Use hipfftComplex for single-precision
-    hipError_t           rt;
+    hipError_t           hip_rt;
     hipfftDoubleComplex* x;
-    rt = hipMalloc(&x, complex_bytes);
-    assert(rt == HIP_SUCCESS);
+    hip_rt = hipMalloc(&x, complex_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
 
     // Inititalize the data
     for(size_t i = 0; i < Nx; i++)
     {
         cdata[i] = i;
     }
-    hipMemcpy(x, cdata.data(), complex_bytes, hipMemcpyHostToDevice);
     std::cout << "input:\n";
     for(size_t i = 0; i < cdata.size(); i++)
     {
         std::cout << cdata[i] << " ";
     }
     std::cout << std::endl;
+    hip_rt = hipMemcpy(x, cdata.data(), complex_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     // Create the plan
-    hipfftHandle plan = NULL;
-    hipfftResult rc   = hipfftCreate(&plan);
-    assert(rc == HIPFFT_SUCCESS);
-    rc = hipfftPlan1d(&plan, // plan handle
-                      Nx, // transform length
-                      HIPFFT_Z2Z, // transform type (HIPFFT_C2C for single-precision)
-                      1); // number of transforms
-    assert(rc == HIPFFT_SUCCESS);
+    hipfftHandle plan      = NULL;
+    hipfftResult hipfft_rt = hipfftCreate(&plan);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to create plan");
+
+    hipfft_rt = hipfftPlan1d(&plan, // plan handle
+                             Nx, // transform length
+                             HIPFFT_Z2Z, // transform type (HIPFFT_C2C for single-precision)
+                             1); // number of transforms
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftPlan1d failed");
 
     // Execute plan:
     // hipfftExecZ2Z: double precision, hipfftExecC2C: for single-precision
-    rc = hipfftExecZ2Z(plan, x, x, direction);
-    assert(rc == HIPFFT_SUCCESS);
+    hipfft_rt = hipfftExecZ2Z(plan, x, x, direction);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftExecZ2Z failed");
 
     std::cout << "output:\n";
-    hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    hip_rt = hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
     for(size_t i = 0; i < cdata.size(); i++)
     {
         std::cout << cdata[i] << " ";

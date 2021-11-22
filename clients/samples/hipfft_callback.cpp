@@ -59,12 +59,14 @@ int main()
 
     // Create HIP device object and copy data to device
     // Use hipfftComplex for single-precision
-    hipError_t           rt;
+    hipError_t           hip_rt;
     hipfftDoubleComplex *x, *filter_dev;
-    rt = hipMalloc(&x, complex_bytes);
-    assert(rt == HIP_SUCCESS);
-    rt = hipMalloc(&filter_dev, complex_bytes);
-    assert(rt == HIP_SUCCESS);
+    hip_rt = hipMalloc(&x, complex_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+    hip_rt = hipMalloc(&filter_dev, complex_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
 
     // Initialize the data and filter
     for(size_t i = 0; i < Nx; i++)
@@ -74,8 +76,12 @@ int main()
         filter[i].x = rand() / static_cast<double>(RAND_MAX);
         filter[i].y = 0;
     }
-    hipMemcpy(x, cdata.data(), complex_bytes, hipMemcpyHostToDevice);
-    hipMemcpy(filter_dev, filter.data(), complex_bytes, hipMemcpyHostToDevice);
+    hip_rt = hipMemcpy(x, cdata.data(), complex_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
+    hip_rt = hipMemcpy(filter_dev, filter.data(), complex_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
     std::cout << "input:\n";
     for(size_t i = 0; i < cdata.size(); i++)
     {
@@ -84,38 +90,49 @@ int main()
     std::cout << std::endl;
 
     // Create the plan
-    hipfftHandle plan = NULL;
-    hipfftResult rc   = hipfftCreate(&plan);
-    assert(rc == HIPFFT_SUCCESS);
-    rc = hipfftPlan1d(&plan, // plan handle
-                      Nx, // transform length
-                      HIPFFT_Z2Z, // transform type (HIPFFT_C2C for single-precision)
-                      1); // number of transforms
-    assert(rc == HIPFFT_SUCCESS);
+    hipfftHandle plan      = NULL;
+    hipfftResult hipfft_rt = hipfftCreate(&plan);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to create plan");
+    hipfft_rt = hipfftPlan1d(&plan, // plan handle
+                             Nx, // transform length
+                             HIPFFT_Z2Z, // transform type (HIPFFT_C2C for single-precision)
+                             1); // number of transforms
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftPlan1d failed");
 
     // prepare callback
     load_cbdata cbdata_host;
     cbdata_host.filter = filter_dev;
     cbdata_host.scale  = 1.0 / static_cast<double>(Nx);
     void* cbdata_dev;
-    rt = hipMalloc(&cbdata_dev, sizeof(load_cbdata));
-    assert(rt == HIP_SUCCESS);
-    hipMemcpy(cbdata_dev, &cbdata_host, sizeof(load_cbdata), hipMemcpyHostToDevice);
+    hip_rt = hipMalloc(&cbdata_dev, sizeof(load_cbdata));
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+    hip_rt = hipMemcpy(cbdata_dev, &cbdata_host, sizeof(load_cbdata), hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     void* cbptr_host = nullptr;
-    hipMemcpyFromSymbol(&cbptr_host, load_callback_dev, sizeof(void*));
+    hip_rt           = hipMemcpyFromSymbol(&cbptr_host, load_callback_dev, sizeof(void*));
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpyFromSymbol failed");
 
     // set callback
-    rc = hipfftXtSetCallback(plan, &cbptr_host, HIPFFT_CB_LD_COMPLEX_DOUBLE, &cbdata_dev);
-    assert(rc == HIPFFT_SUCCESS);
+    hipfft_rt = hipfftXtSetCallback(plan, &cbptr_host, HIPFFT_CB_LD_COMPLEX_DOUBLE, &cbdata_dev);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftXtSetCallback failed");
 
     // Execute plan:
     // hipfftExecZ2Z: double precision, hipfftExecC2C: for single-precision
-    rc = hipfftExecZ2Z(plan, x, x, direction);
-    assert(rc == HIPFFT_SUCCESS);
+    hipfft_rt = hipfftExecZ2Z(plan, x, x, direction);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftExecZ2Z failed");
 
     std::cout << "output:\n";
-    hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    hip_rt = hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
     for(size_t i = 0; i < cdata.size(); i++)
     {
         std::cout << "(" << cdata[i].x << ", " << cdata[i].y << ") ";

@@ -88,21 +88,28 @@ int main()
     std::cout << std::endl;
 
     hipfftHandle hipPlan;
-    hipfftResult result;
-    result = hipfftPlanMany(
+    hipfftResult hipfft_rt;
+    hipfft_rt = hipfftPlanMany(
         &hipPlan, rank, n, inembed, istride, idist, onembed, ostride, odist, HIPFFT_Z2Z, howmany);
-    if(result != HIPFFT_SUCCESS)
+    if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to create plan");
 
+    hipError_t           hip_rt;
     hipfftDoubleComplex* d_in_out;
-    hipMalloc((void**)&d_in_out, total_bytes);
-    hipMemcpy(d_in_out, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
+    hip_rt = hipMalloc((void**)&d_in_out, total_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+    hip_rt = hipMemcpy(d_in_out, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
-    result = hipfftExecZ2Z(hipPlan, d_in_out, d_in_out, HIPFFT_FORWARD);
-    if(result != HIPFFT_SUCCESS)
+    hipfft_rt = hipfftExecZ2Z(hipPlan, d_in_out, d_in_out, HIPFFT_FORWARD);
+    if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to execute plan");
 
-    hipMemcpy((void*)data.data(), d_in_out, total_bytes, hipMemcpyDeviceToHost);
+    hip_rt = hipMemcpy((void*)data.data(), d_in_out, total_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     std::cout << "output:\n";
     for(int ibatch = 0; ibatch < howmany; ++ibatch)
