@@ -40,12 +40,13 @@ int main()
     const size_t rstride   = Nzcomplex * 2; // Nz for out-of-place
 
     const size_t real_bytes    = sizeof(double) * Nx * Ny * rstride;
-    const size_t complex_bytes = 2 * sizeof(double) * Nx * Ny * Nz;
+    const size_t complex_bytes = 2 * sizeof(double) * Nx * Ny * Nzcomplex;
 
     double*    x;
-    hipError_t rt;
-    rt = hipMalloc(&x, real_bytes);
-    assert(rt == HIP_SUCCESS);
+    hipError_t hip_rt;
+    hip_rt = hipMalloc(&x, real_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
 
     // Inititalize the data
     std::vector<double> rdata(Nx * Ny * rstride);
@@ -53,9 +54,6 @@ int main()
     {
         rdata[i] = i;
     }
-    rt = hipMemcpy(x, rdata.data(), real_bytes, hipMemcpyHostToDevice);
-    assert(rt == HIP_SUCCESS);
-
     std::cout << "input:\n";
     for(size_t i = 0; i < Nx; i++)
     {
@@ -71,28 +69,34 @@ int main()
         std::cout << "\n";
     }
     std::cout << std::endl;
+    hip_rt = hipMemcpy(x, rdata.data(), real_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     // Create plan:
-    hipfftHandle plan = NULL;
-    hipfftResult rc   = hipfftCreate(&plan);
-    assert(rc == HIPFFT_SUCCESS);
-    rc = hipfftPlan3d(&plan, // plan handle
-                      Nx,
-                      Ny,
-                      Nz, // transform lengths
-                      HIPFFT_D2Z); // transform type (HIPFFT_R2C for single-precision)
-    assert(rc == HIPFFT_SUCCESS);
+    hipfftHandle plan      = NULL;
+    hipfftResult hipfft_rt = hipfftCreate(&plan);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to create plan");
+    hipfft_rt = hipfftPlan3d(&plan, // plan handle
+                             Nx,
+                             Ny,
+                             Nz, // transform lengths
+                             HIPFFT_D2Z); // transform type (HIPFFT_R2C for single-precision)
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftPlan3d failed");
 
     // Execute plan:
     // hipfftExecD2Z: double precision, hipfftExecR2C: single-precision
-    rc = hipfftExecD2Z(plan, x, (hipfftDoubleComplex*)x);
-    assert(rc == HIPFFT_SUCCESS);
-
-    // copy the output data to the host and output:
-    std::vector<std::complex<double>> cdata(Nx * Ny * Nz);
-    hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    hipfft_rt = hipfftExecD2Z(plan, x, (hipfftDoubleComplex*)x);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftExecD2Z failed");
 
     std::cout << "output:\n";
+    std::vector<std::complex<double>> cdata(Nx * Ny * Nz);
+    hip_rt = hipMemcpy(cdata.data(), x, complex_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
     for(size_t i = 0; i < Nx; i++)
     {
         for(size_t j = 0; j < Ny; j++)

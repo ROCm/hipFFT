@@ -43,6 +43,9 @@ int main()
     size_t real_bytes    = sizeof(decltype(rdata)::value_type) * rdata.size();
     size_t complex_bytes = sizeof(decltype(cdata)::value_type) * cdata.size();
 
+    hipError_t   hip_rt    = hipSuccess;
+    hipfftResult hipfft_rt = HIPFFT_SUCCESS;
+
     std::cout << "input:\n";
     for(size_t i = 0; i < N; i++)
     {
@@ -56,34 +59,58 @@ int main()
 
     // Create HIP device object.
     hipfftReal* x;
-    hipMalloc(&x, real_bytes);
+    hip_rt = hipMalloc(&x, real_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+
     hipfftComplex* y;
-    hipMalloc(&y, complex_bytes);
+    hip_rt = hipMalloc(&y, complex_bytes);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
 
     // Copy input data to device
-    hipMemcpy(x, rdata.data(), real_bytes, hipMemcpyHostToDevice);
+    hip_rt = hipMemcpy(x, rdata.data(), real_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     size_t workSize;
-    hipfftEstimate1d(N, HIPFFT_R2C, 1, &workSize);
+    hipfft_rt = hipfftEstimate1d(N, HIPFFT_R2C, 1, &workSize);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftEstimate1d failed");
     std::cout << "hipfftEstimate 1d workSize: " << workSize << std::endl;
 
     hipfftHandle plan = NULL;
-    hipfftCreate(&plan);
-    hipfftSetAutoAllocation(plan, 0);
-    hipfftMakePlan1d(plan, N, HIPFFT_R2C, 1, &workSize);
+    hipfft_rt         = hipfftCreate(&plan);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftCreate failed");
+    hipfft_rt = hipfftSetAutoAllocation(plan, 0);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftSetAutoAllocation failed");
+    hipfft_rt = hipfftMakePlan1d(plan, N, HIPFFT_R2C, 1, &workSize);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftMakePlan1d failed");
 
     // Set work buffer
     hipfftComplex* workBuf;
-    hipMalloc(&workBuf, workSize);
-    hipfftSetWorkArea(plan, workBuf);
-    hipfftGetSize(plan, &workSize);
+    hip_rt = hipMalloc(&workBuf, workSize);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+    hipfft_rt = hipfftSetWorkArea(plan, workBuf);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftSetWorkArea failed");
+    hipfft_rt = hipfftGetSize(plan, &workSize);
+    if(hipfft_rt != HIPFFT_SUCCESS)
+        throw std::runtime_error("hipfftGetSize failed");
+
     std::cout << "hipfftGetSize workSize: " << workSize << std::endl;
 
     // Execute plan
-    hipfftExecR2C(plan, x, (hipfftComplex*)y);
+    hipfft_rt = hipfftExecR2C(plan, x, (hipfftComplex*)y);
 
     // Copy result back to host
-    hipMemcpy(cdata.data(), y, complex_bytes, hipMemcpyDeviceToHost);
+    hip_rt = hipMemcpy(cdata.data(), y, complex_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     std::cout << "output:\n";
     for(size_t i = 0; i < Ncomplex; i++)

@@ -85,30 +85,36 @@ int main()
     std::cout << std::endl;
 
     hipfftHandle hipForwardPlan;
-    hipfftResult result;
-    result = hipfftPlanMany(&hipForwardPlan,
-                            rank,
-                            n,
-                            inembed,
-                            istride,
-                            idist,
-                            onembed,
-                            ostride,
-                            odist,
-                            HIPFFT_R2C, // Use HIPFFT_D2Z for double-precsion.
-                            howmany);
-    if(result != HIPFFT_SUCCESS)
+    hipfftResult hipfft_rt;
+    hipfft_rt = hipfftPlanMany(&hipForwardPlan,
+                               rank,
+                               n,
+                               inembed,
+                               istride,
+                               idist,
+                               onembed,
+                               ostride,
+                               odist,
+                               HIPFFT_R2C, // Use HIPFFT_D2Z for double-precsion.
+                               howmany);
+    if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to create plan");
 
     hipfftReal* gpu_data;
-    hipMalloc((void**)&gpu_data, total_bytes);
-    hipMemcpy(gpu_data, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
 
-    result = hipfftExecR2C(hipForwardPlan, gpu_data, (hipfftComplex*)gpu_data);
-    if(result != HIPFFT_SUCCESS)
+    hipError_t hip_rt;
+    hip_rt = hipMalloc((void**)&gpu_data, total_bytes);
+    hipMemcpy(gpu_data, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMalloc failed");
+
+    hipfft_rt = hipfftExecR2C(hipForwardPlan, gpu_data, (hipfftComplex*)gpu_data);
+    if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to execute plan");
 
-    hipMemcpy((void*)data.data(), gpu_data, total_bytes, hipMemcpyDeviceToHost);
+    hip_rt = hipMemcpy((void*)data.data(), gpu_data, total_bytes, hipMemcpyDeviceToHost);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     std::cout << "output:\n";
     const std::complex<float>* output = (std::complex<float>*)data.data();
