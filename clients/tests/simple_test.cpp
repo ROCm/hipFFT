@@ -111,6 +111,9 @@ TEST(hipfftTest, CheckBufferSizeR2C)
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_R2C, 1, &workSize) == HIPFFT_SUCCESS);
 
 #ifndef _CUFFT_BACKEND
+    // NOTE: keep this condition for ease of changing n for ad-hoc tests
+    //
+    // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -133,6 +136,9 @@ TEST(hipfftTest, CheckBufferSizeC2R)
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_C2R, 1, &workSize) == HIPFFT_SUCCESS);
 
 #ifndef _CUFFT_BACKEND
+    // NOTE: keep this condition for ease of changing n for ad-hoc tests
+    //
+    // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -156,6 +162,9 @@ TEST(hipfftTest, CheckBufferSizeD2Z)
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_D2Z, batch, &workSize) == HIPFFT_SUCCESS);
 
 #ifndef _CUFFT_BACKEND
+    // NOTE: keep this condition for ease of changing n for ad-hoc tests
+    //
+    // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -180,6 +189,9 @@ TEST(hipfftTest, CheckBufferSizeZ2D)
     EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize) == HIPFFT_SUCCESS);
 
 #ifndef _CUFFT_BACKEND
+    // NOTE: keep this condition for ease of changing n for ad-hoc tests
+    //
+    // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
         EXPECT_TRUE(workSize == 0);
@@ -233,6 +245,9 @@ TEST(hipfftTest, RunR2C)
     hipfftDestroy(plan);
     hipFree(d_in);
     hipFree(d_out);
+    // NOTE: keep this condition for ease of changing n for ad-hoc tests
+    //
+    // cppcheck-suppress knownConditionTrueFalse
     if(N % 2 != 0)
     {
         EXPECT_TRUE(workSize != 0);

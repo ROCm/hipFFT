@@ -466,15 +466,15 @@ hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
         plan, callbacks, hipfftCallbackTypeToCufftCallbackType(cbtype), callbackData));
 }
 
-hipfftResult hipfftXtClearCallback(hipfftHandle plan, hipfftXtCallbackType cbType)
+hipfftResult hipfftXtClearCallback(hipfftHandle plan, hipfftXtCallbackType cbtype)
 {
     return cufftResultToHipResult(
-        cufftXtClearCallback(plan, hipfftCallbackTypeToCufftCallbackType(cbType)));
+        cufftXtClearCallback(plan, hipfftCallbackTypeToCufftCallbackType(cbtype)));
 }
 
 hipfftResult
-    hipfftXtSetCallbackSharedSize(hipfftHandle plan, hipfftXtCallbackType cbType, size_t sharedSize)
+    hipfftXtSetCallbackSharedSize(hipfftHandle plan, hipfftXtCallbackType cbtype, size_t sharedSize)
 {
     return cufftResultToHipResult(cufftXtSetCallbackSharedSize(
-        plan, hipfftCallbackTypeToCufftCallbackType(cbType), sharedSize));
+        plan, hipfftCallbackTypeToCufftCallbackType(cbtype), sharedSize));
 }

@@ -94,8 +94,8 @@ struct hipfft_plan_description_t
 {
     rocfft_array_type inArrayType, outArrayType;
 
-    size_t inStrides[3];
-    size_t outStrides[3];
+    size_t inStrides[3]  = {0, 0, 0};
+    size_t outStrides[3] = {0, 0, 0};
 
     size_t inDist;
     size_t outDist;
@@ -656,6 +656,17 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
 
 hipfftResult hipfftCreate(hipfftHandle* plan)
 {
+    // NOTE: cufft backend uses int for handle type, so this wouldn't
+    // work using cufft types.  This is the rocfft backend, but
+    // cppcheck doesn't know that.  Compiler would complain anyway
+    // about making integer from pointer without a cast.
+    //
+    // But just for good measure, we can at least assert that the
+    // destination is wide enough to fit a pointer.
+    //
+    static_assert(sizeof(hipfftHandle) >= sizeof(void*),
+                  "hipfftHandle type not wide enough for pointer");
+    // cppcheck-suppress AssignmentAddressToInteger
     hipfftHandle h = new hipfftHandle_t;
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_create(&h->info));
     *plan = h;

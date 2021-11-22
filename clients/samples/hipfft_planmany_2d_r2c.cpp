@@ -97,12 +97,16 @@ int main()
                             odist,
                             HIPFFT_R2C, // Use HIPFFT_D2Z for double-precsion.
                             howmany);
+    if(result != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to create plan");
 
     hipfftReal* gpu_data;
     hipMalloc((void**)&gpu_data, total_bytes);
     hipMemcpy(gpu_data, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
 
     result = hipfftExecR2C(hipForwardPlan, gpu_data, (hipfftComplex*)gpu_data);
+    if(result != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to execute plan");
 
     hipMemcpy((void*)data.data(), gpu_data, total_bytes, hipMemcpyDeviceToHost);
 

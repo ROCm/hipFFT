@@ -25,7 +25,7 @@
 #include <boost/scope_exit.hpp>
 #include <hipfft.h>
 
-void hipfft_transform(const std::vector<size_t>                                  length,
+void hipfft_transform(const std::vector<size_t>&                                 length,
                       const size_t                                               nbatch,
                       const rocfft_precision                                     precision,
                       const rocfft_transform_type                                transformType,

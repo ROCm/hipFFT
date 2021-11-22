@@ -45,13 +45,6 @@ int main()
     rt = hipMalloc(&x, complex_bytes);
     assert(rt == HIP_SUCCESS);
 
-    // Inititalize the data
-    std::vector<double> rdata(Nx * Ny * Nz);
-    for(size_t i = 0; i < Nx * Ny * Nz; i++)
-    {
-        rdata[i] = i;
-    }
-
     hipMemcpy(x, cdata.data(), complex_bytes, hipMemcpyHostToDevice);
     std::cout << "input:\n";
     for(int i = 0; i < Nx; i++)
@@ -70,9 +63,8 @@ int main()
     std::cout << std::endl;
 
     // Create plan
-    hipfftResult rc   = HIPFFT_SUCCESS;
     hipfftHandle plan = NULL;
-    rc                = hipfftCreate(&plan);
+    hipfftResult rc   = hipfftCreate(&plan);
     assert(rc == HIPFFT_SUCCESS);
     rc = hipfftPlan3d(&plan, // plan handle
                       Nx, // transform length

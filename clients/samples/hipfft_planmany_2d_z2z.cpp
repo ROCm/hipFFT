@@ -91,12 +91,16 @@ int main()
     hipfftResult result;
     result = hipfftPlanMany(
         &hipPlan, rank, n, inembed, istride, idist, onembed, ostride, odist, HIPFFT_Z2Z, howmany);
+    if(result != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to create plan");
 
     hipfftDoubleComplex* d_in_out;
     hipMalloc((void**)&d_in_out, total_bytes);
     hipMemcpy(d_in_out, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
 
     result = hipfftExecZ2Z(hipPlan, d_in_out, d_in_out, HIPFFT_FORWARD);
+    if(result != HIPFFT_SUCCESS)
+        throw std::runtime_error("failed to execute plan");
 
     hipMemcpy((void*)data.data(), d_in_out, total_bytes, hipMemcpyDeviceToHost);
 

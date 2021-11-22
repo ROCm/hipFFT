@@ -85,8 +85,7 @@ int main()
 
     // Create the plan
     hipfftHandle plan = NULL;
-    hipfftResult rc   = HIPFFT_SUCCESS;
-    rc                = hipfftCreate(&plan);
+    hipfftResult rc   = hipfftCreate(&plan);
     assert(rc == HIPFFT_SUCCESS);
     rc = hipfftPlan1d(&plan, // plan handle
                       Nx, // transform length
