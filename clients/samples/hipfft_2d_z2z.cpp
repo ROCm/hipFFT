@@ -64,9 +64,8 @@ int main()
     std::cout << std::endl;
 
     // Create plan
-    hipfftResult rc   = HIPFFT_SUCCESS;
     hipfftHandle plan = NULL;
-    rc                = hipfftCreate(&plan);
+    hipfftResult rc   = hipfftCreate(&plan);
     assert(rc == HIPFFT_SUCCESS);
     rc = hipfftPlan2d(&plan, // plan handle
                       Nx, // transform length

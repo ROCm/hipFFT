@@ -192,17 +192,17 @@ int main(int argc, char* argv[])
     std::ios::sync_with_stdio(false);
 
     // Control output verbosity:
-    int verbose;
+    int verbose{};
 
     // hip Device number for running tests:
-    int deviceId;
+    int deviceId{};
 
     // Transform type parameters:
-    int        itransformType;
-    hipfftType transformType;
+    int        itransformType{};
+    hipfftType transformType{};
 
     // Number of performance trial samples
-    int ntrial;
+    int ntrial{};
 
     // Number of batches:
     int nbatch = 1;
@@ -219,11 +219,11 @@ int main(int argc, char* argv[])
     std::vector<int> ooffset;
 
     // Input and output distances:
-    int idist;
-    int odist;
+    int idist{};
+    int odist{};
 
-    int itype;
-    int otype; // Ignored; for compatibility with rocfft-rider.
+    int itype{};
+    int otype{}; // Ignored; for compatibility with rocfft-rider.
 
     // Declare the supported options.
 
