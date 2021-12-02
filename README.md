@@ -62,12 +62,6 @@ Here are some CMake build examples:
 | NVIDIA GPU      | Build a project using HIP language APIs + hipFFT with standard host compiler     | cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -DBUILD_WITH_LIB=CUDA -L .. |
 | NVIDIA GPU      | Build a project using HIP language APIs + hipFFT + device kernels with HIP-nvcc  | HIP_PLATFORM=nvidia cmake -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L .. |
 
-
-Callbacks are available in rocFFT, but may not be available on all rocm platforms.  To disable
-rocFFT callbacks use
-
-    -DROCFFT_CALLBACKS_ENABLED=OFF
-
 ## Quick CUDA porting guide
 
 If you have existing CUDA code and want to transition to HIP:

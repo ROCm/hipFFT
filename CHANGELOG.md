@@ -7,6 +7,9 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Fixed
 - Fixed incorrect reporting of rocFFT version.
 
+### Changed
+- Unconditionally enabled callback functionality.
+
 ## (Unreleased) hipFFT 1.0.5
 
 ### Added
