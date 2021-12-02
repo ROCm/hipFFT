@@ -85,10 +85,6 @@ target_include_directories( hipfft
   ${HIP_INCLUDE_DIRS}
   )
 
-if( ROCFFT_CALLBACKS_ENABLED )
-  target_compile_definitions( hipfft PRIVATE ROCFFT_CALLBACKS_ENABLED )
-endif()
-
 if( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_include_directories( hipfft PUBLIC $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}> )
 endif()

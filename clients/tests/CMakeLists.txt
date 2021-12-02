@@ -78,7 +78,7 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     target_include_directories( hipfft-test PRIVATE ${HIP_INCLUDE_DIRS})
   endif()
 else()
-  if( BUILD_WITH_LIB STREQUAL "CUDA" )
+  if( BUILD_WITH_LIB STREQUAL "CUDA" AND DEFINED ${boost_program_options_VERSION} )
     # NVCC doesn't like linking with files that don't end in .so, so
     # we add a hack to remove the version number as the suffix.
     string(REGEX REPLACE

@@ -1253,7 +1253,6 @@ hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
         return HIPFFT_INVALID_VALUE;
     }
 
-#ifdef ROCFFT_CALLBACKS_ENABLED
     rocfft_status res;
     res = rocfft_execution_info_set_load_callback(plan->info,
                                                   plan->load_callback_ptrs,
@@ -1267,7 +1266,6 @@ hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
                                                    plan->store_callback_lds_bytes);
     if(res != rocfft_status_success)
         return HIPFFT_INVALID_VALUE;
-#endif
     return HIPFFT_SUCCESS;
 }
 
@@ -1300,7 +1298,6 @@ hipfftResult
         return HIPFFT_INVALID_VALUE;
     }
 
-#ifdef ROCFFT_CALLBACKS_ENABLED
     rocfft_status res;
     res = rocfft_execution_info_set_load_callback(plan->info,
                                                   plan->load_callback_ptrs,
@@ -1314,7 +1311,5 @@ hipfftResult
                                                    plan->store_callback_lds_bytes);
     if(res != rocfft_status_success)
         return HIPFFT_INVALID_VALUE;
-#endif
-
     return HIPFFT_SUCCESS;
 }
