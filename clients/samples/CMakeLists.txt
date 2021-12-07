@@ -38,8 +38,17 @@ set( sample_list
   hipfft_setworkarea
   )
 
+# callback sample has its own HIP code, so it needs to be built with hipcc.
 if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
-  list( APPEND sample_list hipfft_callback )
+  # on cuFFT backend, use of callbacks requires linking against the
+  # static cuFFT library
+  if( NOT (BUILD_WITH_LIB STREQUAL "CUDA") OR NOT BUILD_SHARED_LIBS )
+    list( APPEND sample_list hipfft_callback )
+  else()
+    message( STATUS "hipfft_callback sample disabled on non-static CUDA build" )
+  endif()
+else()
+  message( STATUS "hipfft_callback sample disabled on non-hipcc build" )
 endif()
 
 foreach( sample ${sample_list} )
@@ -80,3 +89,9 @@ foreach( sample ${sample_list} )
   set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
   
 endforeach()
+
+# cuFFT callback code must be compiled with -dc to enable relocatable
+# device code
+if( BUILD_WITH_LIB STREQUAL "CUDA" AND hipfft_callback IN_LIST sample_list )
+  target_compile_options( hipfft_callback PRIVATE -dc )
+endif()
