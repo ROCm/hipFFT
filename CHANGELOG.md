@@ -8,7 +8,9 @@ Partial documentation for hipFFT is available at [hipFFT].
 - Fixed incorrect reporting of rocFFT version.
 
 ### Changed
-- Unconditionally enabled callback functionality.
+- Unconditionally enabled callback functionality.  On the CUDA backend, callbacks only run
+  correctly when hipFFT is built as a static library, and is linked against the static cuFFT
+  library.
 
 ## (Unreleased) hipFFT 1.0.5
 

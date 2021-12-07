@@ -96,7 +96,12 @@ if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     target_link_libraries( hipfft PRIVATE hip::device hip::host )
   endif()
 else()
-  target_link_libraries( hipfft PRIVATE ${CUDA_cufft_LIBRARY} )
+  # static hipfft build should link against static cufft
+  if( BUILD_SHARED_LIBS )
+    target_link_libraries( hipfft PRIVATE ${CUDA_cufft_LIBRARY} )
+  else()
+    target_link_libraries( hipfft PRIVATE -lcufft_static -lculibos )
+  endif()
 endif()
 
 # Target properties
