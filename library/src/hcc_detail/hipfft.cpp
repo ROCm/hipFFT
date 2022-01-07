@@ -742,6 +742,11 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                 int          batch,
                                 size_t*      workSize)
 {
+    if((inembed != nullptr && onembed == nullptr) || (inembed == nullptr && onembed != nullptr))
+    {
+        return HIPFFT_INVALID_VALUE;
+    }
+
     size_t lengths[3];
     for(size_t i = 0; i < rank; i++)
         lengths[i] = n[rank - 1 - i];
@@ -873,7 +878,7 @@ hipfftResult hipfftEstimateMany(int        rank,
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSizeMany(
-        plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
+         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
     return ret;
 }
 
