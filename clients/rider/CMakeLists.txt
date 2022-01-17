@@ -39,6 +39,7 @@ target_include_directories( hipfft-rider
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/library/include>
   )
   
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )

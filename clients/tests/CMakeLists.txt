@@ -30,20 +30,20 @@ find_package( Threads REQUIRED )
 
 set( hipfft-test_source
   gtest_main.cpp
+  hipfft_accuracy_test.cpp
   simple_test.cpp
-  accuracy_test.cpp
   accuracy_test_1D.cpp
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
   )
 
 set( hipfft-test_includes
-  accuracy_test.h
+  ../rocFFT/clients/tests/fftw_transform.h
+  ../rocFFT/clients/tests/rocfft_against_fftw.h
+  ../rocFFT/clients/tests/misc/include/test_exception.h
   )
 
 add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
-
-set_target_properties( hipfft-test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
 target_include_directories(
   hipfft-test
@@ -53,6 +53,7 @@ target_include_directories(
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/library/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/clients/tests>
   )
 
 
@@ -93,6 +94,12 @@ if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )
 endif()
 
+set_target_properties( hipfft-test PROPERTIES
+  DEBUG_POSTFIX "-d"
+  CXX_STANDARD 17
+  CXX_STANDARD_REQUIRED ON
+  )
+
 target_link_libraries( hipfft-test
   PRIVATE
   ${FFTW_LIBRARIES}
@@ -102,7 +109,6 @@ target_link_libraries( hipfft-test
 
 target_link_libraries( hipfft-test  PRIVATE hip::hipfft )
 
-set_target_properties( hipfft-test PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
 set_target_properties( hipfft-test
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 
