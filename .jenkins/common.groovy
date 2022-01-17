@@ -45,11 +45,12 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
 
 def runTestCommand (platform, project, gfilter)
 {
-    String sudo = auxiliary.sudo(platform.jenkinsLabel)
+    String cudaArgs = platform.jenkinsLabel.contains('cuda') ? '--double_epsilon=5e-11' : ''
+
     def command = """#!/usr/bin/env bash
                     set -x
                     cd ${project.paths.project_build_prefix}/build/release/clients/staging
-                    ${sudo} GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./hipfft-test --gtest_output=xml --gtest_color=yes --gtest_filter=${gfilter}
+                    GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./hipfft-test ${cudaArgs} --gtest_output=xml --gtest_color=yes --gtest_filter=${gfilter}
                 """
 
     platform.runCommand(this, command)

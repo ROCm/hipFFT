@@ -17,6 +17,7 @@ def runCI =
     // customize for project
     prj.paths.build_command = buildCommand
     prj.libraryDependencies = ['rocFFT-internal']
+    prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
     def nodes = new dockerNodes(nodeDetails, jobName, prj)
@@ -39,7 +40,7 @@ def runCI =
     {
         platform, project->
 
-        def gfilter = "*"
+        def gfilter = "-*len_768_*:*len_2880_*"
         commonGroovy.runTestCommand(platform, project, gfilter)
     }
 

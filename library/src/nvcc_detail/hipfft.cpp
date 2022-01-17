@@ -24,6 +24,7 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include <hip/hip_runtime.h>
+#include <iostream>
 
 hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
 {
@@ -167,17 +168,28 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
                             hipfftType    type,
                             int           batch)
 {
-    return cufftResultToHipResult(cufftPlanMany(plan,
-                                                rank,
-                                                n,
-                                                inembed,
-                                                istride,
-                                                idist,
-                                                onembed,
-                                                ostride,
-                                                odist,
-                                                hipfftTypeToCufftType(type),
-                                                batch));
+    try
+    {
+        return cufftResultToHipResult(cufftPlanMany(plan,
+                                                    rank,
+                                                    n,
+                                                    inembed,
+                                                    istride,
+                                                    idist,
+                                                    onembed,
+                                                    ostride,
+                                                    odist,
+                                                    hipfftTypeToCufftType(type),
+                                                    batch));
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+    }
+    catch(...)
+    {
+        std::cerr << "unknown exception in cufftPlanMany" << std::endl;
+    }
 }
 
 /*===========================================================================*/
