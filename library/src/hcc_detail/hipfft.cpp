@@ -878,7 +878,7 @@ hipfftResult hipfftEstimateMany(int        rank,
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSizeMany(
-         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
+        plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
     return ret;
 }
 
