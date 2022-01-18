@@ -38,7 +38,7 @@ def runCI =
     {
         platform, project->
 
-        def gfilter = "*"
+        def gfilter = '-*swap*'
         commonGroovy.runTestCommand(platform, project, gfilter)
     }
 
