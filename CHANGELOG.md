@@ -2,6 +2,12 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## hipFFT 1.0.7
+
+### Changed
+
+- Use fft_params struct for accuracy and benchmark clients.
+
 ## hipFFT 1.0.6
 
 ### Fixed

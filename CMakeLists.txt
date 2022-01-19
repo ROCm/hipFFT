@@ -123,7 +123,7 @@ message(STATUS "BUILD_WITH_COMPILER = " ${BUILD_WITH_COMPILER})
 include(cmake/dependencies.cmake)
 
 # Version
-set( VERSION_STRING "1.0.6" )
+set( VERSION_STRING "1.0.7" )
 set( hipfft_SOVERSION 0.1 )
 
 if( ROCM_FOUND )
