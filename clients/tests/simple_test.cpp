@@ -68,8 +68,6 @@ TEST(hipfftTest, CreatePlanMany)
 
     hipfftHandle plan_valid_1, plan_valid_2, plan_invalid_1, plan_invalid_2;
 
-                
-
     // Tests plan creation with null and not null
     // combinations of inembed and onembed.
     //
@@ -98,7 +96,6 @@ TEST(hipfftTest, CreatePlanMany)
     EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_1, 0) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftDestroy(plan_valid_1) == HIPFFT_SUCCESS);
 
-
     EXPECT_TRUE(hipfftCreate(&plan_valid_2) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_valid_2,
                                    rank,
@@ -117,7 +114,6 @@ TEST(hipfftTest, CreatePlanMany)
     EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_2, 0) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftDestroy(plan_valid_2) == HIPFFT_SUCCESS);
 
-
     EXPECT_TRUE(hipfftCreate(&plan_invalid_1) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_1,
                                    rank,
@@ -133,8 +129,7 @@ TEST(hipfftTest, CreatePlanMany)
                                    &workSize)
                 == HIPFFT_INVALID_VALUE);
     EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_1, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_invalid_1) == HIPFFT_SUCCESS);                
-
+    EXPECT_TRUE(hipfftDestroy(plan_invalid_1) == HIPFFT_SUCCESS);
 
     EXPECT_TRUE(hipfftCreate(&plan_invalid_2) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_2,
