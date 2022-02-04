@@ -68,10 +68,7 @@ TEST(hipfftTest, CreatePlanMany)
 
     hipfftHandle plan_valid_1, plan_valid_2, plan_invalid_1, plan_invalid_2;
 
-    EXPECT_TRUE(hipfftCreate(&plan_valid_1) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftCreate(&plan_valid_2) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftCreate(&plan_invalid_1) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftCreate(&plan_invalid_2) == HIPFFT_SUCCESS);
+                
 
     // Tests plan creation with null and not null
     // combinations of inembed and onembed.
@@ -84,6 +81,7 @@ TEST(hipfftTest, CreatePlanMany)
     // otherwise HIPFFT_INVALID_VALUE should be
     // returned to maintain compatibility with cuFFT
 
+    EXPECT_TRUE(hipfftCreate(&plan_valid_1) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_valid_1,
                                    rank,
                                    (int*)n,
@@ -97,7 +95,11 @@ TEST(hipfftTest, CreatePlanMany)
                                    batch,
                                    &workSize)
                 == HIPFFT_SUCCESS);
+    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_1, 0) == HIPFFT_SUCCESS);
+    EXPECT_TRUE(hipfftDestroy(plan_valid_1) == HIPFFT_SUCCESS);
 
+
+    EXPECT_TRUE(hipfftCreate(&plan_valid_2) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_valid_2,
                                    rank,
                                    (int*)n,
@@ -112,6 +114,11 @@ TEST(hipfftTest, CreatePlanMany)
                                    &workSize)
                 == HIPFFT_SUCCESS);
 
+    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_2, 0) == HIPFFT_SUCCESS);
+    EXPECT_TRUE(hipfftDestroy(plan_valid_2) == HIPFFT_SUCCESS);
+
+
+    EXPECT_TRUE(hipfftCreate(&plan_invalid_1) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_1,
                                    rank,
                                    (int*)n,
@@ -125,7 +132,11 @@ TEST(hipfftTest, CreatePlanMany)
                                    batch,
                                    &workSize)
                 == HIPFFT_INVALID_VALUE);
+    EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_1, 0) == HIPFFT_SUCCESS);
+    EXPECT_TRUE(hipfftDestroy(plan_invalid_1) == HIPFFT_SUCCESS);                
 
+
+    EXPECT_TRUE(hipfftCreate(&plan_invalid_2) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_2,
                                    rank,
                                    (int*)n,
@@ -139,15 +150,7 @@ TEST(hipfftTest, CreatePlanMany)
                                    batch,
                                    &workSize)
                 == HIPFFT_INVALID_VALUE);
-
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_1, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_2, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_1, 0) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_2, 0) == HIPFFT_SUCCESS);
-
-    EXPECT_TRUE(hipfftDestroy(plan_valid_1) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_valid_2) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_invalid_1) == HIPFFT_SUCCESS);
     EXPECT_TRUE(hipfftDestroy(plan_invalid_2) == HIPFFT_SUCCESS);
 }
 
