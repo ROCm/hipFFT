@@ -160,21 +160,37 @@ HIPFFT_EXPORT hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipf
 HIPFFT_EXPORT hipfftResult
     hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType type);
 
-/*! @brief Create a new batched rank-dimensional FFT plan.
+/*! @brief Create a new batched rank-dimensional FFT plan with advanced data layout.
  *
  * @details Allocate and initialize a new batched rank-dimensional
- *  FFT.  The batch parameter tells hipFFT how many transforms to
- *  perform.  Used in complicated usage case like flexible input and
- *  output layout.
- *
+ *  FFT plan. The number of elements to transform in each direction of
+ *  the input data is specified in n.
+ * 
+ *  The batch parameter tells hipFFT how many transforms to perform. 
+ *  The distance between the first elements of two consecutive batches 
+ *  of the input and output data are specified with the idist and odist 
+ *  parameters.
+ * 
+ *  The inembed and onembed parameters define the input and output data
+ *  layouts. The number of elements in the data is assumed to be larger 
+ *  than the number of elements in the transform. Strided data layouts 
+ *  are also supported. Strides along the fastest direction in the input
+ *  and output data are specified via the istride and ostride parameters.  
+ * 
+ *  If both inembed and onembed parameters are set to NULL, all the 
+ *  advanced data layout parameters are ignored and reverted to default 
+ *  values, i.e., the batched transform is performed with non-strided data
+ *  access and the number of data/transform elements are assumed to be  
+ *  equivalent.
+ * 
  *  @param[out] plan Pointer to the FFT plan handle.
- *  @param[in] rank Dimension of FFT transform (1, 2, or 3).
- *  @param[in] n Number of elements in the x/y/z directions.
- *  @param[in] inembed
- *  @param[in] istride
+ *  @param[in] rank Dimension of transform (1, 2, or 3).
+ *  @param[in] n Number of elements to transform in the x/y/z directions.
+ *  @param[in] inembed Number of elements in the input data in the x/y/z directions.
+ *  @param[in] istride Distance between two successive elements in the input data.
  *  @param[in] idist Distance between input batches.
- *  @param[in] onembed
- *  @param[in] ostride
+ *  @param[in] onembed Number of elements in the output data in the x/y/z directions.
+ *  @param[in] ostride Distance between two successive elements in the output data.
  *  @param[in] odist Distance between output batches.
  *  @param[in] type FFT type.
  *  @param[in] batch Number of batched transforms to perform.
@@ -245,21 +261,38 @@ HIPFFT_EXPORT hipfftResult
 HIPFFT_EXPORT hipfftResult
     hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize);
 
-/*! @brief Initialize a new batched rank-dimensional FFT plan.
+/*! @brief Initialize a new batched rank-dimensional FFT plan with advanced data layout.
  *
  *  @details Assumes that the plan has been created already, and
- *  modifies the plan associated with the plan handle.  The
- *  batch parameter tells hipFFT how many transforms to perform.  Used
- *  in complicated usage case like flexible input and output layout.
- *
- *  @param[in] plan Pointer to the FFT plan.
- *  @param[in] rank Dimension of FFT transform (1, 2, or 3).
- *  @param[in] n Number of elements in the x/y/z directions.
- *  @param[in] inembed
- *  @param[in] istride
+ *  modifies the plan associated with the plan handle. The number 
+ *  of elements to transform in each direction of the input data 
+ *  in the FFT plan is specified in n.
+ * 
+ *  The batch parameter tells hipFFT how many transforms to perform. 
+ *  The distance between the first elements of two consecutive batches 
+ *  of the input and output data are specified with the idist and odist 
+ *  parameters.
+ * 
+ *  The inembed and onembed parameters define the input and output data
+ *  layouts. The number of elements in the data is assumed to be larger 
+ *  than the number of elements in the transform. Strided data layouts 
+ *  are also supported. Strides along the fastest direction in the input
+ *  and output data are specified via the istride and ostride parameters.  
+ * 
+ *  If both inembed and onembed parameters are set to NULL, all the 
+ *  advanced data layout parameters are ignored and reverted to default 
+ *  values, i.e., the batched transform is performed with non-strided data
+ *  access and the number of data/transform elements are assumed to be  
+ *  equivalent.
+ * 
+ *  @param[out] plan Pointer to the FFT plan handle.
+ *  @param[in] rank Dimension of transform (1, 2, or 3).
+ *  @param[in] n Number of elements to transform in the x/y/z directions.
+ *  @param[in] inembed Number of elements in the input data in the x/y/z directions.
+ *  @param[in] istride Distance between two successive elements in the input data.
  *  @param[in] idist Distance between input batches.
- *  @param[in] onembed
- *  @param[in] ostride
+ *  @param[in] onembed Number of elements in the output data in the x/y/z directions.
+ *  @param[in] ostride Distance between two successive elements in the output data.
  *  @param[in] odist Distance between output batches.
  *  @param[in] type FFT type.
  *  @param[in] batch Number of batched transforms to perform.
