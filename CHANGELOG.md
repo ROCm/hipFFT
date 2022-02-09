@@ -2,7 +2,7 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## hipFFT 1.0.6
+## hipFFT 1.0.6 for ROCm 5.0.0
 
 ### Fixed
 
@@ -14,7 +14,7 @@ Partial documentation for hipFFT is available at [hipFFT].
   correctly when hipFFT is built as a static library, and is linked against the static cuFFT
   library.
 
-## hipFFT 1.0.5
+## hipFFT 1.0.5 for ROCm 4.5.0
 
 ### Added
 
