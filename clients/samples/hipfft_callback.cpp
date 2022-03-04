@@ -114,15 +114,9 @@ int main()
         throw std::runtime_error("hipMemcpy failed");
 
     void* cbptr_host = nullptr;
-#ifdef __HIP_PLATFORM_AMD__
-    hip_rt = hipMemcpyFromSymbol(&cbptr_host, load_callback_dev, sizeof(void*));
+    hip_rt = hipMemcpyFromSymbol(&cbptr_host, HIP_SYMBOL(load_callback_dev), sizeof(void*));
     if(hip_rt != hipSuccess)
         throw std::runtime_error("hipMemcpyFromSymbol failed");
-#else
-    auto cuda_rt = cudaMemcpyFromSymbol(&cbptr_host, load_callback_dev, sizeof(void*));
-    if(cuda_rt != cudaSuccess)
-        throw std::runtime_error("cudaMemcpyFromSymbol failed");
-#endif
 
     // set callback
     hipfft_rt = hipfftXtSetCallback(plan, &cbptr_host, HIPFFT_CB_LD_COMPLEX_DOUBLE, &cbdata_dev);
