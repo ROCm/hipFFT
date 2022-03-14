@@ -52,6 +52,47 @@ inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
     }
 }
 
+inline std::string hipfftResult_string(const hipfftResult_t val)
+{
+    switch(val)
+    {
+    case HIPFFT_SUCCESS:
+        return "HIPFFT_SUCCESS (0)";
+    case HIPFFT_INVALID_PLAN:
+        return "HIPFFT_INVALID_PLAN (1)";
+    case HIPFFT_ALLOC_FAILED:
+        return "HIPFFT_ALLOC_FAILED (2)";
+    case HIPFFT_INVALID_TYPE:
+        return "HIPFFT_INVALID_TYPE (3)";
+    case HIPFFT_INVALID_VALUE:
+        return "HIPFFT_INVALID_VALUE (4)";
+    case HIPFFT_INTERNAL_ERROR:
+        return "HIPFFT_INTERNAL_ERROR (5)";
+    case HIPFFT_EXEC_FAILED:
+        return "HIPFFT_EXEC_FAILED (6)";
+    case HIPFFT_SETUP_FAILED:
+        return "HIPFFT_SETUP_FAILED (7)";
+    case HIPFFT_INVALID_SIZE:
+        return "HIPFFT_INVALID_SIZE (8)";
+    case HIPFFT_UNALIGNED_DATA:
+        return "HIPFFT_UNALIGNED_DATA (9)";
+    case HIPFFT_INCOMPLETE_PARAMETER_LIST:
+        return "HIPFFT_INCOMPLETE_PARAMETER_LIST (10)";
+    case HIPFFT_INVALID_DEVICE:
+        return "HIPFFT_INVALID_DEVICE (11)";
+    case HIPFFT_PARSE_ERROR:
+        return "HIPFFT_PARSE_ERROR (12)";
+    case HIPFFT_NO_WORKSPACE:
+        return "HIPFFT_NO_WORKSPACE (13)";
+    case HIPFFT_NOT_IMPLEMENTED:
+        return "HIPFFT_NOT_IMPLEMENTED (14)";
+    case HIPFFT_NOT_SUPPORTED:
+        return "HIPFFT_NOT_SUPPORTED (16)";
+    default:
+        return "invalid hipfftResult";
+    }
+}
+
 class hipfft_params : public fft_params
 {
 public:
@@ -95,68 +136,64 @@ public:
             throw std::runtime_error("Struct setup failed");
         }
 
-        /*
-        size_t workbuffersize = 0;
+        workbuffersize = 0;
 
-        auto ret = HIPFFT_SUCCESS; 
-        
-        ret = hipfftEstimateMany(dim(),
-                                 int_length.data(),
-                                 int_inembed.data(),
-                                 istride[0],
-                                 idist,
-                                 int_onembed.data(),
-                                 ostride[0],
-                                 odist,
-                                 hipfft_transform_type,
-                                 nbatch,
-                                 &workbuffersize);
-        if(ret != HIPFFT_SUCCESS)
-        {
-            throw std::runtime_error("hipfftEstimateMany failed");
-        }
-
-#if 1
-        ret = hipfftGetSizeMany(plan,
-                                dim(),
-                                int_length.data(),
-                                int_inembed.data(),
-                                istride[0],
-                                idist,
-                                int_onembed.data(),
-                                ostride[0],
-                                odist,
-                                hipfft_transform_type,
-                                nbatch,
-                                &workbuffersize);
-        if(ret != HIPFFT_SUCCESS)
-        {
-            throw std::runtime_error("hipfftGetSizeMany failed");
-        }
-
-#else
-        ret = hipfftGetSizeMany64(plan,
-                                       dim(),
-                                     ll_length.data(),
-                                     ll_inembed.data(),
-                                     istride[0],
-                                     idist,
-                                     ll_onembed.data(),
-                                     ostride[0],
-                                     odist,
-                                     hipfft_transform_type,
-                                     nbatch,
-                                     &workbuffersize);
-        if(ret != HIPFFT_SUCCESS)
-        {
-            throw std::runtime_error("hipfftGetSizeMany64 failed");
-        }
-#endif
-        
-        */
-
-        // TODO: this is an upper bound which serves as a proxy for the actual calculation.
+        // Hack for estimating buffer requirements.
         workbuffersize = 3 * val;
+
+        auto ret = HIPFFT_SUCCESS;
+
+        // ret = hipfftEstimateMany(dim(),
+        //                          int_length.data(),
+        //                          int_inembed.data(),
+        //                          istride[0],
+        //                          idist,
+        //                          int_onembed.data(),
+        //                          ostride[0],
+        //                          odist,
+        //                          hipfft_transform_type,
+        //                          nbatch,
+        //                          &workbuffersize);
+        // if(ret != HIPFFT_SUCCESS)
+        // {
+        //     throw std::runtime_error("hipfftEstimateMany failed");
+        // }
+
+        // NB: this fais with the cuFFT back-end.
+        // ret = hipfftGetSizeMany(plan,
+        //                         dim(),
+        //                         int_length.data(),
+        //                         int_inembed.data(),
+        //                         istride[0],
+        //                         idist,
+        //                         int_onembed.data(),
+        //                         ostride[0],
+        //                         odist,
+        //                         hipfft_transform_type,
+        //                         nbatch,
+        //                         &workbuffersize);
+        // if(ret != HIPFFT_SUCCESS)
+        // {
+        //     throw std::runtime_error("hipfftGetSizeMany failed");
+        // }
+
+        // NB: this breaks with the rocFFT and cuFFT back-end.
+        // ret = hipfftGetSizeMany64(plan,
+        //                                dim(),
+        //                              ll_length.data(),
+        //                              ll_inembed.data(),
+        //                              istride[0],
+        //                              idist,
+        //                              ll_onembed.data(),
+        //                              ostride[0],
+        //                              odist,
+        //                              hipfft_transform_type,
+        //                              nbatch,
+        //                              &workbuffersize);
+        // if(ret != HIPFFT_SUCCESS)
+        // {
+        //     throw std::runtime_error("hipfftGetSizeMany64 failed");
+        // }
 
         val += workbuffersize;
         return val;
@@ -258,25 +295,50 @@ public:
                 std::cerr << "unkown exception in hipfftPlanMany" << std::endl;
             }
             if(ret != HIPFFT_SUCCESS)
+            {
                 throw std::runtime_error("hipfftPlanMany failed");
+            }
 #else
+            // TODO: enable when implemented in hipFFT for rocFFT.
             ret = hipfftCreate(&plan);
             if(ret != HIPFFT_SUCCESS)
-                throw std::runtime_error("hipfftCreate failed");
-            ret = hipfftMakePlanMany64(plan,
-                                       dim(),
-                                       ll_length.data(),
-                                       ll_inembed.data(),
-                                       istride[0],
-                                       idist,
-                                       ll_onembed.data(),
-                                       ostride[0],
-                                       odist,
-                                       hipfft_transform_type,
-                                       nbatch,
-                                       &workbuffersize);
+            {
+                std::stringstream ss;
+                ss << "hipfftMakePlanMany64 failed with code ";
+                ss << hipfftResult_string(ret);
+                throw std::runtime_error(ss.str());
+            }
+
+            try
+            {
+                ret = hipfftMakePlanMany64(plan,
+                                           dim(),
+                                           ll_length.data(),
+                                           ll_inembed.data(),
+                                           istride[dim() - 1],
+                                           idist,
+                                           ll_onembed.data(),
+                                           ostride[dim() - 1],
+                                           odist,
+                                           hipfft_transform_type,
+                                           nbatch,
+                                           &workbuffersize);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what();
+            }
+            catch(...)
+            {
+                std::cerr << "unkown exception in hipfftPlanMany64" << std::endl;
+            }
             if(ret != HIPFFT_SUCCESS)
-                throw std::runtime_error("hipfftMakePlanMany64 failed");
+            {
+                std::stringstream ss;
+                ss << "hipfftMakePlanMany64 failed with code ";
+                ss << hipfftResult_string(ret);
+                throw std::runtime_error(ss.str());
+            }
 #endif
         }
 
