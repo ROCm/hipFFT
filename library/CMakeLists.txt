@@ -36,14 +36,15 @@ set(HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include")
 
 # Configure a header file to pass the hipFFT version
 configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft-version.h.in"
-  "${PROJECT_BINARY_DIR}/include/hipfft-version.h"
+  "${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h"
   )
+
 
 # Public hipFFT headers
 set( hipfft_headers_public
   include/hipfft.h
   include/hipfftXt.h
-  ${PROJECT_BINARY_DIR}/include/hipfft-version.h
+  ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h
   )
 
 source_group( "Header Files\\Public" FILES ${hipfft_headers_public} )
@@ -124,7 +125,16 @@ endif()
 
 # Generate export header
 include( GenerateExportHeader )
-generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft-export.h )
+generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-export.h )
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/library/include ${PROJECT_BINARY_DIR}/include/hipfft)
+if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+  rocm_wrap_header_file(
+    hipfft-version.h hipfft-export.h
+    GUARDS SYMLINK WRAPPER
+    WRAPPER_LOCATIONS include hipfft/include
+  )
+endif( )
 
 # Packaging...
 if(WIN32)
@@ -139,16 +149,24 @@ if(WIN32)
 endif()
 
 if( ROCM_FOUND )
+  
   rocm_install_targets( TARGETS hipfft
     INCLUDE
-    ${CMAKE_SOURCE_DIR}/library/include
     ${CMAKE_BINARY_DIR}/include
-    PREFIX hipfft )
+  )
+
+  if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+    rocm_install(
+    DIRECTORY
+       "${PROJECT_BINARY_DIR}/hipfft"
+        DESTINATION "." )
+    message( STATUS "Backward Compatible Sym Link Created for include directories" )
+  endif()
+
+
   rocm_export_targets( TARGETS hip::hipfft
-    PREFIX hipfft
     DEPENDS PACKAGE hip
     NAMESPACE hip:: )
-  rocm_install_symlink_subdir( hipfft )
 
   # Package specific CPACK vars
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
