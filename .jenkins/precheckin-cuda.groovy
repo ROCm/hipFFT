@@ -16,6 +16,7 @@ def runCI =
     def prj = new rocProject('hipFFT-internal', 'PreCheckin-Cuda')
     // customize for project
     prj.paths.build_command = buildCommand
+    prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
     def nodes = new dockerNodes(nodeDetails, jobName, prj)
