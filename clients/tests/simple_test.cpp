@@ -26,6 +26,8 @@
 #include <hip/hip_vector_types.h>
 #include <vector>
 
+#include "../hipfft_params.h"
+
 // Function to return maximum error for float and double types.
 template <typename Tfloat>
 inline double type_epsilon();
@@ -42,12 +44,12 @@ inline double type_epsilon<double>()
 
 TEST(hipfftTest, Create1dPlan)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t length = 1024;
-    EXPECT_TRUE(hipfftPlan1d(&plan, length, HIPFFT_C2C, 1) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftPlan1d(&plan, length, HIPFFT_C2C, 1), HIPFFT_SUCCESS);
 
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
 TEST(hipfftTest, CreatePlanMany)
@@ -80,211 +82,227 @@ TEST(hipfftTest, CreatePlanMany)
     // otherwise HIPFFT_INVALID_VALUE should be
     // returned to maintain compatibility with cuFFT
 
-    hipfftHandle plan_valid_1;
-    EXPECT_TRUE(hipfftCreate(&plan_valid_1) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftMakePlanMany(plan_valid_1,
-                                   rank,
-                                   (int*)n,
-                                   inembed_null,
-                                   istride,
-                                   idist,
-                                   onembed_null,
-                                   ostride,
-                                   odist,
-                                   type,
-                                   batch,
-                                   &workSize)
-                == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_1, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_valid_1) == HIPFFT_SUCCESS);
+    // inembed == null && onembed == null
+    {
+        hipfftHandle plan_valid_1 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_valid_1), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany(plan_valid_1,
+                                             rank,
+                                             (int*)n,
+                                             inembed_null,
+                                             istride,
+                                             idist,
+                                             onembed_null,
+                                             ostride,
+                                             odist,
+                                             type,
+                                             batch,
+                                             &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_SUCCESS)
+            << "inembed == null && onembed == null failed: " << hipfftResult_string(ret_hipfft);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_valid_1, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_valid_1), HIPFFT_SUCCESS);
+    }
 
-    hipfftHandle plan_valid_2;
-    EXPECT_TRUE(hipfftCreate(&plan_valid_2) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftMakePlanMany(plan_valid_2,
-                                   rank,
-                                   (int*)n,
-                                   inembed,
-                                   istride,
-                                   idist,
-                                   onembed,
-                                   ostride,
-                                   odist,
-                                   type,
-                                   batch,
-                                   &workSize)
-                == HIPFFT_SUCCESS);
+    // inembed != null && onembed != null
+    {
+        hipfftHandle plan_valid_2 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_valid_2), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany(plan_valid_2,
+                                             rank,
+                                             (int*)n,
+                                             inembed,
+                                             istride,
+                                             idist,
+                                             onembed,
+                                             ostride,
+                                             odist,
+                                             type,
+                                             batch,
+                                             &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_SUCCESS)
+            << "inembed != null && onembed != null failed: " << hipfftResult_string(ret_hipfft);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_valid_2, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_valid_2), HIPFFT_SUCCESS);
+    }
 
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_valid_2, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_valid_2) == HIPFFT_SUCCESS);
+    // inembed != null && onembed == null
+    {
+        hipfftHandle plan_invalid_1 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_invalid_1), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany(plan_invalid_1,
+                                             rank,
+                                             (int*)n,
+                                             inembed,
+                                             istride,
+                                             idist,
+                                             onembed_null,
+                                             ostride,
+                                             odist,
+                                             type,
+                                             batch,
+                                             &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_INVALID_VALUE)
+            << "inembed != null && onembed == null failed: " << hipfftResult_string(ret_hipfft);
+        ASSERT_EQ(hipfftDestroy(plan_invalid_1), HIPFFT_SUCCESS);
+    }
 
-    hipfftHandle plan_invalid_1;
-    EXPECT_TRUE(hipfftCreate(&plan_invalid_1) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_1,
-                                   rank,
-                                   (int*)n,
-                                   inembed,
-                                   istride,
-                                   idist,
-                                   onembed_null,
-                                   ostride,
-                                   odist,
-                                   type,
-                                   batch,
-                                   &workSize)
-                == HIPFFT_INVALID_VALUE);
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_1, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_invalid_1) == HIPFFT_SUCCESS);
-
-    hipfftHandle plan_invalid_2;
-    EXPECT_TRUE(hipfftCreate(&plan_invalid_2) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftMakePlanMany(plan_invalid_2,
-                                   rank,
-                                   (int*)n,
-                                   inembed_null,
-                                   istride,
-                                   idist,
-                                   onembed,
-                                   ostride,
-                                   odist,
-                                   type,
-                                   batch,
-                                   &workSize)
-                == HIPFFT_INVALID_VALUE);
-    EXPECT_TRUE(hipfftSetAutoAllocation(plan_invalid_2, 0) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan_invalid_2) == HIPFFT_SUCCESS);
+    // inembed == null && onembed != null
+    {
+        hipfftHandle plan_invalid_2 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_invalid_2), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany(plan_invalid_2,
+                                             rank,
+                                             (int*)n,
+                                             inembed_null,
+                                             istride,
+                                             idist,
+                                             onembed,
+                                             ostride,
+                                             odist,
+                                             type,
+                                             batch,
+                                             &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_INVALID_VALUE)
+            << "inembed == null && onembed != null failed: " << hipfftResult_string(ret_hipfft);
+        ASSERT_EQ(hipfftDestroy(plan_invalid_2), HIPFFT_SUCCESS);
+    }
 }
 
 TEST(hipfftTest, CheckBufferSizeC2C)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 1024;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_C2C, 1, &workSize) == HIPFFT_SUCCESS);
-#ifndef _CUFFT_BACKEND
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_C2C, 1, &workSize), HIPFFT_SUCCESS);
+
+#ifdef __HIP_PLATFORM_HCC__
     // No extra work buffer for C2C
-    EXPECT_TRUE(0 == workSize);
+    EXPECT_EQ(workSize, 0);
 #endif
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
 TEST(hipfftTest, CheckBufferSizeR2C)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 2048;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_R2C, 1, &workSize) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_R2C, 1, &workSize), HIPFFT_SUCCESS);
 
-#ifndef _CUFFT_BACKEND
+#ifdef __HIP_PLATFORM_HCC__
     // NOTE: keep this condition for ease of changing n for ad-hoc tests
     //
     // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
-        EXPECT_TRUE(workSize == 0);
+        EXPECT_EQ(workSize, 0);
     }
     else
     {
-        EXPECT_TRUE(workSize == 2 * n * sizeof(float));
+        EXPECT_EQ(workSize, 2 * n * sizeof(float));
     }
 #endif
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    EXPECT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
 TEST(hipfftTest, CheckBufferSizeC2R)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 2048;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_C2R, 1, &workSize) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_C2R, 1, &workSize), HIPFFT_SUCCESS);
 
-#ifndef _CUFFT_BACKEND
+#ifdef __HIP_PLATFORM_HCC__
     // NOTE: keep this condition for ease of changing n for ad-hoc tests
     //
     // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
-        EXPECT_TRUE(workSize == 0);
+        EXPECT_EQ(workSize, 0);
     }
     else
     {
-        EXPECT_TRUE(workSize == 2 * n * sizeof(float));
+        EXPECT_EQ(workSize, 2 * n * sizeof(float));
     }
 #endif
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
 TEST(hipfftTest, CheckBufferSizeD2Z)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 2048;
     size_t batch    = 1000;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_D2Z, batch, &workSize) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_D2Z, batch, &workSize), HIPFFT_SUCCESS);
 
-#ifndef _CUFFT_BACKEND
+#ifdef __HIP_PLATFORM_HCC__
     // NOTE: keep this condition for ease of changing n for ad-hoc tests
     //
     // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
-        EXPECT_TRUE(workSize == 0);
+        EXPECT_EQ(workSize, 0);
     }
     else
     {
-        EXPECT_TRUE(workSize == 2 * n * sizeof(double));
+        EXPECT_EQ(workSize, 2 * n * sizeof(double));
     }
 #endif
 
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
 TEST(hipfftTest, CheckBufferSizeZ2D)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 2048;
     size_t batch    = 1000;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize), HIPFFT_SUCCESS);
 
-#ifndef _CUFFT_BACKEND
+#ifdef __HIP_PLATFORM_HCC__
     // NOTE: keep this condition for ease of changing n for ad-hoc tests
     //
     // cppcheck-suppress knownConditionTrueFalse
     if(n % 2 == 0)
     {
-        EXPECT_TRUE(workSize == 0);
+        EXPECT_EQ(workSize, 0);
     }
     else
     {
-        EXPECT_TRUE(workSize == 2 * n * sizeof(double));
+        EXPECT_EQ(workSize, 2 * n * sizeof(double));
     }
 #endif
 
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
 
+#ifdef __HIP_PLATFORM_HCC__
 TEST(hipfftTest, CheckNullWorkBuffer)
 {
-    hipfftHandle plan;
-    EXPECT_TRUE(hipfftCreate(&plan) == HIPFFT_SUCCESS);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t n        = 2048;
     size_t batch    = 1000;
     size_t workSize = 0;
 
-    EXPECT_TRUE(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftSetWorkArea(plan, nullptr) == HIPFFT_SUCCESS);
-    EXPECT_TRUE(hipfftDestroy(plan) == HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_Z2D, batch, &workSize), HIPFFT_SUCCESS);
+    EXPECT_EQ(hipfftSetWorkArea(plan, nullptr), HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
 }
+#endif
 
 TEST(hipfftTest, RunR2C)
 {
@@ -295,24 +313,26 @@ TEST(hipfftTest, RunR2C)
 
     hipfftReal*    d_in;
     hipfftComplex* d_out;
-    hipMalloc(&d_in, N * sizeof(hipfftReal));
-    hipMalloc(&d_out, (N / 2 + 1) * sizeof(hipfftComplex));
+    ASSERT_EQ(hipMalloc(&d_in, N * sizeof(hipfftReal)), hipSuccess);
+    ASSERT_EQ(hipMalloc(&d_out, (N / 2 + 1) * sizeof(hipfftComplex)), hipSuccess);
 
-    hipMemcpy(d_in, in, N * sizeof(hipfftReal), hipMemcpyHostToDevice);
+    ASSERT_EQ(hipMemcpy(d_in, in, N * sizeof(hipfftReal), hipMemcpyHostToDevice), hipSuccess);
 
-    hipfftHandle plan;
-    hipfftCreate(&plan);
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
     size_t workSize;
-    hipfftMakePlan1d(plan, N, HIPFFT_R2C, 1, &workSize);
+    ASSERT_EQ(hipfftMakePlan1d(plan, N, HIPFFT_R2C, 1, &workSize), HIPFFT_SUCCESS);
 
-    hipfftExecR2C(plan, d_in, d_out);
+    EXPECT_EQ(hipfftExecR2C(plan, d_in, d_out), HIPFFT_SUCCESS);
 
     std::vector<hipfftComplex> out(N / 2 + 1);
-    hipMemcpy(&out[0], d_out, (N / 2 + 1) * sizeof(hipfftComplex), hipMemcpyDeviceToHost);
+    ASSERT_EQ(hipMemcpy(&out[0], d_out, (N / 2 + 1) * sizeof(hipfftComplex), hipMemcpyDeviceToHost),
+              HIPFFT_SUCCESS);
 
-    hipfftDestroy(plan);
-    hipFree(d_in);
-    hipFree(d_out);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
+    ASSERT_EQ(hipFree(d_in), hipSuccess);
+    ASSERT_EQ(hipFree(d_out), hipSuccess);
+    ;
     // NOTE: keep this condition for ease of changing n for ad-hoc tests
     //
     // cppcheck-suppress knownConditionTrueFalse
@@ -368,30 +388,33 @@ TEST(hipfftTest, OutplaceOnly)
 
     hipfftReal*    d_in;
     hipfftComplex* d_out;
-    hipMalloc(&d_in, N_in * sizeof(hipfftReal));
-    hipMalloc(&d_out, N_out * sizeof(hipfftComplex));
+    ASSERT_EQ(hipMalloc(&d_in, N_in * sizeof(hipfftReal)), hipSuccess);
+    ASSERT_EQ(hipMalloc(&d_out, N_out * sizeof(hipfftComplex)), hipSuccess);
 
-    hipMemcpy(d_in, in, N_in * sizeof(hipfftReal), hipMemcpyHostToDevice);
+    ASSERT_EQ(hipMemcpy(d_in, in, N_in * sizeof(hipfftReal), hipMemcpyHostToDevice), hipSuccess);
 
-    hipfftHandle plan;
+    hipfftHandle plan = nullptr;
     ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
 
     ASSERT_EQ(hipfftPlanMany(&plan, 1, &N_in, &N_in, 1, N_in, &N_out, 1, N_out, HIPFFT_R2C, 1),
               HIPFFT_SUCCESS);
 
-    ASSERT_EQ(hipfftExecR2C(plan, d_in, d_out), HIPFFT_SUCCESS);
+    ASSERT_EQ(plan == nullptr, false);
+
+    ASSERT_EQ(hipfftExecR2C(plan, d_in, d_out), HIPFFT_SUCCESS) << "hipfftExecR2C failed";
 
     std::vector<hipfftComplex> out(N_out);
-    hipMemcpy(out.data(), d_out, N_out * sizeof(hipfftComplex), hipMemcpyDeviceToHost);
+    ASSERT_EQ(hipMemcpy(out.data(), d_out, N_out * sizeof(hipfftComplex), hipMemcpyDeviceToHost),
+              hipSuccess);
 
     // in-place transform isn't really *supposed* to work - this
     // might or might not fail but we can at least check that it
     // doesn't blow up.
-    hipfftExecR2C(plan, reinterpret_cast<hipfftReal*>(d_out), d_out);
+    //hipfftExecR2C(plan, reinterpret_cast<hipfftReal*>(d_out), d_out);
 
-    hipfftDestroy(plan);
-    hipFree(d_in);
-    hipFree(d_out);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
+    ASSERT_EQ(hipFree(d_in), hipSuccess);
+    ASSERT_EQ(hipFree(d_out), hipSuccess);
 
     double ref_in[N_in];
     for(int i = 0; i < N_in; i++)
