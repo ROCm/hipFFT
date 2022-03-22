@@ -136,7 +136,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 endif()
 
 # Version
-set( VERSION_STRING "1.0.7" )
+set( VERSION_STRING "1.0.8" )
 set( hipfft_SOVERSION 0.1 )
 
 if( ROCM_FOUND )
