@@ -136,18 +136,6 @@ if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
   )
 endif( )
 
-# Packaging...
-if(WIN32)
-  set(CPACK_SOURCE_GENERATOR "ZIP")
-  set(CPACK_GENERATOR "ZIP")
-  set(CMAKE_INSTALL_PREFIX "C:/hipSDK" CACHE PATH "Install path" FORCE)
-  set(INSTALL_PREFIX "C:/hipSDK")
-  set(CPACK_SET_DESTDIR OFF)
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/hipSDK")
-  set(CPACK_PACKAGING_INSTALL_PREFIX "")
-  set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-endif()
-
 if( ROCM_FOUND )
   
   rocm_install_targets( TARGETS hipfft
@@ -167,35 +155,4 @@ if( ROCM_FOUND )
   rocm_export_targets( TARGETS hip::hipfft
     DEPENDS PACKAGE hip
     NAMESPACE hip:: )
-
-  # Package specific CPACK vars
-  if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-    set( CPACK_DEBIAN_PACKAGE_DEPENDS "rocfft (>= 1.0.0)" )
-    set( CPACK_RPM_PACKAGE_REQUIRES "rocfft >= 1.0.0" )
-  else()
-    set( CPACK_DEBIAN_PACKAGE_DEPENDS "cufft (>= 10.0.0)" )
-    set( CPACK_RPM_PACKAGE_REQUIRES "cufft >= 10.0.0" )
-  endif()
-
-  set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.md" )
-
-  set( CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PREFIX}" "\${CPACK_PACKAGING_INSTALL_PREFIX}/include" "\${CPACK_PACKAGING_INSTALL_PREFIX}/lib" )
-
-  # Give hipfft compiled for CUDA backend a different name
-  if( BUILD_WITH_LIB STREQUAL "ROCM" )
-    set( package_name hipfft )
-  else()
-    set( package_name hipfft-alt )
-  endif()
-
-  set( HIPFFT_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file" )
-
-  rocm_create_package(
-    NAME ${package_name}
-    DESCRIPTION "ROCm FFT marshalling library"
-    MAINTAINER "hipfft-maintainer@amd.com"
-    LDCONFIG
-    LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
-    )
 endif()
-

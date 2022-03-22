@@ -156,6 +156,64 @@ endif()
 # Build clients of the library
 if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
+  rocm_package_setup_component(clients)
+  if(NOT CLIENTS_OS)
+    rocm_set_os_id(CLIENTS_OS)
+    string(TOLOWER "${CLIENTS_OS}" CLIENTS_OS)
+    rocm_read_os_release(CLIENTS_OS_VERSION VERSION_ID)
+  endif()
+  message(STATUS "OS: ${CLIENTS_OS} ${CLIENTS_OS_VERSION}")
+  set(FFTW_PKG "fftw-devel")
+  if(CLIENTS_OS STREQUAL "sles")
+    set(FFTW_PKG "fftw3-devel")
+  endif()
+  if(BUILD_CLIENTS_TESTS)
+    rocm_package_setup_client_component(tests DEPENDS DEB "libfftw3-dev" RPM "${FFTW_PKG}")
+  endif()
+  if(BUILD_CLIENTS_RIDER)
+    rocm_package_setup_client_component(benchmarks  DEPENDS DEB "libfftw3-dev" RPM "${FFTW_PKG}")
+  endif()
   add_subdirectory( clients )
 endif()
 
+# Packaging...
+if(WIN32)
+  set(CPACK_SOURCE_GENERATOR "ZIP")
+  set(CPACK_GENERATOR "ZIP")
+  set(CMAKE_INSTALL_PREFIX "C:/hipSDK" CACHE PATH "Install path" FORCE)
+  set(INSTALL_PREFIX "C:/hipSDK")
+  set(CPACK_SET_DESTDIR OFF)
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/hipSDK")
+  set(CPACK_PACKAGING_INSTALL_PREFIX "")
+  set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+endif()
+
+if( ROCM_FOUND )
+  # Package specific CPACK vars
+  if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+    rocm_package_add_dependencies("rocfft >= 1.0.0")
+  else()
+  rocm_package_add_dependencies("cufft >= 10.0.0")
+  endif()
+
+  set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md" )
+
+  set( CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PREFIX}" "\${CPACK_PACKAGING_INSTALL_PREFIX}/include" "\${CPACK_PACKAGING_INSTALL_PREFIX}/lib" )
+
+  # Give hipfft compiled for CUDA backend a different name
+  if( BUILD_WITH_LIB STREQUAL "ROCM" )
+    set( package_name hipfft )
+  else()
+    set( package_name hipfft-alt )
+  endif()
+
+  set( HIPFFT_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file" )
+
+  rocm_create_package(
+    NAME ${package_name}
+    DESCRIPTION "ROCm FFT marshalling library"
+    MAINTAINER "hipfft-maintainer@amd.com"
+    LDCONFIG
+    LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
+    )
+endif()
