@@ -58,6 +58,8 @@ set( BUILD_WITH_COMPILER "HOST-default" CACHE INTERNAL
      "Build ${PROJECT_NAME} with compiler HIP-clang, HIP-nvcc, or just the host default compiler, eg g++")
 set( BUILD_WITH_LIB "ROCM" CACHE STRING "Build ${PROJECT_NAME} with ROCM or CUDA libraries" )
 
+option( BUILD_CLIENTS "Build all clients" OFF)
+option( BUILD_CLIENTS_RIDER "Build benchmark client" OFF )
 option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF )
 option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
