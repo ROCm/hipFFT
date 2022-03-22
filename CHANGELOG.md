@@ -6,6 +6,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 
 ### Added
 - Added File/Folder Reorg Changes with backward compatibility support using ROCM-CMAKE wrapper functions.
+- Packages for test and benchmark executables on all supported OSes using CPack.
 
 ## hipFFT 1.0.7
 
