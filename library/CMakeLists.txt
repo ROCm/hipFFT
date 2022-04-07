@@ -80,6 +80,7 @@ endif()
 target_include_directories( hipfft
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
+  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/hipfft>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
   $<INSTALL_INTERFACE:include>
