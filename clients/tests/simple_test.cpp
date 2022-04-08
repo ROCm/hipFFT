@@ -169,6 +169,186 @@ TEST(hipfftTest, CreatePlanMany)
     }
 }
 
+TEST(hipfftTest, CreatePlanMany64)
+{
+    int const           rank               = 3;
+    long long int const nX                 = 64;
+    long long int const nY                 = 128;
+    long long int const nZ                 = 23;
+    long long int       n[3]               = {nX, nY, nZ};
+    long long int       n_invalid[3]       = {nX, -nY, nZ};
+    long long int       inembed[3]         = {nX, nY, nZ};
+    long long int const istride            = 1;
+    long long int const idist              = nX * nY * nZ;
+    long long int       onembed[3]         = {nX, nY, nZ};
+    long long int       onembed_invalid[3] = {nX, nY, -nZ};
+    long long int const ostride            = 1;
+    long long int const odist              = nX * nY * nZ;
+    hipfftType          type               = HIPFFT_C2C;
+    long long int const batch              = 1000;
+    long long int const batch_invalid      = -2;
+    size_t              workSize;
+
+    // Tests the 64-bit version of plan creation
+    // with valid/invalid data layouts.
+
+    // First test with a valid data layout
+    {
+        hipfftHandle plan_valid = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_valid), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany64(plan_valid,
+                                               rank,
+                                               (long long int*)n,
+                                               inembed,
+                                               istride,
+                                               idist,
+                                               onembed,
+                                               ostride,
+                                               odist,
+                                               type,
+                                               batch,
+                                               &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_valid, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_valid), HIPFFT_SUCCESS);
+    }
+
+    // invalid data layout (n array has a negative entry)
+    {
+        hipfftHandle plan_invalid_1 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_invalid_1), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany64(plan_invalid_1,
+                                               rank,
+                                               (long long int*)n_invalid,
+                                               inembed,
+                                               istride,
+                                               idist,
+                                               onembed,
+                                               ostride,
+                                               odist,
+                                               type,
+                                               batch,
+                                               &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_INVALID_VALUE);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_invalid_1, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_invalid_1), HIPFFT_SUCCESS);
+    }
+
+    // invalid data layout (onembed array has a negative entry)
+    {
+        hipfftHandle plan_invalid_2 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_invalid_2), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany64(plan_invalid_2,
+                                               rank,
+                                               (long long int*)n,
+                                               inembed,
+                                               istride,
+                                               idist,
+                                               onembed_invalid,
+                                               ostride,
+                                               odist,
+                                               type,
+                                               batch,
+                                               &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_INVALID_SIZE);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_invalid_2, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_invalid_2), HIPFFT_SUCCESS);
+    }
+
+    // invalid data layout (batch is negative)
+    {
+        hipfftHandle plan_invalid_3 = nullptr;
+        ASSERT_EQ(hipfftCreate(&plan_invalid_3), HIPFFT_SUCCESS);
+        auto ret_hipfft = hipfftMakePlanMany64(plan_invalid_3,
+                                               rank,
+                                               (long long int*)n,
+                                               inembed,
+                                               istride,
+                                               idist,
+                                               onembed,
+                                               ostride,
+                                               odist,
+                                               type,
+                                               batch_invalid,
+                                               &workSize);
+        ASSERT_EQ(ret_hipfft, HIPFFT_INVALID_SIZE);
+        ASSERT_EQ(hipfftSetAutoAllocation(plan_invalid_3, 0), HIPFFT_SUCCESS);
+        ASSERT_EQ(hipfftDestroy(plan_invalid_3), HIPFFT_SUCCESS);
+    }
+}
+
+TEST(hipfftTest, hipfftGetSizeMany)
+{
+    int const  rank       = 3;
+    int const  nX         = 33;
+    int const  nY         = 128;
+    int const  nZ         = 100;
+    int        n[3]       = {nX, nY, nZ};
+    int        inembed[3] = {nX, nY, nZ};
+    int const  istride    = 1;
+    int const  idist      = nX * nY * nZ;
+    int        onembed[3] = {nX, nY, nZ};
+    int const  ostride    = 1;
+    int const  odist      = nX * nY * nZ;
+    hipfftType type       = HIPFFT_C2C;
+    int const  batch      = 1;
+    size_t     workSize;
+
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
+    auto ret_hipfft = hipfftGetSizeMany(plan,
+                                        rank,
+                                        (int*)n,
+                                        inembed,
+                                        istride,
+                                        idist,
+                                        onembed,
+                                        ostride,
+                                        odist,
+                                        type,
+                                        batch,
+                                        &workSize);
+    ASSERT_EQ(ret_hipfft, HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftSetAutoAllocation(plan, 0), HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
+}
+
+TEST(hipfftTest, hipfftGetSizeMany64)
+{
+    int const           rank       = 3;
+    long long int const nX         = 133;
+    long long int const nY         = 354;
+    long long int const nZ         = 256;
+    long long int       n[3]       = {nX, nY, nZ};
+    long long int       inembed[3] = {nX, nY, nZ};
+    long long int const istride    = 1;
+    long long int const idist      = nX * nY * nZ;
+    long long int       onembed[3] = {nX, nY, nZ};
+    long long int const ostride    = 1;
+    long long int const odist      = nX * nY * nZ;
+    hipfftType          type       = HIPFFT_C2C;
+    long long int const batch      = 2;
+    size_t              workSize;
+
+    hipfftHandle plan = nullptr;
+    ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
+    auto ret_hipfft = hipfftGetSizeMany64(plan,
+                                          rank,
+                                          (long long int*)n,
+                                          inembed,
+                                          istride,
+                                          idist,
+                                          onembed,
+                                          ostride,
+                                          odist,
+                                          type,
+                                          batch,
+                                          &workSize);
+    ASSERT_EQ(ret_hipfft, HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftSetAutoAllocation(plan, 0), HIPFFT_SUCCESS);
+    ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
+}
+
 TEST(hipfftTest, CheckBufferSizeC2C)
 {
     hipfftHandle plan = nullptr;

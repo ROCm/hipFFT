@@ -21,6 +21,7 @@
 #include "hipfft.h"
 #include "hipfftXt.h"
 #include "rocfft.h"
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -154,6 +155,26 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
     *plan = handle;
 
     return hipfftMakePlanMany(
+        *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
+}
+
+hipfftResult hipfftPlanMany64(hipfftHandle*  plan,
+                              int            rank,
+                              long long int* n,
+                              long long int* inembed,
+                              long long int  istride,
+                              long long int  idist,
+                              long long int* onembed,
+                              long long int  ostride,
+                              long long int  odist,
+                              hipfftType     type,
+                              long long int  batch)
+{
+    hipfftHandle handle = nullptr;
+    HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
+    *plan = handle;
+
+    return hipfftMakePlanMany64(
         *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
 }
 
@@ -729,23 +750,35 @@ hipfftResult
         plan, 3, lengths, type, number_of_transforms, desc, workSize, false);
 }
 
-hipfftResult hipfftMakePlanMany(hipfftHandle plan,
-                                int          rank,
-                                int*         n,
-                                int*         inembed,
-                                int          istride,
-                                int          idist,
-                                int*         onembed,
-                                int          ostride,
-                                int          odist,
-                                hipfftType   type,
-                                int          batch,
-                                size_t*      workSize)
+template <typename T>
+hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
+                                         int          rank,
+                                         T*           n,
+                                         T*           inembed,
+                                         T            istride,
+                                         T            idist,
+                                         T*           onembed,
+                                         T            ostride,
+                                         T            odist,
+                                         hipfftType   type,
+                                         T            batch,
+                                         size_t*      workSize)
 {
-    if((inembed != nullptr && onembed == nullptr) || (inembed == nullptr && onembed != nullptr))
-    {
+    if((inembed != nullptr && onembed == nullptr) || (inembed == nullptr && onembed != nullptr)
+       || (rank < 0) || (istride < 0) || (idist < 0) || (ostride < 0) || (odist < 0)
+       || (std::any_of(n, n + rank, [](T val) { return val < 0; })))
         return HIPFFT_INVALID_VALUE;
+
+    for(auto ptr : {inembed, onembed})
+    {
+        if(ptr == nullptr)
+            continue;
+        if(std::any_of(ptr, ptr + rank, [](T val) { return val < 0; }))
+            return HIPFFT_INVALID_SIZE;
     }
+
+    if(batch < 0)
+        return HIPFFT_INVALID_SIZE;
 
     size_t lengths[3];
     for(size_t i = 0; i < rank; i++)
@@ -827,6 +860,25 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
     return ret;
 }
 
+hipfftResult hipfftMakePlanMany(hipfftHandle plan,
+                                int          rank,
+                                int*         n,
+                                int*         inembed,
+                                int          istride,
+                                int          idist,
+                                int*         onembed,
+                                int          ostride,
+                                int          odist,
+                                hipfftType   type,
+                                int          batch,
+                                size_t*      workSize)
+{
+    auto result = hipfftMakePlanMany_internal<int>(
+        plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
+
+    return result;
+}
+
 hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
                                   int            rank,
                                   long long int* n,
@@ -840,7 +892,10 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
                                   long long int  batch,
                                   size_t*        workSize)
 {
-    return HIPFFT_NOT_IMPLEMENTED;
+    auto result = hipfftMakePlanMany_internal<long long int>(
+        plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
+
+    return result;
 }
 
 hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t* workSize)
@@ -972,12 +1027,6 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
     return HIPFFT_SUCCESS;
 }
 
-hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
-{
-    *workSize = plan->workBufferSize;
-    return HIPFFT_SUCCESS;
-}
-
 hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  int            rank,
                                  long long int* n,
@@ -991,7 +1040,19 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  long long int  batch,
                                  size_t*        workSize)
 {
-    return HIPFFT_NOT_IMPLEMENTED;
+    hipfftHandle p;
+    HIP_FFT_CHECK_AND_RETURN(hipfftPlanMany64(
+        &p, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch));
+    *workSize = p->workBufferSize;
+    HIP_FFT_CHECK_AND_RETURN(hipfftDestroy(p));
+
+    return HIPFFT_SUCCESS;
+}
+
+hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
+{
+    *workSize = plan->workBufferSize;
+    return HIPFFT_SUCCESS;
 }
 
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
