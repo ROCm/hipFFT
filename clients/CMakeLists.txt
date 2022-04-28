@@ -85,7 +85,7 @@ if( BUILD_CLIENTS_SAMPLES )
 endif( )
 
 if( BUILD_CLIENTS_TESTS )
-  find_package( GTest 1.10.0 )
+  find_package( GTest 1.11.0 )
   include( ExternalProject )
   if( NOT GTEST_FOUND )
     set( GTEST_INCLUDE_DIRS
@@ -97,8 +97,8 @@ if( BUILD_CLIENTS_TESTS )
       )
 
     ExternalProject_Add( gtest
-      URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
-      URL_HASH SHA256=9dc9157a9a1551ec7a7e43daea9a694a0bb5fb8bec81235d8a1e6ef64c716dcb
+      URL https://github.com/google/googletest/archive/release-1.11.0.tar.gz
+      URL_HASH SHA256=b4870bf121ff7795ba20d20bcdd8627b8e088f2d1dab299a031c1034eddc93d5
       PREFIX ${CMAKE_CURRENT_BINARY_DIR}
       CMAKE_ARGS -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER} -DBUILD_SHARED_LIBS=OFF
       INSTALL_COMMAND ""
