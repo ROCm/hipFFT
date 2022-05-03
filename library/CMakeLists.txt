@@ -133,6 +133,7 @@ if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     hipfft-version.h hipfft-export.h
     GUARDS SYMLINK WRAPPER
     WRAPPER_LOCATIONS include hipfft/include
+    ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h
   )
 endif( )
 
