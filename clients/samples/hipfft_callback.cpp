@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - present Advanced Micro Devices, Inc. All rights
+// Copyright (C) 2021 - 2022 Advanced Micro Devices, Inc. All rights
 // reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
