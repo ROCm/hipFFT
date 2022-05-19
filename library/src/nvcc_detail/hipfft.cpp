@@ -23,7 +23,7 @@
 #include <cuda_runtime_api.h>
 #include <cufft.h>
 #include <cufftXt.h>
-#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
 #include <iostream>
 
 hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
