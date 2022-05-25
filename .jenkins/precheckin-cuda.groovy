@@ -11,7 +11,7 @@ import java.nio.file.Path
 
 def runCI =
 {
-    nodeDetails, jobName, buildCommand, label ->
+    nodeDetails, jobName, buildCommand, label, runTest ->
 
     def prj = new rocProject('hipFFT-internal', 'PreCheckin-Cuda')
     // customize for project
@@ -50,10 +50,10 @@ def runCI =
         commonGroovy.runPackageCommand(platform, project, jobName, label)
     }
 
-    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, testCommand, packageCommand)
+    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, runTest ? testCommand : null, packageCommand)
 }
 
-def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
+def setupCI(urlJobName, jobNameList, buildCommand, runCI, label, runTest)
 {
     jobNameList = auxiliary.appendJobNameList(jobNameList)
 
@@ -62,7 +62,7 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
         jobName, nodeDetails->
         if (urlJobName == jobName)
             stage(label + ' ' + jobName) {
-                runCI(nodeDetails, jobName, buildCommand, label)
+                runCI(nodeDetails, jobName, buildCommand, label, runTest)
             }
     }
 
@@ -71,7 +71,7 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
     {
         properties(auxiliary.addCommonProperties([pipelineTriggers([cron('0 1 * * *')])]))
         stage(label + ' ' + urlJobName) {
-            runCI(['ubuntu20-cuda11':['anycuda']], urlJobName, buildCommand, label)
+            runCI(['ubuntu20-cuda11':['anycuda']], urlJobName, buildCommand, label, runTest)
         }
     }
 }
@@ -90,11 +90,19 @@ ci: {
         if (urlJobName == jobName)
             properties(auxiliary.addCommonProperties(property))
     }
-    
-    String gBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+
+    String compilerVar = ' -DCMAKE_CXX_COMPILER='
+    String gBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                             -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
                             -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
-                            -DBUILD_CLIENTS_TESTS=ON -L ../..'
+                            -DBUILD_CLIENTS=ON -L ../..'
+    String boostLibraryDir = ' -DBOOST_LIBRARYDIR=/usr/lib/x86_64-linux-gnu'
 
-    setupCI(urlJobName, jobNameList, gBuildCommand, runCI, 'g++')
+    // Run tests on normal g++ build
+    setupCI(urlJobName, jobNameList, compilerVar + 'g++' + gBuildCommand, runCI, 'g++', true)
+    // Also build with hipcc+CUDA backend, both shared and static lib.
+    // Static build allows the hipFFT callback sample to be built.
+    // Skip tests since the first build would have already run tests.
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + gBuildCommand + boostLibraryDir, runCI, 'hipcc', false)
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + gBuildCommand + boostLibraryDir + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
 }

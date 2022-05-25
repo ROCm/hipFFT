@@ -70,9 +70,9 @@ add_library( hip::hipfft ALIAS hipfft )
 # Target compile definitions
 if( BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" )
   if( BUILD_WITH_LIB STREQUAL "ROCM" )
-    target_compile_definitions( hipfft PRIVATE __HIP_PLATFORM_HCC__ )
+    target_compile_definitions( hipfft PRIVATE __HIP_PLATFORM_AMD__ )
   elseif( BUILD_WITH_LIB STREQUAL "CUDA" )
-    target_compile_definitions( hipfft PRIVATE __HIP_PLATFORM_NVCC__ )
+    target_compile_definitions( hipfft PRIVATE __HIP_PLATFORM_NVIDIA__ )
   endif()
 endif()
 
