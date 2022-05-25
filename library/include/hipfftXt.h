@@ -26,7 +26,7 @@
 #pragma once
 #include "hipfft.h"
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 #include <cufftXt.h>
 #endif
 

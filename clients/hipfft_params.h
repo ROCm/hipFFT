@@ -96,7 +96,14 @@ inline std::string hipfftResult_string(const hipfftResult_t val)
 class hipfft_params : public fft_params
 {
 public:
-    hipfftHandle plan = nullptr;
+    // plan handles are pointers for rocFFT backend, and ints for cuFFT
+#ifdef __HIP_PLATFORM_AMD__
+    static constexpr hipfftHandle INVALID_PLAN_HANDLE = nullptr;
+#else
+    static constexpr hipfftHandle INVALID_PLAN_HANDLE = -1;
+#endif
+
+    hipfftHandle plan = INVALID_PLAN_HANDLE;
 
     hipfftType hipfft_transform_type;
     int        direction;
@@ -121,10 +128,10 @@ public:
 
     void free()
     {
-        if(plan != nullptr)
+        if(plan != INVALID_PLAN_HANDLE)
         {
             hipfftDestroy(plan);
-            plan = nullptr;
+            plan = INVALID_PLAN_HANDLE;
         }
     }
 
@@ -269,7 +276,7 @@ public:
 
         hipfftResult ret;
 
-        if(plan == nullptr)
+        if(plan == INVALID_PLAN_HANDLE)
         {
 #if 1
             try

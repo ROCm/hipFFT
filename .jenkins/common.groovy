@@ -20,6 +20,9 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
     String path = platform.jenkinsLabel.contains('centos7') ? "export PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH" : ":"
     String dir = jobName.contains('Debug') ? "debug" : "release"
 
+    // hipcc with CUDA backend needs HIP_PLATFORM set accordingly in the environment
+    String hipPlatformCommand = platform.jenkinsLabel.contains("cuda") ? "export HIP_PLATFORM=nvidia" : ""
+
     def command = """#!/usr/bin/env bash
                 set -x
                 
@@ -31,6 +34,10 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
                 export CPLUS_INCLUDE_PATH=\${FFTW_INCLUDE_PATH}:\${CPLUS_INCLUDE_PATH}
                 export CMAKE_PREFIX_PATH=\${FFTW_LIB_PATH}/cmake/fftw3:\${CMAKE_PREFIX_PATH}
                 export CMAKE_PREFIX_PATH=\${FFTW_LIB_PATH}/cmake/fftw3f:\${CMAKE_PREFIX_PATH}
+		# default container flags cause problems for CUDA backend, and aren't useful for ROCm
+		unset HIPCC_COMPILE_FLAGS_APPEND
+		unset HIPCC_LINK_FLAGS_APPEND
+		${hipPlatformCommand}
                 
                 cd ${project.paths.project_build_prefix}
                 mkdir -p build/${dir} && cd build/${dir}

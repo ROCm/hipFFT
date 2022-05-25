@@ -105,7 +105,7 @@ typedef enum hipfftLibraryPropertyType_t
  * */
 #define HIPFFT_BACKWARD 1
 
-#ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVIDIA__
 typedef int hipfftHandle;
 #else
 typedef struct hipfftHandle_t* hipfftHandle;
