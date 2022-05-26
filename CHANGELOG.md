@@ -2,7 +2,7 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## (Unreleased) hipFFT 1.0.8
+## hipFFT 1.0.8 for ROCm 5.2.0
 
 ### Added
 - Added File/Folder Reorg Changes with backward compatibility support using ROCM-CMAKE wrapper functions.
