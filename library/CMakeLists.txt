@@ -49,12 +49,6 @@ set( hipfft_headers_public
 
 source_group( "Header Files\\Public" FILES ${hipfft_headers_public} )
 
-include( GNUInstallDirs )
-
-set( BIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR} )
-set( LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR} )
-set( INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR} )
-
 # nvcc can not recognize shared libraray file name with suffix other than *.so when linking.
 #if (NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
 #  rocm_setsoversion(hipfft ${hipfft_SOVERSION})
@@ -83,7 +77,7 @@ target_include_directories( hipfft
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/hipfft>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   ${HIP_INCLUDE_DIRS}
   )
 
@@ -133,7 +127,7 @@ if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
   rocm_wrap_header_file(
     hipfft-version.h hipfft-export.h
     GUARDS SYMLINK WRAPPER
-    WRAPPER_LOCATIONS include hipfft/include
+    WRAPPER_LOCATIONS ${CMAKE_INSTALL_INCLUDEDIR} hipfft/${CMAKE_INSTALL_INCLUDEDIR}
     ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h
   )
 endif( )
