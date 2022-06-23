@@ -49,6 +49,8 @@ inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
         return fft_status_failure;
     case HIPFFT_NO_WORKSPACE:
         return fft_status_invalid_work_buffer;
+    default:
+        return fft_status_failure;
     }
 }
 
@@ -148,60 +150,6 @@ public:
         // Hack for estimating buffer requirements.
         workbuffersize = 3 * val;
 
-        auto ret = HIPFFT_SUCCESS;
-
-        // ret = hipfftEstimateMany(dim(),
-        //                          int_length.data(),
-        //                          int_inembed.data(),
-        //                          istride[0],
-        //                          idist,
-        //                          int_onembed.data(),
-        //                          ostride[0],
-        //                          odist,
-        //                          hipfft_transform_type,
-        //                          nbatch,
-        //                          &workbuffersize);
-        // if(ret != HIPFFT_SUCCESS)
-        // {
-        //     throw std::runtime_error("hipfftEstimateMany failed");
-        // }
-
-        // NB: this fais with the cuFFT back-end.
-        // ret = hipfftGetSizeMany(plan,
-        //                         dim(),
-        //                         int_length.data(),
-        //                         int_inembed.data(),
-        //                         istride[0],
-        //                         idist,
-        //                         int_onembed.data(),
-        //                         ostride[0],
-        //                         odist,
-        //                         hipfft_transform_type,
-        //                         nbatch,
-        //                         &workbuffersize);
-        // if(ret != HIPFFT_SUCCESS)
-        // {
-        //     throw std::runtime_error("hipfftGetSizeMany failed");
-        // }
-
-        // NB: this breaks with the rocFFT and cuFFT back-end.
-        // ret = hipfftGetSizeMany64(plan,
-        //                                dim(),
-        //                              ll_length.data(),
-        //                              ll_inembed.data(),
-        //                              istride[0],
-        //                              idist,
-        //                              ll_onembed.data(),
-        //                              ostride[0],
-        //                              odist,
-        //                              hipfft_transform_type,
-        //                              nbatch,
-        //                              &workbuffersize);
-        // if(ret != HIPFFT_SUCCESS)
-        // {
-        //     throw std::runtime_error("hipfftGetSizeMany64 failed");
-        // }
-
         val += workbuffersize;
         return val;
     }
@@ -243,9 +191,11 @@ public:
         case 3:
             ll_inembed[2] = istride[1] / istride[2];
             ll_onembed[2] = ostride[1] / ostride[2];
+            [[fallthrough]];
         case 2:
             ll_inembed[1] = istride[0] / istride[1];
             ll_onembed[1] = ostride[0] / ostride[1];
+            [[fallthrough]];
         case 1:
             ll_inembed[0] = istride[dim() - 1];
             ll_onembed[0] = ostride[dim() - 1];
@@ -254,7 +204,7 @@ public:
             throw std::runtime_error("Invalid dimension");
         }
 
-        for(int i = 0; i < dim(); ++i)
+        for(size_t i = 0; i < dim(); ++i)
         {
             ll_length[i]   = length[i];
             int_length[i]  = length[i];
@@ -274,7 +224,7 @@ public:
             return fft_ret;
         }
 
-        hipfftResult ret;
+        hipfftResult ret{HIPFFT_EXEC_FAILED};
 
         if(plan == INVALID_PLAN_HANDLE)
         {
@@ -366,9 +316,9 @@ public:
 
     fft_status execute(void* ibuffer, void* obuffer)
     {
+        hipfftResult ret{HIPFFT_EXEC_FAILED};
         try
         {
-            hipfftResult ret{HIPFFT_EXEC_FAILED};
             switch(hipfft_transform_type)
             {
             case HIPFFT_R2C:
@@ -412,7 +362,6 @@ public:
             default:
                 throw std::runtime_error("Invalid execution type");
             }
-            return fft_status_from_hipfftparams(ret);
         }
         catch(const std::exception& e)
         {
@@ -422,6 +371,7 @@ public:
         {
             std::cerr << "unkown exception in execute(void* ibuffer, void* obuffer)" << std::endl;
         }
+        return fft_status_from_hipfftparams(ret);
     }
 };
 

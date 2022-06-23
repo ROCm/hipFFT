@@ -23,8 +23,15 @@
 #include <iostream>
 #include <vector>
 
-#include <hip/hip_runtime_api.h>
 #include <hipfft.h>
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
+
+#include "../hipfft_params.h"
 
 int main()
 {
@@ -60,7 +67,7 @@ int main()
         throw std::runtime_error("hipMemcpy failed");
 
     // Create the plan
-    hipfftHandle plan      = NULL;
+    hipfftHandle plan = hipfft_params::INVALID_PLAN_HANDLE;
     hipfftResult hipfft_rt = hipfftCreate(&plan);
     if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to create plan");

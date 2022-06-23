@@ -66,6 +66,8 @@ else()
   target_link_libraries( hipfft-test PRIVATE ${GTEST_LIBRARIES} )
 endif()
 
+target_compile_options( hipfft-test PRIVATE ${WARNING_FLAGS} )
+
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     if( WIN32 )

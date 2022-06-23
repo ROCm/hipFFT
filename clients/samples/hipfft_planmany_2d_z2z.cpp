@@ -20,10 +20,15 @@
 // THE SOFTWARE.
 
 #include <complex>
-#include <hip/hip_runtime_api.h>
 #include <hipfft.h>
 #include <iostream>
 #include <vector>
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
 
 int main()
 {
