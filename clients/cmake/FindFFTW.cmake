@@ -56,6 +56,18 @@ if( FFTW_FIND_REQUIRED_FLOAT OR FFTW_FIND_REQUIRED_SINGLE )
   )
   mark_as_advanced( FFTW_LIBRARIES_SINGLE )
   list( APPEND FFTW_LIBRARIES ${FFTW_LIBRARIES_SINGLE} )
+
+  # Look for omp (preferred) or thread libraries.  These are not a
+  # hard requirement, but are nice to have to make FFTW run faster.
+  find_library( FFTWF_OMP_LIBRARY fftw3f_omp )
+  find_library( FFTWF_THREADS_LIBRARY fftw3f_threads )
+  if( FFTWF_OMP_LIBRARY )
+    list( APPEND FFTW_LIBRARIES ${FFTWF_OMP_LIBRARY} )
+    set( FFTW_MULTITHREAD TRUE )
+  elseif( FFTWF_THREADS_LIBRARY )
+    list( APPEND FFTW_LIBRARIES ${FFTWF_THREADS_LIBRARY} )
+    set( FFTW_MULTITHREAD TRUE )
+  endif()
 endif( )
 
 if( FFTW_FIND_REQUIRED_DOUBLE )
@@ -73,11 +85,29 @@ if( FFTW_FIND_REQUIRED_DOUBLE )
   )
   mark_as_advanced( FFTW_LIBRARIES_DOUBLE )
   list( APPEND FFTW_LIBRARIES ${FFTW_LIBRARIES_DOUBLE} )
+
+  # Look for omp (preferred) or thread libraries.  These are not a
+  # hard requirement, but are nice to have to make FFTW run faster.
+  find_library( FFTW_OMP_LIBRARY fftw3_omp )
+  find_library( FFTW_THREADS_LIBRARY fftw3_threads )
+  if( FFTW_OMP_LIBRARY )
+    list( APPEND FFTW_LIBRARIES ${FFTW_OMP_LIBRARY} )
+    set( FFTW_MULTITHREAD TRUE )
+  elseif( FFTW_THREADS_LIBRARY )
+    list( APPEND FFTW_LIBRARIES ${FFTW_THREADS_LIBRARY} )
+    set( FFTW_MULTITHREAD TRUE )
+  endif()
 endif( )
 
 include( FindPackageHandleStandardArgs )
 FIND_PACKAGE_HANDLE_STANDARD_ARGS( FFTW
     REQUIRED_VARS FFTW_INCLUDE_DIRS FFTW_LIBRARIES )
+
+# assume the threads feature is always enabled on Windows, since it's
+# not a separate library there
+if( FFTW_FOUND AND WIN32 )
+  set( FFTW_MULTITHREAD TRUE )
+endif()
 
 if( NOT FFTW_FOUND )
     message( STATUS "FindFFTW could not find all of the following fftw libraries" )

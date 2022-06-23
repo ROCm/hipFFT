@@ -94,6 +94,10 @@ if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )
 endif()
 
+if(FFTW_MULTITHREAD)
+  target_compile_options( hipfft-test PRIVATE -DFFTW_MULTITHREAD )
+endif( )
+
 set_target_properties( hipfft-test PROPERTIES
   DEBUG_POSTFIX "-d"
   CXX_STANDARD 14
