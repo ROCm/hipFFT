@@ -23,8 +23,13 @@
 #include <cuda_runtime_api.h>
 #include <cufft.h>
 #include <cufftXt.h>
-#include <hip/hip_runtime_api.h>
 #include <iostream>
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
 
 hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
 {
@@ -177,6 +182,8 @@ cufftXtCallbackType_t hipfftCallbackTypeToCufftCallbackType(hipfftXtCallbackType
         return CUFFT_CB_ST_REAL_DOUBLE;
     case HIPFFT_CB_UNDEFINED:
         return CUFFT_CB_UNDEFINED;
+    default:
+        throw "Non existent hipFFT XT callback type.";
     }
 }
 
@@ -192,9 +199,10 @@ hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipfftType type)
 
 hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType type)
 {
+    auto cufftret = CUFFT_SUCCESS;
     try
     {
-        return cufftResultToHipResult(cufftPlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type)));
+        cufftret = cufftPlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type));
     }
     catch(const std::exception& e)
     {
@@ -204,6 +212,7 @@ hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType
     {
         std::cerr << "unknown exception in cufftPlan3d" << std::endl;
     }
+    return cufftResultToHipResult(cufftret);
 }
 
 hipfftResult hipfftPlanMany(hipfftHandle* plan,
@@ -224,19 +233,20 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
     }
     else
     {
+        auto cufftret = CUFFT_SUCCESS;
         try
         {
-            return cufftResultToHipResult(cufftPlanMany(plan,
-                                                        rank,
-                                                        n,
-                                                        inembed,
-                                                        istride,
-                                                        idist,
-                                                        onembed,
-                                                        ostride,
-                                                        odist,
-                                                        hipfftTypeToCufftType(type),
-                                                        batch));
+            cufftret = cufftPlanMany(plan,
+                                     rank,
+                                     n,
+                                     inembed,
+                                     istride,
+                                     idist,
+                                     onembed,
+                                     ostride,
+                                     odist,
+                                     hipfftTypeToCufftType(type),
+                                     batch);
         }
         catch(const std::exception& e)
         {
@@ -246,6 +256,7 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
         {
             std::cerr << "unknown exception in cufftPlanMany" << std::endl;
         }
+        return cufftResultToHipResult(cufftret);
     }
 }
 

@@ -100,6 +100,8 @@ else()
   endif()
 endif()
 
+target_compile_options( hipfft PRIVATE ${WARNING_FLAGS} )
+
 # Target properties
 set_target_properties( hipfft PROPERTIES CXX_EXTENSIONS NO )
 set_target_properties( hipfft PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )

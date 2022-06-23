@@ -58,6 +58,8 @@ foreach( sample ${sample_list} )
   set_target_properties( ${sample} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
   target_link_libraries( ${sample} PRIVATE hip::hipfft )
+
+  target_compile_options( ${sample} PRIVATE ${WARNING_FLAGS} )
   
   if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     if( WIN32 )

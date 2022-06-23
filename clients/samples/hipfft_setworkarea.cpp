@@ -20,10 +20,17 @@
 // THE SOFTWARE.
 
 #include <complex>
-#include <hip/hip_runtime_api.h>
 #include <hipfft.h>
 #include <iostream>
 #include <vector>
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
+
+#include "../hipfft_params.h"
 
 int main()
 {
@@ -79,7 +86,7 @@ int main()
         throw std::runtime_error("hipfftEstimate1d failed");
     std::cout << "hipfftEstimate 1d workSize: " << workSize << std::endl;
 
-    hipfftHandle plan = NULL;
+    hipfftHandle plan = hipfft_params::INVALID_PLAN_HANDLE;
     hipfft_rt         = hipfftCreate(&plan);
     if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("hipfftCreate failed");

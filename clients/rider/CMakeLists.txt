@@ -31,6 +31,8 @@ set( hipfft_rider_includes rider.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
+target_compile_options( hipfft-rider PRIVATE ${WARNING_FLAGS} )
+
 set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
 
 target_include_directories( hipfft-rider

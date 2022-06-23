@@ -110,25 +110,6 @@ const static std::vector<std::vector<size_t>> ooffset_range_zero = {{0, 0}};
 const static std::vector<std::vector<size_t>> ioffset_range = {{0, 0}, {1, 1}};
 const static std::vector<std::vector<size_t>> ooffset_range = {{0, 0}, {1, 1}};
 
-static std::vector<size_t> generate_random(size_t number_run)
-{
-    std::vector<size_t> output(number_run);
-    const size_t        RAND_MAX_NUMBER = 6;
-    for(size_t r = 0; r < number_run; r++)
-    {
-        // Generate a integer number between [0, RAND_MAX - 1]
-        size_t i, j, k;
-        do
-        {
-            i = (size_t)(rand() % RAND_MAX_NUMBER);
-            j = (size_t)(rand() % RAND_MAX_NUMBER);
-            k = (size_t)(rand() % RAND_MAX_NUMBER);
-        } while(i + j + k == 0);
-        output[i] = pow(2, i) * pow(3, j) * pow(5, k);
-    }
-    return output;
-}
-
 INSTANTIATE_TEST_SUITE_P(pow2_1D,
                          accuracy_test,
                          ::testing::ValuesIn(param_generator(generate_lengths({pow2_range}),

@@ -22,11 +22,16 @@
 #include "hipfft.h"
 #include <fftw3.h>
 #include <gtest/gtest.h>
-#include <hip/hip_runtime_api.h>
 #include <hip/hip_vector_types.h>
 #include <vector>
 
 #include "../hipfft_params.h"
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
 
 // Function to return maximum error for float and double types.
 template <typename Tfloat>
@@ -507,7 +512,7 @@ TEST(hipfftTest, RunR2C)
 
     std::vector<hipfftComplex> out(N / 2 + 1);
     ASSERT_EQ(hipMemcpy(&out[0], d_out, (N / 2 + 1) * sizeof(hipfftComplex), hipMemcpyDeviceToHost),
-              HIPFFT_SUCCESS);
+              hipSuccess);
 
     ASSERT_EQ(hipfftDestroy(plan), HIPFFT_SUCCESS);
     ASSERT_EQ(hipFree(d_in), hipSuccess);
@@ -536,8 +541,7 @@ TEST(hipfftTest, RunR2C)
     double nrmse = 0; // normalized root mean square error
     for(size_t i = 0; i < (N / 2 + 1); i++)
     {
-        // printf("element %d: FFTW result %f, %f; hipFFT result %f, %f \n", \
-        //   (int)i, ref_out[i][0], ref_out[i][1], out[i].x, out[i].y);
+        // printf("element %d: FFTW result %f, %f; hipFFT result %f, %f \n", (int)i, ref_out[i][0], ref_out[i][1], out[i].x, out[i].y);
         double dr = ref_out[i][0] - out[i].x;
         double di = ref_out[i][1] - out[i].y;
         maxv      = fabs(ref_out[i][0]) > maxv ? fabs(ref_out[i][0]) : maxv;
@@ -611,8 +615,7 @@ TEST(hipfftTest, OutplaceOnly)
     double nrmse = 0; // normalized root mean square error
     for(int i = 0; i < N_out; i++)
     {
-        // printf("element %d: FFTW result %f, %f; hipFFT result %f, %f \n", \
-        //   (int)i, ref_out[i][0], ref_out[i][1], out[i].x, out[i].y);
+        // printf("element %d: FFTW result %f, %f; hipFFT result %f, %f \n", (int)i, ref_out[i][0], ref_out[i][1], out[i].x, out[i].y);
         double dr = ref_out[i][0] - out[i].x;
         double di = ref_out[i][1] - out[i].y;
         maxv      = fabs(ref_out[i][0]) > maxv ? fabs(ref_out[i][0]) : maxv;

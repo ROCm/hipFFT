@@ -64,6 +64,8 @@ option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependenc
 option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 
+option( WERROR "Treat warnings as errors" OFF )
+
 # Set internal BUILD_WITH_COMPILER.
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
   set( BUILD_WITH_COMPILER "HOST-default" )
@@ -80,6 +82,11 @@ endif()
 
 string( TOUPPER "${BUILD_WITH_COMPILER}" BUILD_WITH_COMPILER )
 string( TOUPPER "${BUILD_WITH_LIB}" BUILD_WITH_LIB )
+
+set( WARNING_FLAGS -Wall -Wno-unused-function -Wimplicit-fallthrough -Wunreachable-code -Wno-unknown-pragmas)
+if( WERROR )
+  set( WARNING_FLAGS ${WARNING_FLAGS} -Werror )
+endif()
 
 if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   set (BUILD_WITH_LIB "CUDA")
@@ -105,6 +112,11 @@ if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
     "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
   set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN
     "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
+  
+  foreach( FLAG IN ITEMS ${WARNING_FLAGS} )
+    set( NVCC_WARNING_FLAGS ${NVCC_WARNING_FLAGS} "-Xcompiler=${FLAG}" )
+  endforeach()
+  set( WARNING_FLAGS ${NVCC_WARNING_FLAGS} )
 else()
   if( BUILD_WITH_COMPILER STREQUAL "HIP-CLANG" )
     set( HIP_PLATFORM "amd" )

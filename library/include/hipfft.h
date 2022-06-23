@@ -23,12 +23,33 @@
 
 #ifndef HIPFFT_H_
 #define HIPFFT_H_
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define DO_PRAGMA(X) _Pragma(#X)
+    #define DISABLE_WARNING_PUSH            DO_PRAGMA(GCC diagnostic push)
+    #define DISABLE_WARNING_POP             DO_PRAGMA(GCC diagnostic pop)
+    #define DISABLE_WARNING(warningName)    DO_PRAGMA(GCC diagnostic ignored #warningName)
+    
+    #define DISABLE_WARNING_DEPRECATED_DECLARATIONS    DISABLE_WARNING(-Wdeprecated-declarations)
+    #define DISABLE_WARNING_RETURN_TYPE                 DISABLE_WARNING(-Wreturn-type)
+#else
+    #define DISABLE_WARNING_PUSH
+    #define DISABLE_WARNING_POP
+    #define DISABLE_WARNING_DEPRECATED_DECLARATIONS
+    #define DISABLE_WARNING_RETURN_TYPE
+#endif
+
 #pragma once
 #include "hipfft-export.h"
 #include "hipfft-version.h"
 #include <hip/hip_complex.h>
-#include <hip/hip_runtime_api.h>
 #include <hip/library_types.h>
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_DEPRECATED_DECLARATIONS
+DISABLE_WARNING_RETURN_TYPE
+#include <hip/hip_runtime_api.h>
+DISABLE_WARNING_POP
 
 #ifdef __cplusplus
 #include <cstddef>
