@@ -2,7 +2,15 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## (Unreleased) hipFFT 1.0.8
+## (Unreleased) hipFFT 1.0.9
+
+### Changed
+
+- Clean up build warnings.
+- GNUInstall Dir enhancements.
+- Requires gtest 1.11.
+
+## hipFFT 1.0.8 for ROCm 5.2.0
 
 ### Added
 - Added File/Folder Reorg Changes with backward compatibility support using ROCM-CMAKE wrapper functions.
