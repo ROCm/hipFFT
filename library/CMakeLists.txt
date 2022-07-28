@@ -71,7 +71,7 @@ if( BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" )
 endif()
 
 # Target include directories
-# With file reorganization,hip header files installed in cmake install includedir
+# Hip header files installed in cmake install includedir
 # HIP_INCLUDE_DIRS is not required
 target_include_directories( hipfft
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
@@ -136,7 +136,7 @@ if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 endif( )
 
 if( ROCM_FOUND )
-  
+
   rocm_install_targets( TARGETS hipfft
     INCLUDE
     ${CMAKE_BINARY_DIR}/include
