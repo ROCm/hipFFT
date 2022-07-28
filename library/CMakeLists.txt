@@ -71,6 +71,8 @@ if( BUILD_WITH_COMPILER STREQUAL "HOST-DEFAULT" )
 endif()
 
 # Target include directories
+# With file reorganization,hip header files installed in cmake install includedir
+# HIP_INCLUDE_DIRS is not required
 target_include_directories( hipfft
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
@@ -78,7 +80,6 @@ target_include_directories( hipfft
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   $<BUILD_INTERFACE:${HIP_INCLUDE_DIRS}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  ${HIP_INCLUDE_DIRS}
   )
 
 if( BUILD_WITH_LIB STREQUAL "CUDA" )
