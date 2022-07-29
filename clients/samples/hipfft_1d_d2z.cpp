@@ -69,7 +69,7 @@ int main()
         throw std::runtime_error("hipMemcpy failed");
 
     // Create the plan
-    hipfftHandle plan = hipfft_params::INVALID_PLAN_HANDLE;
+    hipfftHandle plan      = hipfft_params::INVALID_PLAN_HANDLE;
     hipfftResult hipfft_rt = hipfftCreate(&plan);
     if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to create plan");
