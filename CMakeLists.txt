@@ -112,7 +112,7 @@ if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
     "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
   set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN
     "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
-  
+
   foreach( FLAG IN ITEMS ${WARNING_FLAGS} )
     set( NVCC_WARNING_FLAGS ${NVCC_WARNING_FLAGS} "-Xcompiler=${FLAG}" )
   endforeach()
@@ -123,7 +123,7 @@ else()
     set( HIP_COMPILER "clang" )
     set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING
       "List of specific machine types for library to target" )
-    
+
     if(BUILD_ADDRESS_SANITIZER)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -shared-libasan")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -shared-libasan")
@@ -170,6 +170,11 @@ endif()
 if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   rocm_package_setup_component(clients)
+  if(BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_RIDER)
+    find_package( Boost COMPONENTS program_options REQUIRED)
+    set(BOOST_DEB "libboost${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}-program-options-dev")
+    set(BOOST_RPM "boost-devel = ${Boost_VERSION}")
+  endif()
   if(NOT CLIENTS_OS)
     rocm_set_os_id(CLIENTS_OS)
     string(TOLOWER "${CLIENTS_OS}" CLIENTS_OS)
@@ -178,13 +183,24 @@ if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   message(STATUS "OS: ${CLIENTS_OS} ${CLIENTS_OS_VERSION}")
   set(FFTW_PKG "fftw-devel")
   if(CLIENTS_OS STREQUAL "sles")
+    set(BOOST_RPM RPM "libboost_program_options${Boost_VERSION_MAJOR}_${Boost_VERSION_MINOR}_${Boost_VERSION_PATCH}-devel")
     set(FFTW_PKG "fftw3-devel")
   endif()
   if(BUILD_CLIENTS_TESTS)
-    rocm_package_setup_client_component(tests DEPENDS DEB "libfftw3-dev" RPM "${FFTW_PKG}")
+    rocm_package_setup_client_component(
+      tests
+      DEPENDS
+        DEB "libfftw3-dev" "${BOOST_DEB}"
+        RPM "${FFTW_PKG}" "${BOOST_RPM}"
+    )
   endif()
   if(BUILD_CLIENTS_RIDER)
-    rocm_package_setup_client_component(benchmarks  DEPENDS DEB "libfftw3-dev" RPM "${FFTW_PKG}")
+    rocm_package_setup_client_component(
+      benchmarks
+      DEPENDS
+        DEB "libfftw3-dev" "${BOOST_DEB}"
+        RPM "${FFTW_PKG}" "${BOOST_RPM}"
+    )
   endif()
   add_subdirectory( clients )
 endif()
