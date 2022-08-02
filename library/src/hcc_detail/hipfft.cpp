@@ -20,7 +20,7 @@
 
 #include "hipfft.h"
 #include "hipfftXt.h"
-#include "rocfft.h"
+#include "rocfft/rocfft.h"
 #include <algorithm>
 #include <sstream>
 #include <string>
