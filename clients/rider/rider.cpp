@@ -266,7 +266,7 @@ int main(int argc, char* argv[])
     hipEvent_t start, stop;
     HIP_V_THROW(hipEventCreate(&start), "hipEventCreate failed");
     HIP_V_THROW(hipEventCreate(&stop), "hipEventCreate failed");
-    for(int itrial = 0; itrial < gpu_time.size(); ++itrial)
+    for(size_t itrial = 0; itrial < gpu_time.size(); ++itrial)
     {
         // Copy the input data to the GPU:
         HIP_V_THROW(
