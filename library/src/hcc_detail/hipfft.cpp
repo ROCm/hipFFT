@@ -781,7 +781,7 @@ hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
         return HIPFFT_INVALID_SIZE;
 
     size_t lengths[3];
-    for(size_t i = 0; i < rank; i++)
+    for(int i = 0; i < rank; i++)
         lengths[i] = n[rank - 1 - i];
 
     size_t number_of_transforms = batch;
@@ -805,6 +805,8 @@ hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
         in_array_type  = rocfft_array_type_complex_interleaved;
         out_array_type = rocfft_array_type_complex_interleaved;
         break;
+    default:
+        throw std::runtime_error("Invalid execution type");
     }
 
     hipfft_plan_description_t desc;
@@ -813,7 +815,7 @@ hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
 
     size_t i_strides[3] = {1, 1, 1};
     size_t o_strides[3] = {1, 1, 1};
-    for(size_t i = 1; i < rank; i++)
+    for(int i = 1; i < rank; i++)
     {
         i_strides[i] = lengths[i - 1] * i_strides[i - 1];
         o_strides[i] = lengths[i - 1] * o_strides[i - 1];
@@ -824,10 +826,10 @@ hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
         i_strides[0] = istride;
 
         size_t inembed_lengths[3];
-        for(size_t i = 0; i < rank; i++)
+        for(int i = 0; i < rank; i++)
             inembed_lengths[i] = inembed[rank - 1 - i];
 
-        for(size_t i = 1; i < rank; i++)
+        for(int i = 1; i < rank; i++)
             i_strides[i] = inembed_lengths[i - 1] * i_strides[i - 1];
     }
 
@@ -836,21 +838,21 @@ hipfftResult hipfftMakePlanMany_internal(hipfftHandle plan,
         o_strides[0] = ostride;
 
         size_t onembed_lengths[3];
-        for(size_t i = 0; i < rank; i++)
+        for(int i = 0; i < rank; i++)
             onembed_lengths[i] = onembed[rank - 1 - i];
 
-        for(size_t i = 1; i < rank; i++)
+        for(int i = 1; i < rank; i++)
             o_strides[i] = onembed_lengths[i - 1] * o_strides[i - 1];
     }
 
     desc.inArrayType  = in_array_type;
     desc.outArrayType = out_array_type;
 
-    for(size_t i = 0; i < rank; i++)
+    for(int i = 0; i < rank; i++)
         desc.inStrides[i] = i_strides[i];
     desc.inDist = idist;
 
-    for(size_t i = 0; i < rank; i++)
+    for(int i = 0; i < rank; i++)
         desc.outStrides[i] = o_strides[i];
     desc.outDist = odist;
 
@@ -1040,7 +1042,7 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  long long int  batch,
                                  size_t*        workSize)
 {
-    hipfftHandle p;
+    hipfftHandle p = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftPlanMany64(
         &p, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch));
     *workSize = p->workBufferSize;
