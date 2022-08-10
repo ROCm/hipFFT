@@ -1,9 +1,5 @@
 #!/usr/bin/env groovy
-// This file uses an AMD internal Jenkins shared library. Please contact the maintainers if you have wish to enable Jenkins based continuous integration for this library.
 @Library('rocJenkins@pong') _
-
-// This is file for internal AMD use.
-// If you are interested in running your own Jenkins, please raise a github issue for assistance.
 
 import com.amd.project.*
 import com.amd.docker.*
