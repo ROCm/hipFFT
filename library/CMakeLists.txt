@@ -126,7 +126,7 @@ include( GenerateExportHeader )
 generate_export_header( hipfft EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-export.h )
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/library/include ${PROJECT_BINARY_DIR}/include/hipfft)
-if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+if (BUILD_FILE_REORG_BACKWARD_COMPATIBILITY AND NOT WIN32)
   rocm_wrap_header_file(
     hipfft-version.h hipfft-export.h
     GUARDS SYMLINK WRAPPER
@@ -142,7 +142,7 @@ if( ROCM_FOUND )
     ${CMAKE_BINARY_DIR}/include
   )
 
-  if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+  if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY AND NOT WIN32)
     rocm_install(
     DIRECTORY
        "${PROJECT_BINARY_DIR}/hipfft"
