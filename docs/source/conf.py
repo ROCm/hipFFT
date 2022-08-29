@@ -1,5 +1,25 @@
 # -*- coding: utf-8 -*-
 #
+# Copyright (C) 2018 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 # hipFFT documentation build configuration file, created by
 # sphinx-quickstart on Mon Jan  8 16:34:42 2018.
 #
@@ -39,7 +59,7 @@ if read_the_docs_build:
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax', 'breathe']
-breathe_projects = { "hipFFT": "../docBin/xml" }
+breathe_projects = {"hipFFT": "../docBin/xml"}
 breathe_default_project = "hipFFT"
 
 # Add any paths that contain templates here, relative to this directory.
@@ -86,7 +106,6 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -124,12 +143,10 @@ else:
 #     ]
 # }
 
-
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'hipFFTdoc'
-
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -159,16 +176,11 @@ latex_documents = [
      u'Advanced Mirco Devices', 'manual'),
 ]
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'hipfft', u'hipFFT Documentation',
-     [author], 1)
-]
-
+man_pages = [(master_doc, 'hipfft', u'hipFFT Documentation', [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -176,10 +188,6 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'hipFFT', u'hipFFT Documentation',
-     author, 'hipFFT', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'hipFFT', u'hipFFT Documentation', author, 'hipFFT',
+     'One line description of project.', 'Miscellaneous'),
 ]
-
-
-
