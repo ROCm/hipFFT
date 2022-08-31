@@ -30,8 +30,10 @@
 #define DISABLE_WARNING_POP DO_PRAGMA(GCC diagnostic pop)
 #define DISABLE_WARNING(warningName) DO_PRAGMA(GCC diagnostic ignored #warningName)
 
-#define DISABLE_WARNING_DEPRECATED_DECLARATIONS DISABLE_WARNING(-Wdeprecated - declarations)
-#define DISABLE_WARNING_RETURN_TYPE DISABLE_WARNING(-Wreturn - type)
+// clang-format off
+#define DISABLE_WARNING_DEPRECATED_DECLARATIONS DISABLE_WARNING(-Wdeprecated-declarations)
+#define DISABLE_WARNING_RETURN_TYPE DISABLE_WARNING(-Wreturn-type)
+// clang-format on
 #else
 #define DISABLE_WARNING_PUSH
 #define DISABLE_WARNING_POP
