@@ -228,20 +228,41 @@ public:
 
         if(plan == INVALID_PLAN_HANDLE)
         {
+            ret = hipfftCreate(&plan);
+            if(ret != HIPFFT_SUCCESS)
+            {
+                std::stringstream ss;
+                ss << "hipfftCreate failed with code ";
+                ss << hipfftResult_string(ret);
+                throw std::runtime_error(ss.str());
+            }
+            if(scale_factor != 1.0)
+            {
+                ret = hipfftExtPlanScaleFactor(plan, scale_factor);
+                if(ret != HIPFFT_SUCCESS)
+                {
+                    std::stringstream ss;
+                    ss << "hipfftExtPlanScaleFactor failed with code ";
+                    ss << hipfftResult_string(ret);
+                    throw std::runtime_error(ss.str());
+                }
+            }
+
 #if 1
             try
             {
-                ret = hipfftPlanMany(&plan,
-                                     dim(),
-                                     int_length.data(),
-                                     int_inembed.data(),
-                                     istride[dim() - 1],
-                                     idist,
-                                     int_onembed.data(),
-                                     ostride[dim() - 1],
-                                     odist,
-                                     hipfft_transform_type,
-                                     nbatch);
+                ret = hipfftMakePlanMany(plan,
+                                         dim(),
+                                         int_length.data(),
+                                         int_inembed.data(),
+                                         istride[dim() - 1],
+                                         idist,
+                                         int_onembed.data(),
+                                         ostride[dim() - 1],
+                                         odist,
+                                         hipfft_transform_type,
+                                         nbatch,
+                                         &workbuffersize);
             }
             catch(const std::exception& e)
             {
@@ -257,15 +278,6 @@ public:
             }
 #else
             // TODO: enable when implemented in hipFFT for rocFFT.
-            ret = hipfftCreate(&plan);
-            if(ret != HIPFFT_SUCCESS)
-            {
-                std::stringstream ss;
-                ss << "hipfftMakePlanMany64 failed with code ";
-                ss << hipfftResult_string(ret);
-                throw std::runtime_error(ss.str());
-            }
-
             try
             {
                 ret = hipfftMakePlanMany64(plan,

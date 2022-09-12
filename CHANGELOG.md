@@ -2,6 +2,14 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## (Unreleased) hipFFT 1.0.10
+
+### Added
+- Added hipfftExtPlanScaleFactor API to efficiently multiply each output element of a FFT by a given scaling factor.  Result scaling must be supported in the backend FFT library.
+
+### Changed
+- When hipFFT is built against the rocFFT backend, rocFFT 1.0.19 or higher is now required.
+
 ## (Unreleased) hipFFT 1.0.9
 
 ### Changed

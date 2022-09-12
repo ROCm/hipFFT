@@ -267,6 +267,11 @@ hipfftResult hipfftCreate(hipfftHandle* plan)
     return cufftResultToHipResult(cufftCreate(plan));
 }
 
+hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double scalefactor)
+{
+    return HIPFFT_NOT_IMPLEMENTED;
+}
+
 hipfftResult
     hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
 {
