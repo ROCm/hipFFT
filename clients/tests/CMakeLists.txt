@@ -35,6 +35,7 @@ set( hipfft-test_source
   accuracy_test_1D.cpp
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
+  accuracy_test_callback.cpp
   )
 
 set( hipfft-test_includes

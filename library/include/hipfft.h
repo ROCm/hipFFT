@@ -233,6 +233,19 @@ HIPFFT_EXPORT hipfftResult hipfftPlanMany(hipfftHandle* plan,
  *  */
 HIPFFT_EXPORT hipfftResult hipfftCreate(hipfftHandle* plan);
 
+/*! @brief Set scaling factor.
+ *
+ *  @details hipFFT multiplies each element of the result by the given factor at the end of the transform.
+ *
+ *  The supplied factor must be a finite number.  That is, it must neither be infinity nor NaN.
+ *
+ *  This function must be called after the plan is allocated using
+ *  ::hipfftCreate, but before the plan is initialized by any of the
+ *  "MakePlan" functions.
+ *
+ *  */
+HIPFFT_EXPORT hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double scalefactor);
+
 /*! @brief Initialize a new one-dimensional FFT plan.
  *
  *  @details Assumes that the plan has been created already, and

@@ -73,8 +73,48 @@ void* get_load_callback_host(fft_array_type itype, fft_precision precision)
 {
     return nullptr;
 }
-void  apply_load_callback(const fft_params& params, fftw_data_t& input) {}
-void  apply_store_callback(const fft_params& params, fftw_data_t& output) {}
+void apply_load_callback(const fft_params& params, fftw_data_t& input) {}
+
+// implement result scaling as a store callback, as rocFFT tests do
+void apply_store_callback(const fft_params& params, fftw_data_t& output)
+{
+    if(params.scale_factor == 1.0)
+        return;
+    switch(params.precision)
+    {
+    case fft_precision_single:
+    {
+        const size_t elem_size = sizeof(float);
+        for(auto& buf : output)
+        {
+            const size_t num_elems    = buf.size() / elem_size;
+            auto         output_begin = reinterpret_cast<float*>(buf.data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                auto& element = output_begin[i];
+                element       = element * params.scale_factor;
+            }
+        }
+        break;
+    }
+    case fft_precision_double:
+    {
+        const size_t elem_size = sizeof(double);
+        for(auto& buf : output)
+        {
+            const size_t num_elems    = buf.size() / elem_size;
+            auto         output_begin = reinterpret_cast<double*>(buf.data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                auto& element = output_begin[i];
+                element       = element * params.scale_factor;
+            }
+        }
+        break;
+    }
+    }
+}
+
 void* get_store_callback_host(fft_array_type otype, fft_precision precision)
 {
     throw std::runtime_error("get_store_callback_host not implemented");

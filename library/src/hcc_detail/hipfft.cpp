@@ -89,6 +89,8 @@ struct hipfftHandle_t
     void** store_callback_ptrs      = nullptr;
     void** store_callback_data      = nullptr;
     size_t store_callback_lds_bytes = 0;
+
+    double scale_factor = 1.0;
 };
 
 struct hipfft_plan_description_t
@@ -212,6 +214,13 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
         rocfft_plan_description_create(&op_forward_desc);
         rocfft_plan_description_create(&ip_inverse_desc);
         rocfft_plan_description_create(&op_inverse_desc);
+
+        if(plan->scale_factor != 1.0)
+        {
+            for(auto rocfft_desc :
+                {ip_forward_desc, op_forward_desc, ip_inverse_desc, op_inverse_desc})
+                rocfft_plan_description_set_scale_factor(rocfft_desc, plan->scale_factor);
+        }
 
         size_t i_strides[3] = {desc->inStrides[0], desc->inStrides[1], desc->inStrides[2]};
         size_t o_strides[3] = {desc->outStrides[0], desc->outStrides[1], desc->outStrides[2]};
@@ -691,6 +700,14 @@ hipfftResult hipfftCreate(hipfftHandle* plan)
     hipfftHandle h = new hipfftHandle_t;
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_create(&h->info));
     *plan = h;
+    return HIPFFT_SUCCESS;
+}
+
+hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double scalefactor)
+{
+    if(!std::isfinite(scalefactor))
+        return HIPFFT_INVALID_VALUE;
+    plan->scale_factor = scalefactor;
     return HIPFFT_SUCCESS;
 }
 
