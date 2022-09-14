@@ -10,7 +10,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 ### Changed
 - When hipFFT is built against the rocFFT backend, rocFFT 1.0.19 or higher is now required.
 
-## (Unreleased) hipFFT 1.0.9
+## hipFFT 1.0.9 for ROCm 5.3.0
 
 ### Changed
 
