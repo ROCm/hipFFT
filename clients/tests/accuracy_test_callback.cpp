@@ -107,6 +107,40 @@ auto transform_types = {fft_transform_type_complex_forward,
                         fft_transform_type_real_forward,
                         fft_transform_type_real_inverse};
 
+#ifdef __HIP__
+INSTANTIATE_TEST_SUITE_P(callback,
+                         accuracy_test,
+                         ::testing::ValuesIn(param_generator_base(transform_types,
+                                                                  callback_sizes,
+                                                                  precision_range,
+                                                                  batch_range,
+                                                                  generate_types,
+                                                                  stride_range,
+                                                                  stride_range,
+                                                                  ioffset_range_zero,
+                                                                  ooffset_range_zero,
+                                                                  place_range,
+                                                                  false,
+                                                                  true)),
+                         accuracy_test::TestName);
+
+INSTANTIATE_TEST_SUITE_P(DISABLED_callback,
+                         accuracy_test,
+                         ::testing::ValuesIn(param_generator_base(transform_types,
+                                                                  callback_sizes,
+                                                                  precision_range,
+                                                                  batch_range,
+                                                                  generate_types,
+                                                                  stride_range,
+                                                                  stride_range,
+                                                                  ioffset_range,
+                                                                  ooffset_range,
+                                                                  place_range,
+                                                                  false,
+                                                                  true)),
+                         accuracy_test::TestName);
+#endif
+
 // one of the obvious use cases for callbacks is to implement result
 // scaling manually, so use the same sizes to test rocFFT's own
 // result scaling feature.
