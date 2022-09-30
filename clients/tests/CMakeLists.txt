@@ -92,6 +92,10 @@ else()
   endif()
 endif()
 
+if( DEFINED ${HIP_PLATFORM} )
+  target_link_libraries( hipfft-test PRIVATE hip::device )
+endif()
+
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-test  PRIVATE ${CUDA_LIBRARIES} )
   target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )

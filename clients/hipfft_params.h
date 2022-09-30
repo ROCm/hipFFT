@@ -22,6 +22,7 @@
 #define HIPFFT_PARAMS_H
 
 #include "hipfft.h"
+#include "hipfftXt.h"
 #include "rocFFT/clients/fft_params.h"
 
 inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
@@ -318,6 +319,85 @@ public:
             return fft_ret;
         }
 
+        return fft_status_success;
+    }
+
+    fft_status set_callbacks(void* load_cb_host,
+                             void* load_cb_data,
+                             void* store_cb_host,
+                             void* store_cb_data) override
+    {
+        if(run_callbacks)
+        {
+            hipfftResult ret{HIPFFT_EXEC_FAILED};
+            switch(hipfft_transform_type)
+            {
+            case HIPFFT_R2C:
+                ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_REAL, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(
+                    plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            case HIPFFT_D2Z:
+                ret = hipfftXtSetCallback(
+                    plan, &load_cb_host, HIPFFT_CB_LD_REAL_DOUBLE, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(
+                    plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX_DOUBLE, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            case HIPFFT_C2R:
+                ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(plan, &store_cb_host, HIPFFT_CB_ST_REAL, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            case HIPFFT_Z2D:
+                ret = hipfftXtSetCallback(
+                    plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX_DOUBLE, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(
+                    plan, &store_cb_host, HIPFFT_CB_ST_REAL_DOUBLE, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            case HIPFFT_C2C:
+                ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(
+                    plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            case HIPFFT_Z2Z:
+                ret = hipfftXtSetCallback(
+                    plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX_DOUBLE, &load_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallback(
+                    plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX_DOUBLE, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+                break;
+            default:
+                throw std::runtime_error("Invalid execution type");
+            }
+        }
         return fft_status_success;
     }
 
