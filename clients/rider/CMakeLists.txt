@@ -20,20 +20,20 @@
 # THE SOFTWARE.
 # #############################################################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
 
-set( hipfft_rider_source rider.cpp )
-set( hipfft_rider_includes rider.h )
+set( hipfft_rider_source rider.cpp ../rocFFT/shared/array_validator.cpp )
+set( hipfft_rider_includes rider.h ../rocFFT/shared/array_validator.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
 target_compile_options( hipfft-rider PRIVATE ${WARNING_FLAGS} )
 
-set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
+set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
 
 target_include_directories( hipfft-rider
   PRIVATE

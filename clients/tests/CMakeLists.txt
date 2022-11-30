@@ -36,12 +36,14 @@ set( hipfft-test_source
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
   accuracy_test_callback.cpp
+  ../rocFFT/shared/array_validator.cpp
   )
 
 set( hipfft-test_includes
   ../rocFFT/clients/tests/fftw_transform.h
   ../rocFFT/clients/tests/rocfft_against_fftw.h
   ../rocFFT/clients/tests/misc/include/test_exception.h
+  ../rocFFT/shared/array_validator.h
   )
 
 add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
@@ -103,7 +105,7 @@ endif( )
 
 set_target_properties( hipfft-test PROPERTIES
   DEBUG_POSTFIX "-d"
-  CXX_STANDARD 14
+  CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON
   )
 

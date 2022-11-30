@@ -20,7 +20,10 @@
 # THE SOFTWARE.
 # #############################################################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+CMAKE_MINIMUM_REQUIRED( VERSION 3.16 )
+
+# We use C++17 features, this will add compile option: -std=c++17
+set( CMAKE_CXX_STANDARD 17 )
 
 if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
@@ -55,7 +58,7 @@ foreach( sample ${sample_list} )
 
   add_executable( ${sample} ${sample}.cpp )
 
-  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
+  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
 
   target_link_libraries( ${sample} PRIVATE hip::hipfft )
 
