@@ -2,7 +2,7 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
-## (Unreleased) hipFFT 1.0.11
+## hipFFT 1.0.11 for ROCm 5.5.0
 
 ### Fixed
 
