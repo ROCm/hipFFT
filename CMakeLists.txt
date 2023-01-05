@@ -121,7 +121,7 @@ else()
   if( BUILD_WITH_COMPILER STREQUAL "HIP-CLANG" )
     set( HIP_PLATFORM "amd" )
     set( HIP_COMPILER "clang" )
-    set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING
+    set( AMDGPU_TARGETS gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx1030;gfx1100;gfx1101;gfx1102 CACHE STRING
       "List of specific machine types for library to target" )
 
     if(BUILD_ADDRESS_SANITIZER)
