@@ -90,6 +90,9 @@ else()
       Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE
       ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE})
   endif()
+  foreach( target ${AMDGPU_TARGETS} )
+    target_compile_options( hipfft-test PRIVATE --offload-arch=${target} )
+  endforeach( )
 endif()
 
 if( DEFINED ${HIP_PLATFORM} )
