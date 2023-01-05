@@ -220,9 +220,9 @@ endif()
 if( ROCM_FOUND )
   # Package specific CPACK vars
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-    rocm_package_add_dependencies("rocfft >= 1.0.0")
+    rocm_package_add_dependencies(DEPENDS "rocfft >= 1.0.19")
   else()
-  rocm_package_add_dependencies("cufft >= 10.0.0")
+    rocm_package_add_dependencies(DEPENDS "cufft >= 10.0.0")
   endif()
 
   set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md" )
