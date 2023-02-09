@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,15 +34,15 @@
 #include "../rocFFT/clients/tests/rocfft_against_fftw.h"
 #include "../rocFFT/shared/gpubuf.h"
 
-void fft_vs_reference(hipfft_params& params)
+void fft_vs_reference(hipfft_params& params, bool round_trip)
 {
     switch(params.precision)
     {
     case fft_precision_single:
-        fft_vs_reference_impl<float, hipfft_params>(params);
+        fft_vs_reference_impl<float, hipfft_params>(params, round_trip);
         break;
     case fft_precision_double:
-        fft_vs_reference_impl<double, hipfft_params>(params);
+        fft_vs_reference_impl<double, hipfft_params>(params, round_trip);
         break;
     }
 }
@@ -63,7 +63,10 @@ TEST_P(accuracy_test, vs_fftw)
         GTEST_SKIP();
     }
 
-    fft_vs_reference(params);
+    // if(!params.run_callbacks)
+    //     fft_vs_reference(params, true);
+    fft_vs_reference(params, false);
+
     SUCCEED();
 }
 
@@ -124,7 +127,9 @@ __device__ auto load_callback_dev_float2  = load_callback<float2>;
 __device__ auto load_callback_dev_double  = load_callback<double>;
 __device__ auto load_callback_dev_double2 = load_callback<double2>;
 
-void* get_load_callback_host(fft_array_type itype, fft_precision precision)
+void* get_load_callback_host(fft_array_type itype,
+                             fft_precision  precision,
+                             bool           round_trip_inverse = false)
 {
     void* load_callback_host = nullptr;
     switch(itype)
@@ -187,7 +192,9 @@ __device__ auto store_callback_dev_float2  = store_callback<float2>;
 __device__ auto store_callback_dev_double  = store_callback<double>;
 __device__ auto store_callback_dev_double2 = store_callback<double2>;
 
-void* get_store_callback_host(fft_array_type otype, fft_precision precision)
+void* get_store_callback_host(fft_array_type otype,
+                              fft_precision  precision,
+                              bool           round_trip_inverse = false)
 {
     void* store_callback_host = nullptr;
     switch(otype)
@@ -462,7 +469,9 @@ void apply_load_callback(const fft_params& params, fftw_data_t& input)
 // Many seem to be called unconditionally, so we can't throw exceptions in
 // most cases.
 
-void* get_load_callback_host(fft_array_type itype, fft_precision precision)
+void* get_load_callback_host(fft_array_type itype,
+                             fft_precision  precision,
+                             bool           round_trip_inverse = false)
 {
     return nullptr;
 }
@@ -507,7 +516,9 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
     }
     }
 }
-void* get_store_callback_host(fft_array_type otype, fft_precision precision)
+void* get_store_callback_host(fft_array_type otype,
+                              fft_precision  precision,
+                              bool           round_trip_inverse = false)
 {
     throw std::runtime_error("get_store_callback_host not implemented");
     return nullptr;

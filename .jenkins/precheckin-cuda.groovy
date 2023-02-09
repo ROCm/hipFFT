@@ -12,6 +12,7 @@ def runCI =
     def prj = new rocProject('hipFFT-internal', 'PreCheckin-Cuda')
     // customize for project
     prj.paths.build_command = buildCommand
+    prj.libraryDependencies = ['rocRAND','hipRAND']
     prj.timeout.test = 600
 
     // Define test architectures, optional rocm version argument is available
@@ -91,14 +92,21 @@ ci: {
     String gBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                             -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
                             -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
-                            -DBUILD_CLIENTS=ON -L ../..'
+                            -L ../..'
     String boostLibraryDir = ' -DBOOST_LIBRARYDIR=/usr/lib/x86_64-linux-gnu'
 
     // Run tests on normal g++ build
-    setupCI(urlJobName, jobNameList, compilerVar + 'g++' + gBuildCommand, runCI, 'g++', true)
+    setupCI(urlJobName, jobNameList, compilerVar + 'g++' + gBuildCommand, runCI, 'g++', false)
     // Also build with hipcc+CUDA backend, both shared and static lib.
     // Static build allows the hipFFT callback sample to be built.
     // Skip tests since the first build would have already run tests.
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + gBuildCommand + boostLibraryDir, runCI, 'hipcc', false)
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + gBuildCommand + boostLibraryDir + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
+
+    String hBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                            -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
+                            -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
+                            -DCMAKE_CXX_FLAGS="-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86" \
+                            -DBUILD_CLIENTS=ON -L ../..'
+
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir, runCI, 'hipcc', true)
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
 }

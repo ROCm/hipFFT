@@ -1,5 +1,5 @@
 # #############################################################################
-# Copyright (C) 2016 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2016 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,12 +36,14 @@ set( hipfft-test_source
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
   accuracy_test_callback.cpp
+  ../rocFFT/shared/array_validator.cpp
   )
 
 set( hipfft-test_includes
   ../rocFFT/clients/tests/fftw_transform.h
   ../rocFFT/clients/tests/rocfft_against_fftw.h
   ../rocFFT/clients/tests/misc/include/test_exception.h
+  ../rocFFT/shared/array_validator.h
   )
 
 add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
@@ -76,7 +78,8 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     else()
       find_package( HIP MODULE REQUIRED )
     endif()
-    target_link_libraries( hipfft-test PRIVATE hip::host )
+
+    target_link_libraries( hipfft-test PRIVATE hip::host hip::device )
   else()
     target_compile_definitions( hipfft-test PRIVATE __HIP_PLATFORM_NVIDIA__)
     target_include_directories( hipfft-test PRIVATE ${HIP_INCLUDE_DIRS})
@@ -95,13 +98,14 @@ else()
   endforeach( )
 endif()
 
-if( DEFINED ${HIP_PLATFORM} )
-  target_link_libraries( hipfft-test PRIVATE hip::device )
-endif()
-
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-test  PRIVATE ${CUDA_LIBRARIES} )
   target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )
+else()
+  if( NOT hiprand_FOUND )
+    find_package( hiprand REQUIRED )
+  endif()
+  target_link_libraries( hipfft-test PRIVATE hip::hiprand )
 endif()
 
 if(FFTW_MULTITHREAD)
@@ -110,7 +114,7 @@ endif( )
 
 set_target_properties( hipfft-test PROPERTIES
   DEBUG_POSTFIX "-d"
-  CXX_STANDARD 14
+  CXX_STANDARD 17
   CXX_STANDARD_REQUIRED ON
   )
 

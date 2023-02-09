@@ -1,5 +1,5 @@
 # #############################################################################
-# Copyright (C) 2020 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2020 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,20 +20,20 @@
 # THE SOFTWARE.
 # #############################################################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 
 find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
 
-set( hipfft_rider_source rider.cpp )
-set( hipfft_rider_includes rider.h )
+set( hipfft_rider_source rider.cpp ../rocFFT/shared/array_validator.cpp )
+set( hipfft_rider_includes rider.h ../rocFFT/shared/array_validator.h )
 
 add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
 
 target_compile_options( hipfft-rider PRIVATE ${WARNING_FLAGS} )
 
-set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
+set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
 
 target_include_directories( hipfft-rider
   PRIVATE
@@ -51,7 +51,8 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     else()
       find_package( HIP MODULE REQUIRED )
     endif()
-    target_link_libraries( hipfft-rider PRIVATE hip::host )
+
+    target_link_libraries( hipfft-rider PRIVATE hip::host hip::device )
   else()
 
     target_compile_definitions( hipfft-rider PRIVATE __HIP_PLATFORM_NVIDIA__)
@@ -70,6 +71,11 @@ endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
+else()
+  if( NOT hiprand_FOUND )
+    find_package( hiprand REQUIRED )
+  endif()
+  target_link_libraries( hipfft-rider PRIVATE hip::hiprand )
 endif()
 
 target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )

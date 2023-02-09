@@ -15,6 +15,8 @@ Partial documentation for hipFFT is available at [hipFFT].
 
 ### Changed
 - When hipFFT is built against the rocFFT backend, rocFFT 1.0.19 or higher is now required.
+- Data is initialized directly on GPUs using hipRAND.
+- Updated build files to use standard C++17.
 
 ## hipFFT 1.0.9 for ROCm 5.3.0
 
