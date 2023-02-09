@@ -1,5 +1,5 @@
 # #############################################################################
-# Copyright (C) 2020 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2020 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,12 @@
 # THE SOFTWARE.
 # #############################################################################
 
-# The ROCm platform requires Ubuntu 16.04 or Fedora 24, which has cmake 3.5
-cmake_minimum_required( VERSION 3.5 )
+# CMake version according to latest ROCm platform requirements
+cmake_minimum_required( VERSION 3.16 )
+
+# We use C++17 features, this will add compile option: -std=c++17
+set( CMAKE_CXX_STANDARD 17 )
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Consider removing this in the future
 # This should appear before the project command, because it does not use FORCE
@@ -53,6 +57,13 @@ project( hipfft-clients LANGUAGES CXX )
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 
 include( build-options )
+
+if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
+  if(BUILD_CLIENTS)
+    message( FATAL_ERROR "Using BUILD_CLIENTS=ON requires hipcc or Clang++, as client programs require device code to be built." )
+  endif()
+endif()
+
 
 if( GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git" )
   message(STATUS "rocFFT submodule update")

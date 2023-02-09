@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,6 @@
 #include "../hipfft_params.h"
 #include "../rocFFT/clients/tests/accuracy_test.h"
 
-void fft_vs_reference(hipfft_params& params);
+void fft_vs_reference(hipfft_params& params, bool round_trip = false);
 
 #endif

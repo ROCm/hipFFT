@@ -7,12 +7,12 @@ import java.nio.file.Path
 
 def runCI =
 {
-    nodeDetails, jobName, buildCommand, label ->
+    nodeDetails, jobName, buildCommand, label, runTest ->
 
     def prj = new rocProject('hipFFT-internal', 'PreCheckin')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocFFT-internal']
+    prj.libraryDependencies = ['rocFFT-internal','rocRAND','hipRAND']
     prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
@@ -47,10 +47,10 @@ def runCI =
         commonGroovy.runPackageCommand(platform, project, jobName, label)
     }
 
-    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, testCommand, packageCommand)
+    buildProject(prj, formatCheck, nodes.dockerArray, compileCommand, runTest ? testCommand : null, packageCommand)
 }
 
-def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
+def setupCI(urlJobName, jobNameList, buildCommand, runCI, label, runTest)
 {
     jobNameList = auxiliary.appendJobNameList(jobNameList)
 
@@ -59,7 +59,7 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label)
         jobName, nodeDetails->
         if (urlJobName == jobName)
             stage(label + ' ' + jobName) {
-                runCI(nodeDetails, jobName, buildCommand, label)
+                runCI(nodeDetails, jobName, buildCommand, label, runTest)
             }
     }
 
@@ -90,9 +90,9 @@ ci: {
             properties(auxiliary.addCommonProperties(property))
     }
     
-    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
+    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -L ../..'
     String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
 
-    setupCI(urlJobName, jobNameList, hostBuildCommand, runCI, 'g++')
-    setupCI(urlJobName, jobNameList, hipClangBuildCommand, runCI, 'hip-clang')
+    setupCI(urlJobName, jobNameList, hostBuildCommand, runCI, 'g++', false)
+    setupCI(urlJobName, jobNameList, hipClangBuildCommand, runCI, 'hip-clang', true)
 }

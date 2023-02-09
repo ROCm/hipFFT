@@ -1,5 +1,5 @@
 # #############################################################################
-# Copyright (C) 2016 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2016 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,10 @@
 # THE SOFTWARE.
 # #############################################################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
+CMAKE_MINIMUM_REQUIRED( VERSION 3.16 )
+
+# We use C++17 features, this will add compile option: -std=c++17
+set( CMAKE_CXX_STANDARD 17 )
 
 if( NOT TARGET hipfft )
   find_package( hipfft REQUIRED CONFIG PATHS )
@@ -38,8 +41,8 @@ set( sample_list
   hipfft_setworkarea
   )
 
-# callback sample has its own HIP code, so it needs to be built with hipcc.
-if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+# callback sample has its own HIP code, so it needs to be built with hipcc or clang++
+if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
   # on cuFFT backend, use of callbacks requires linking against the
   # static cuFFT library
   if( NOT (BUILD_WITH_LIB STREQUAL "CUDA") OR NOT BUILD_SHARED_LIBS )
@@ -48,14 +51,14 @@ if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     message( STATUS "hipfft_callback sample disabled on non-static CUDA build" )
   endif()
 else()
-  message( STATUS "hipfft_callback sample disabled on non-hipcc build" )
+  message( STATUS "hipfft_callback sample disabled, requires hipcc or Clang++ build" )
 endif()
 
 foreach( sample ${sample_list} )
 
   add_executable( ${sample} ${sample}.cpp )
 
-  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON )
+  set_target_properties( ${sample} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
 
   target_link_libraries( ${sample} PRIVATE hip::hipfft )
 
@@ -68,7 +71,7 @@ foreach( sample ${sample_list} )
       find_package( HIP MODULE REQUIRED )
     endif()
     if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-      target_link_libraries( ${sample} PRIVATE hip::host )
+      target_link_libraries( ${sample} PRIVATE hip::host hip::device )
     else()
       target_compile_definitions( ${sample} PRIVATE __HIP_PLATFORM_NVIDIA__)
       target_include_directories( ${sample} PRIVATE ${HIP_INCLUDE_DIRS})
@@ -77,6 +80,11 @@ foreach( sample ${sample_list} )
 
   if ( BUILD_WITH_LIB STREQUAL "CUDA" )
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )
+  else()
+    if( NOT hiprand_FOUND )
+      find_package( hiprand REQUIRED )
+    endif()
+    target_link_libraries( ${sample} PRIVATE hip::hiprand )
   endif()
 
   target_include_directories( ${sample}

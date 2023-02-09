@@ -12,7 +12,7 @@ def runCI =
     def prj = new rocProject('hipFFT-internal', 'StaticLibrary')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocFFT-internal']
+    prj.libraryDependencies = ['rocFFT-internal','rocRAND','hipRAND']
 
     // Define test architectures, optional rocm version argument is available
     def nodes = new dockerNodes(nodeDetails, jobName, prj)
@@ -90,7 +90,7 @@ ci: {
 
     def hipClangJobNameList = ["compute-rocm-dkms-no-npi-hipclang":([ubuntu18:['gfx900']])]
 
-    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -L ../..'
+    String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -L ../..'
     String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_SHARED_LIBS=OFF -L ../..'
 
     setupCI(urlJobName, hostJobNameList, hostBuildCommand, runCI, 'g++')
