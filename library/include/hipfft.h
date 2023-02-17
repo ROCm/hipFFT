@@ -241,9 +241,13 @@ HIPFFT_EXPORT hipfftResult hipfftCreate(hipfftHandle* plan);
  *
  *  This function must be called after the plan is allocated using
  *  ::hipfftCreate, but before the plan is initialized by any of the
- *  "MakePlan" functions.
+ *  "MakePlan" functions.  Therefore, API functions that combine
+ *  creation and initialization (::hipfftPlan1d, ::hipfftPlan2d,
+ *  ::hipfftPlan3d, and ::hipfftPlanMany) cannot set a scale factor.
  *
- *  */
+ *  Note that the scale factor applies to both forward and
+ *  backward transforms executed with the specified plan handle.
+ */
 HIPFFT_EXPORT hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double scalefactor);
 
 /*! @brief Initialize a new one-dimensional FFT plan.

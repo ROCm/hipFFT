@@ -225,101 +225,40 @@ public:
             return fft_ret;
         }
 
-        hipfftResult ret{HIPFFT_EXEC_FAILED};
-
-        if(plan == INVALID_PLAN_HANDLE)
+        hipfftResult ret{HIPFFT_INTERNAL_ERROR};
+        switch(get_create_type())
         {
-            ret = hipfftCreate(&plan);
-            if(ret != HIPFFT_SUCCESS)
-            {
-                std::stringstream ss;
-                ss << "hipfftCreate failed with code ";
-                ss << hipfftResult_string(ret);
-                throw std::runtime_error(ss.str());
-            }
-            if(scale_factor != 1.0)
-            {
-                ret = hipfftExtPlanScaleFactor(plan, scale_factor);
-                if(ret != HIPFFT_SUCCESS)
-                {
-                    std::stringstream ss;
-                    ss << "hipfftExtPlanScaleFactor failed with code ";
-                    ss << hipfftResult_string(ret);
-                    throw std::runtime_error(ss.str());
-                }
-            }
-
-#if 1
-            try
-            {
-                ret = hipfftMakePlanMany(plan,
-                                         dim(),
-                                         int_length.data(),
-                                         int_inembed.data(),
-                                         istride[dim() - 1],
-                                         idist,
-                                         int_onembed.data(),
-                                         ostride[dim() - 1],
-                                         odist,
-                                         hipfft_transform_type,
-                                         nbatch,
-                                         &workbuffersize);
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << e.what();
-            }
-            catch(...)
-            {
-                std::cerr << "unkown exception in hipfftPlanMany" << std::endl;
-            }
-            if(ret != HIPFFT_SUCCESS)
-            {
-                throw std::runtime_error("hipfftPlanMany failed");
-            }
-#else
-            // TODO: enable when implemented in hipFFT for rocFFT.
-            try
-            {
-                ret = hipfftMakePlanMany64(plan,
-                                           dim(),
-                                           ll_length.data(),
-                                           ll_inembed.data(),
-                                           istride[dim() - 1],
-                                           idist,
-                                           ll_onembed.data(),
-                                           ostride[dim() - 1],
-                                           odist,
-                                           hipfft_transform_type,
-                                           nbatch,
-                                           &workbuffersize);
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << e.what();
-            }
-            catch(...)
-            {
-                std::cerr << "unkown exception in hipfftPlanMany64" << std::endl;
-            }
-            if(ret != HIPFFT_SUCCESS)
-            {
-                std::stringstream ss;
-                ss << "hipfftMakePlanMany64 failed with code ";
-                ss << hipfftResult_string(ret);
-                throw std::runtime_error(ss.str());
-            }
-#endif
-        }
-
-        fft_ret = fft_status_from_hipfftparams(ret);
-
-        if(fft_ret != fft_status_success)
+        case PLAN_Nd:
         {
-            return fft_ret;
+            ret = create_plan_Nd();
+            break;
         }
-
-        return fft_status_success;
+        case PLAN_MANY:
+        {
+            ret = create_plan_many();
+            break;
+        }
+        case CREATE_MAKE_PLAN_Nd:
+        {
+            ret = create_make_plan_Nd();
+            break;
+        }
+        case CREATE_MAKE_PLAN_MANY:
+        {
+            ret = create_make_plan_many();
+            break;
+        }
+        case CREATE_MAKE_PLAN_MANY64:
+        {
+            ret = create_make_plan_many64();
+            break;
+        }
+        default:
+        {
+            throw std::runtime_error("no valid plan creation type");
+        }
+        }
+        return fft_status_from_hipfftparams(ret);
     }
 
     fft_status set_callbacks(void* load_cb_host,
@@ -464,6 +403,190 @@ public:
             std::cerr << "unkown exception in execute(void* ibuffer, void* obuffer)" << std::endl;
         }
         return fft_status_from_hipfftparams(ret);
+    }
+
+    bool is_contiguous() const
+    {
+        // compute contiguous stride, dist and check that the actual
+        // strides/dists match
+        std::vector<size_t> contiguous_istride
+            = compute_stride(ilength(),
+                             {},
+                             placement == fft_placement_inplace
+                                 && transform_type == fft_transform_type_real_forward);
+        std::vector<size_t> contiguous_ostride
+            = compute_stride(olength(),
+                             {},
+                             placement == fft_placement_inplace
+                                 && transform_type == fft_transform_type_real_inverse);
+        if(istride != contiguous_istride || ostride != contiguous_ostride)
+            return false;
+        return compute_idist() == idist && compute_odist() == odist;
+    }
+
+private:
+    // hipFFT provides multiple ways to create FFT plans:
+    // - hipfftPlan1d/2d/3d (combined allocate + init for specific dim)
+    // - hipfftPlanMany (combined allocate + init with dim as param)
+    // - hipfftCreate + hipfftMakePlan1d/2d/3d (separate alloc + init for specific dim)
+    // - hipfftCreate + hipfftMakePlanMany (separate alloc + init with dim as param)
+    // - hipfftCreate + hipfftMakePlanMany64 (separate alloc + init with dim as param, 64-bit)
+    //
+    // Rotate through the choices for better test coverage.
+    enum PlanCreateAPI
+    {
+        PLAN_Nd,
+        PLAN_MANY,
+        CREATE_MAKE_PLAN_Nd,
+        CREATE_MAKE_PLAN_MANY,
+        CREATE_MAKE_PLAN_MANY64,
+    };
+
+    // Not all plan options work with all creation types.  Return a
+    // suitable plan creation type for the current FFT parameters.
+    int get_create_type()
+    {
+        bool contiguous = is_contiguous();
+        bool batched    = nbatch > 1;
+
+        std::vector<PlanCreateAPI> allowed_apis;
+
+        // separate alloc + init "Many" APIs are always allowed
+        allowed_apis.push_back(CREATE_MAKE_PLAN_MANY);
+        allowed_apis.push_back(CREATE_MAKE_PLAN_MANY64);
+
+        // combined PlanMany API can't do scaling
+        if(scale_factor == 1.0)
+            allowed_apis.push_back(PLAN_MANY);
+
+        // non-many APIs are only allowed if FFT is contiguous, and
+        // only the 1D API allows for batched FFTs.
+        if(contiguous && (!batched || dim() == 1))
+        {
+            // combined Nd API can't do scaling
+            if(scale_factor == 1.0)
+                allowed_apis.push_back(PLAN_Nd);
+            allowed_apis.push_back(CREATE_MAKE_PLAN_Nd);
+        }
+
+        // hash the token to decide how to create this FFT.  we want
+        // test cases to rotate between different create APIs, but we
+        // also need the choice of API to be stable across reruns of
+        // the same test cases.
+        return allowed_apis[std::hash<std::string>()(token()) % allowed_apis.size()];
+    }
+
+    // call hipfftPlan* functions
+    hipfftResult_t create_plan_Nd()
+    {
+        auto ret = HIPFFT_INVALID_PLAN;
+        switch(dim())
+        {
+        case 1:
+            ret = hipfftPlan1d(&plan, int_length[0], hipfft_transform_type, nbatch);
+            break;
+        case 2:
+            ret = hipfftPlan2d(&plan, int_length[0], int_length[1], hipfft_transform_type);
+            break;
+        case 3:
+            ret = hipfftPlan3d(
+                &plan, int_length[0], int_length[1], int_length[2], hipfft_transform_type);
+            break;
+        default:
+            throw std::runtime_error("invalid dim");
+        }
+        return ret;
+    }
+    hipfftResult_t create_plan_many()
+    {
+        auto ret = hipfftPlanMany(&plan,
+                                  dim(),
+                                  int_length.data(),
+                                  int_inembed.data(),
+                                  istride.back(),
+                                  idist,
+                                  int_onembed.data(),
+                                  ostride.back(),
+                                  odist,
+                                  hipfft_transform_type,
+                                  nbatch);
+        return ret;
+    }
+
+    // call hipfftCreate + hipfftMake* functions
+    hipfftResult_t create_with_scale_factor()
+    {
+        auto ret = hipfftCreate(&plan);
+        if(ret != HIPFFT_SUCCESS)
+            return ret;
+        if(scale_factor != 1.0)
+        {
+            ret = hipfftExtPlanScaleFactor(plan, scale_factor);
+            if(ret != HIPFFT_SUCCESS)
+                return ret;
+        }
+        return ret;
+    }
+    hipfftResult_t create_make_plan_Nd()
+    {
+        auto ret = create_with_scale_factor();
+        if(ret != HIPFFT_SUCCESS)
+            return ret;
+
+        switch(dim())
+        {
+        case 1:
+            return hipfftMakePlan1d(
+                plan, int_length[0], hipfft_transform_type, nbatch, &workbuffersize);
+        case 2:
+            return hipfftMakePlan2d(
+                plan, int_length[0], int_length[1], hipfft_transform_type, &workbuffersize);
+        case 3:
+            return hipfftMakePlan3d(plan,
+                                    int_length[0],
+                                    int_length[1],
+                                    int_length[2],
+                                    hipfft_transform_type,
+                                    &workbuffersize);
+        default:
+            throw std::runtime_error("invalid dim");
+        }
+    }
+    hipfftResult_t create_make_plan_many()
+    {
+        auto ret = create_with_scale_factor();
+        if(ret != HIPFFT_SUCCESS)
+            return ret;
+        return hipfftMakePlanMany(plan,
+                                  dim(),
+                                  int_length.data(),
+                                  int_inembed.data(),
+                                  istride.back(),
+                                  idist,
+                                  int_onembed.data(),
+                                  ostride.back(),
+                                  odist,
+                                  hipfft_transform_type,
+                                  nbatch,
+                                  &workbuffersize);
+    }
+    hipfftResult_t create_make_plan_many64()
+    {
+        auto ret = create_with_scale_factor();
+        if(ret != HIPFFT_SUCCESS)
+            return ret;
+        return hipfftMakePlanMany64(plan,
+                                    dim(),
+                                    ll_length.data(),
+                                    ll_inembed.data(),
+                                    istride.back(),
+                                    idist,
+                                    ll_onembed.data(),
+                                    ostride.back(),
+                                    odist,
+                                    hipfft_transform_type,
+                                    nbatch,
+                                    &workbuffersize);
     }
 };
 
