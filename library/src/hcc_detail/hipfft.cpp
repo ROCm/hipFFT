@@ -215,13 +215,6 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
         rocfft_plan_description_create(&ip_inverse_desc);
         rocfft_plan_description_create(&op_inverse_desc);
 
-        if(plan->scale_factor != 1.0)
-        {
-            for(auto rocfft_desc :
-                {ip_forward_desc, op_forward_desc, ip_inverse_desc, op_inverse_desc})
-                rocfft_plan_description_set_scale_factor(rocfft_desc, plan->scale_factor);
-        }
-
         size_t i_strides[3] = {desc->inStrides[0], desc->inStrides[1], desc->inStrides[2]};
         size_t o_strides[3] = {desc->outStrides[0], desc->outStrides[1], desc->outStrides[2]};
 
@@ -444,6 +437,22 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
                                                                                 o_strides,
                                                                                 desc->outDist));
         }
+    }
+
+    if(plan->scale_factor != 1.0)
+    {
+        // scale factor requires a rocfft plan description, but
+        // rocfft plan descriptions might not have been created yet
+        if(!ip_forward_desc)
+            rocfft_plan_description_create(&ip_forward_desc);
+        if(!op_forward_desc)
+            rocfft_plan_description_create(&op_forward_desc);
+        if(!ip_inverse_desc)
+            rocfft_plan_description_create(&ip_inverse_desc);
+        if(!op_inverse_desc)
+            rocfft_plan_description_create(&op_inverse_desc);
+        for(auto rocfft_desc : {ip_forward_desc, op_forward_desc, ip_inverse_desc, op_inverse_desc})
+            rocfft_plan_description_set_scale_factor(rocfft_desc, plan->scale_factor);
     }
 
     // count the number of plans that got created - it's possible to
