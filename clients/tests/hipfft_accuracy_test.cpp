@@ -63,9 +63,8 @@ TEST_P(accuracy_test, vs_fftw)
         GTEST_SKIP();
     }
 
-    // if(!params.run_callbacks)
-    //     fft_vs_reference(params, true);
-    fft_vs_reference(params, false);
+    if(!params.run_callbacks)
+        fft_vs_reference(params, true);
 
     SUCCEED();
 }
