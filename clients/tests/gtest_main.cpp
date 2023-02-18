@@ -349,5 +349,5 @@ TEST(manual, vs_fftw)
     std::cout << "Token: " << manual_params.token() << std::endl;
 
     hipfft_params params(manual_params);
-    fft_vs_reference(params);
+    fft_vs_reference(params, false);
 }

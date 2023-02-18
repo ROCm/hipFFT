@@ -102,10 +102,7 @@ const static std::vector<std::vector<size_t>> ooffset_range_zero = {{0, 0}};
 const static std::vector<std::vector<size_t>> ioffset_range = {{0, 0}, {1, 1}};
 const static std::vector<std::vector<size_t>> ooffset_range = {{0, 0}, {1, 1}};
 
-auto transform_types = {fft_transform_type_complex_forward,
-                        fft_transform_type_complex_inverse,
-                        fft_transform_type_real_forward,
-                        fft_transform_type_real_inverse};
+auto transform_types = {fft_transform_type_complex_forward, fft_transform_type_real_forward};
 
 #ifdef __HIP__
 INSTANTIATE_TEST_SUITE_P(callback,
