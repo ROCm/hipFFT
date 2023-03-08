@@ -33,6 +33,7 @@
 #include "../rocFFT/clients/tests/rocfft_accuracy_test.h"
 #include "../rocFFT/clients/tests/rocfft_against_fftw.h"
 #include "../rocFFT/shared/gpubuf.h"
+#include "../rocFFT/shared/rocfft_complex.h"
 
 void fft_vs_reference(hipfft_params& params, bool round_trip)
 {
@@ -70,39 +71,6 @@ TEST_P(accuracy_test, vs_fftw)
 }
 
 #ifdef __HIP__
-__host__ __device__ float multiply_by_scalar(float a, double b)
-{
-    return a * b;
-}
-__host__ __device__ float2 multiply_by_scalar(float2 a, double b)
-{
-    return hipCmulf(a, make_float2(b, 0.0));
-}
-__host__ __device__ double multiply_by_scalar(double a, double b)
-{
-    return a * b;
-}
-__host__ __device__ double2 multiply_by_scalar(double2 a, double b)
-{
-    return hipCmul(a, make_double2(b, 0.0));
-}
-
-__host__ __device__ float add_scalar(float a, double b)
-{
-    return a + b;
-}
-__host__ __device__ float2 add_scalar(float2 a, double b)
-{
-    return hipCaddf(a, make_float2(b, 0.0));
-}
-__host__ __device__ double add_scalar(double a, double b)
-{
-    return a + b;
-}
-__host__ __device__ double2 add_scalar(double2 a, double b)
-{
-    return hipCadd(a, make_double2(b, 0.0));
-}
 
 // load/store callbacks - cbdata in each is actually a scalar double
 // with a number to apply to each element
@@ -112,7 +80,7 @@ __host__ __device__ Tdata load_callback(Tdata* input, size_t offset, void* cbdat
     auto testdata = static_cast<const callback_test_data*>(cbdata);
     // multiply each element by scalar
     if(input == testdata->base)
-        return multiply_by_scalar(input[offset], testdata->scalar);
+        return input[offset] * testdata->scalar;
     // wrong base address passed, return something obviously wrong
     else
     {
@@ -121,10 +89,10 @@ __host__ __device__ Tdata load_callback(Tdata* input, size_t offset, void* cbdat
     }
 }
 
-__device__ auto load_callback_dev_float   = load_callback<float>;
-__device__ auto load_callback_dev_float2  = load_callback<float2>;
-__device__ auto load_callback_dev_double  = load_callback<double>;
-__device__ auto load_callback_dev_double2 = load_callback<double2>;
+__device__ auto load_callback_dev_float          = load_callback<float>;
+__device__ auto load_callback_dev_complex_float  = load_callback<rocfft_complex<float>>;
+__device__ auto load_callback_dev_double         = load_callback<double>;
+__device__ auto load_callback_dev_complex_double = load_callback<rocfft_complex<double>>;
 
 void* get_load_callback_host(fft_array_type itype,
                              fft_precision  precision,
@@ -139,13 +107,14 @@ void* get_load_callback_host(fft_array_type itype,
         switch(precision)
         {
         case fft_precision_single:
-            EXPECT_EQ(hipMemcpyFromSymbol(
-                          &load_callback_host, HIP_SYMBOL(load_callback_dev_float2), sizeof(void*)),
+            EXPECT_EQ(hipMemcpyFromSymbol(&load_callback_host,
+                                          HIP_SYMBOL(load_callback_dev_complex_float),
+                                          sizeof(void*)),
                       hipSuccess);
             return load_callback_host;
         case fft_precision_double:
             EXPECT_EQ(hipMemcpyFromSymbol(&load_callback_host,
-                                          HIP_SYMBOL(load_callback_dev_double2),
+                                          HIP_SYMBOL(load_callback_dev_complex_double),
                                           sizeof(void*)),
                       hipSuccess);
             return load_callback_host;
@@ -181,15 +150,15 @@ __host__ __device__ static void
     // add scalar to each element
     if(output == testdata->base)
     {
-        output[offset] = add_scalar(element, testdata->scalar);
+        output[offset] = element + testdata->scalar;
     }
     // otherwise, wrong base address passed, just don't write
 }
 
-__device__ auto store_callback_dev_float   = store_callback<float>;
-__device__ auto store_callback_dev_float2  = store_callback<float2>;
-__device__ auto store_callback_dev_double  = store_callback<double>;
-__device__ auto store_callback_dev_double2 = store_callback<double2>;
+__device__ auto store_callback_dev_float          = store_callback<float>;
+__device__ auto store_callback_dev_complex_float  = store_callback<rocfft_complex<float>>;
+__device__ auto store_callback_dev_double         = store_callback<double>;
+__device__ auto store_callback_dev_complex_double = store_callback<rocfft_complex<double>>;
 
 void* get_store_callback_host(fft_array_type otype,
                               fft_precision  precision,
@@ -205,13 +174,13 @@ void* get_store_callback_host(fft_array_type otype,
         {
         case fft_precision_single:
             EXPECT_EQ(hipMemcpyFromSymbol(&store_callback_host,
-                                          HIP_SYMBOL(store_callback_dev_float2),
+                                          HIP_SYMBOL(store_callback_dev_complex_float),
                                           sizeof(void*)),
                       hipSuccess);
             return store_callback_host;
         case fft_precision_double:
             EXPECT_EQ(hipMemcpyFromSymbol(&store_callback_host,
-                                          HIP_SYMBOL(store_callback_dev_double2),
+                                          HIP_SYMBOL(store_callback_dev_complex_double),
                                           sizeof(void*)),
                       hipSuccess);
             return store_callback_host;
@@ -263,7 +232,7 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
             const size_t elem_size = sizeof(std::complex<float>);
             const size_t num_elems = output.front().size() / elem_size;
 
-            auto output_begin = reinterpret_cast<float2*>(output.front().data());
+            auto output_begin = reinterpret_cast<rocfft_complex<float>*>(output.front().data());
             for(size_t i = 0; i < num_elems; ++i)
             {
                 auto& element = output_begin[i];
@@ -279,7 +248,7 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
             const size_t elem_size = sizeof(std::complex<double>);
             const size_t num_elems = output.front().size() / elem_size;
 
-            auto output_begin = reinterpret_cast<double2*>(output.front().data());
+            auto output_begin = reinterpret_cast<rocfft_complex<double>*>(output.front().data());
             for(size_t i = 0; i < num_elems; ++i)
             {
                 auto& element = output_begin[i];
@@ -306,7 +275,7 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
             {
                 const size_t num_elems = buf.size() / elem_size;
 
-                auto output_begin = reinterpret_cast<float2*>(buf.data());
+                auto output_begin = reinterpret_cast<rocfft_complex<float>*>(buf.data());
                 for(size_t i = 0; i < num_elems; ++i)
                 {
                     auto& element = output_begin[i];
@@ -323,7 +292,7 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
             {
                 const size_t num_elems = buf.size() / elem_size;
 
-                auto output_begin = reinterpret_cast<double2*>(buf.data());
+                auto output_begin = reinterpret_cast<rocfft_complex<double>*>(buf.data());
                 for(size_t i = 0; i < num_elems; ++i)
                 {
                     auto& element = output_begin[i];
@@ -405,7 +374,7 @@ void apply_load_callback(const fft_params& params, fftw_data_t& input)
             const size_t elem_size = sizeof(std::complex<float>);
             const size_t num_elems = input.front().size() / elem_size;
 
-            auto input_begin = reinterpret_cast<float2*>(input.front().data());
+            auto input_begin = reinterpret_cast<rocfft_complex<float>*>(input.front().data());
             for(size_t i = 0; i < num_elems; ++i)
             {
                 input_begin[i] = load_callback(input_begin, i, &cbdata, nullptr);
@@ -417,7 +386,7 @@ void apply_load_callback(const fft_params& params, fftw_data_t& input)
             const size_t elem_size = sizeof(std::complex<double>);
             const size_t num_elems = input.front().size() / elem_size;
 
-            auto input_begin = reinterpret_cast<double2*>(input.front().data());
+            auto input_begin = reinterpret_cast<rocfft_complex<double>*>(input.front().data());
             for(size_t i = 0; i < num_elems; ++i)
             {
                 input_begin[i] = load_callback(input_begin, i, &cbdata, nullptr);
