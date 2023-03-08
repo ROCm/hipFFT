@@ -12,7 +12,7 @@ def runCI =
     def prj = new rocProject('hipFFT-internal', 'PreCheckin-Cuda')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocRAND','hipRAND']
+    prj.libraryDependencies = ['hipRAND']
     prj.timeout.test = 600
 
     // Define test architectures, optional rocm version argument is available
@@ -29,7 +29,7 @@ def runCI =
         project.paths.construct_build_prefix()
 
         commonGroovy = load "${project.paths.project_src_prefix}/.jenkins/common.groovy"
-        commonGroovy.runCompileCommand(platform, project,jobName)
+        commonGroovy.runCompileCommand(platform, project, jobName, true)
     }
 
     def testCommand =
