@@ -225,6 +225,7 @@ int main(int argc, char* argv[])
     if(verbose)
     {
         std::cout << params.str() << std::endl;
+        std::cout << "Token: " << params.token() << std::endl;
     }
 
     const auto raw_vram_footprint
