@@ -579,3 +579,70 @@ hipfftResult
     return cufftResultToHipResult(cufftXtSetCallbackSharedSize(
         plan, hipfftCallbackTypeToCufftCallbackType(cbtype), sharedSize));
 }
+
+hipfftResult hipfftXtMakePlanMany(hipfftHandle   plan,
+                                  int            rank,
+                                  long long int* n,
+                                  long long int* inembed,
+                                  long long int  istride,
+                                  long long int  idist,
+                                  hipDataType    inputtype,
+                                  long long int* onembed,
+                                  long long int  ostride,
+                                  long long int  odist,
+                                  hipDataType    outputtype,
+                                  long long int  batch,
+                                  size_t*        workSize,
+                                  hipDataType    executiontype)
+{
+    return cufftResultToHipResult(cufftXtMakePlanMany(plan,
+                                                      rank,
+                                                      n,
+                                                      inembed,
+                                                      istride,
+                                                      idist,
+                                                      inputtype,
+                                                      onembed,
+                                                      ostride,
+                                                      odist,
+                                                      outputtype,
+                                                      batch,
+                                                      workSize,
+                                                      executiontype));
+}
+
+hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
+                                 int            rank,
+                                 long long int* n,
+                                 long long int* inembed,
+                                 long long int  istride,
+                                 long long int  idist,
+                                 hipDataType    inputtype,
+                                 long long int* onembed,
+                                 long long int  ostride,
+                                 long long int  odist,
+                                 hipDataType    outputtype,
+                                 long long int  batch,
+                                 size_t*        workSize,
+                                 hipDataType    executiontype)
+{
+    return cufftResultToHipResult(cufftXtGetSizeMany(plan,
+                                                     rank,
+                                                     n,
+                                                     inembed,
+                                                     istride,
+                                                     idist,
+                                                     inputtype,
+                                                     onembed,
+                                                     ostride,
+                                                     odist,
+                                                     outputtype,
+                                                     batch,
+                                                     workSize,
+                                                     executiontype));
+}
+
+hipfftResult hipfftXtExec(hipfftHandle plan, void* input, void* output, int direction)
+{
+    return cufftResultToHipResult(cufftXtExec(plan, input, output, direction));
+}

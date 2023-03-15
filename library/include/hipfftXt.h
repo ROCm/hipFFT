@@ -121,6 +121,127 @@ HIPFFT_EXPORT hipfftResult hipfftXtSetCallbackSharedSize(hipfftHandle         pl
                                                          hipfftXtCallbackType cbtype,
                                                          size_t               sharedSize);
 
+/*! @brief Initialize a batched rank-dimensional FFT plan with
+    advanced data layout and specified input, output, execution data
+    types.
+   *
+   *  @details Assumes that the plan has been created already, and
+   *  modifies the plan associated with the plan handle. The number 
+   *  of elements to transform in each direction of the input data 
+   *  in the FFT plan is specified in n.
+   * 
+   *  The batch parameter tells hipFFT how many transforms to perform. 
+   *  The distance between the first elements of two consecutive batches 
+   *  of the input and output data are specified with the idist and odist 
+   *  parameters.
+   * 
+   *  The inembed and onembed parameters define the input and output data
+   *  layouts. The number of elements in the data is assumed to be larger 
+   *  than the number of elements in the transform. Strided data layouts 
+   *  are also supported. Strides along the fastest direction in the input
+   *  and output data are specified via the istride and ostride parameters.  
+   * 
+   *  If both inembed and onembed parameters are set to NULL, all the 
+   *  advanced data layout parameters are ignored and reverted to default 
+   *  values, i.e., the batched transform is performed with non-strided data
+   *  access and the number of data/transform elements are assumed to be  
+   *  equivalent.
+   *
+   *  The inputType, outputType, executionType parameters specify the
+   *  data types (precision, and whether the data is real-valued or
+   *  complex-valued) of the transform input, output, and internal
+   *  representation respectively.  Currently, the precision of all
+   *  three parameters must match, and the execution type must always
+   *  be complex-valued.  At least one of inputType and outputType
+   *  must be complex.  A half-precision transform can be requested
+   *  by using either the HIP_R_16F or HIP_C_16F types.
+   *
+   *  @param[out] plan Pointer to the FFT plan handle.
+   *  @param[in] rank Dimension of transform (1, 2, or 3).
+   *  @param[in] n Number of elements to transform in the x/y/z directions.
+   *  @param[in] inembed Number of elements in the input data in the x/y/z directions.
+   *  @param[in] istride Distance between two successive elements in the input data.
+   *  @param[in] idist Distance between input batches.
+   *  @param[in] inputType Format of FFT input.
+   *  @param[in] onembed Number of elements in the output data in the x/y/z directions.
+   *  @param[in] ostride Distance between two successive elements in the output data.
+   *  @param[in] odist Distance between output batches.
+   *  @param[in] outputType Format of FFT output.
+   *  @param[in] batch Number of batched transforms to perform.
+   *  @param[out] workSize Pointer to work area size (returned value).
+   *  @param[in] executionType Internal data format used by the library during computation.
+   */
+HIPFFT_EXPORT hipfftResult hipfftXtMakePlanMany(hipfftHandle   plan,
+                                                int            rank,
+                                                long long int* n,
+                                                long long int* inembed,
+                                                long long int  istride,
+                                                long long int  idist,
+                                                hipDataType    inputType,
+                                                long long int* onembed,
+                                                long long int  ostride,
+                                                long long int  odist,
+                                                hipDataType    outputType,
+                                                long long int  batch,
+                                                size_t*        workSize,
+                                                hipDataType    executionType);
+
+/*! @brief Return size of the work area size required for a
+    rank-dimensional plan, with specified input, output, execution
+    data types.
+
+ * @details See ::hipfftXtMakePlanMany for restrictions on inputType,
+ * outputType, executionType parameters.
+ *
+ *  @param[in] plan Pointer to the FFT plan.
+ *  @param[in] rank Dimension of FFT transform (1, 2, or 3).
+ *  @param[in] n Number of elements in the x/y/z directions.
+ *  @param[in] inembed Number of elements in the input data in the x/y/z directions.
+ *  @param[in] istride Distance between two successive elements in the input data.
+ *  @param[in] idist Distance between input batches.
+ *  @param[in] inputType Format of FFT input.
+ *  @param[in] onembed Number of elements in the output data in the x/y/z directions.
+ *  @param[in] ostride Distance between two successive elements in the output data.
+ *  @param[in] odist Distance between output batches.
+ *  @param[in] outputType Format of FFT output.
+ *  @param[in] batch Number of batched transforms to perform.
+ *  @param[out] workSize Pointer to work area size (returned value).
+ *  @param[in] executionType Internal data format used by the library during computation.
+ *  */
+HIPFFT_EXPORT hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
+                                               int            rank,
+                                               long long int* n,
+                                               long long int* inembed,
+                                               long long int  istride,
+                                               long long int  idist,
+                                               hipDataType    inputType,
+                                               long long int* onembed,
+                                               long long int  ostride,
+                                               long long int  odist,
+                                               hipDataType    outputType,
+                                               long long int  batch,
+                                               size_t*        workSize,
+                                               hipDataType    executionType);
+
+/*! @brief Execute an FFT plan for any precision and type.
+
+ * @details An in-place transform is performed if the input and
+ * output pointers have the same value.
+ *
+ * The direction parameter is ignored if for real-to-complex and
+ * complex-to-real transforms, as the direction is already implied by
+ * the data types.
+ *
+ *  @param[in] plan Pointer to the FFT plan.
+ *  @param[in] input Pointer to input data for the transform.
+ *  @param[in] output Pointer to output data for the transform.
+ *  @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ *  */
+HIPFFT_EXPORT hipfftResult hipfftXtExec(hipfftHandle plan,
+                                        void*        input,
+                                        void*        output,
+                                        int          direction);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

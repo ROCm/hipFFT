@@ -54,12 +54,15 @@ size_t ramgb;
 // Manually specified precision cutoffs:
 double single_epsilon;
 double double_epsilon;
+double half_epsilon;
 
 // Measured precision cutoffs:
 double max_linf_eps_double = 0.0;
 double max_l2_eps_double   = 0.0;
 double max_linf_eps_single = 0.0;
 double max_l2_eps_single   = 0.0;
+double max_linf_eps_half   = 0.0;
+double max_l2_eps_half     = 0.0;
 
 // Control whether we use FFTW's wisdom (which we use to imply FFTW_MEASURE).
 bool use_fftw_wisdom = false;
@@ -134,7 +137,8 @@ int main(int argc, char* argv[])
          "forward\n3) real inverse")
         ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
         ("callback", "Inject load/store callbacks")
-        ("double", "Double precision transform (default: single)")
+        ("double", "Double precision transform (deprecated: use --precision double)")
+        ("precision", po::value<fft_precision>(&manual_params.precision), "Transform precision: single (default), double, half")
         ( "itype", po::value<fft_array_type>(&manual_params.itype)
           ->default_value(fft_array_type_unset),
           "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
@@ -188,7 +192,8 @@ int main(int argc, char* argv[])
 
     manual_params.placement
         = vm.count("notInPlace") ? fft_placement_notinplace : fft_placement_inplace;
-    manual_params.precision = vm.count("double") ? fft_precision_double : fft_precision_single;
+    if(vm.count("double"))
+        manual_params.precision = fft_precision_double;
 
     verbose = vm["verbose"].as<int>();
 
@@ -290,35 +295,6 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
-    else
-    {
-        if(manual_params.length.empty())
-        {
-            manual_params.length.push_back(8);
-            // TODO: add random size?
-        }
-
-        manual_params.placement
-            = vm.count("notInPlace") ? fft_placement_notinplace : fft_placement_inplace;
-        manual_params.precision = vm.count("double") ? fft_precision_double : fft_precision_single;
-
-        if(vm.count("callback"))
-        {
-            manual_params.run_callbacks = true;
-        }
-
-        if(manual_params.istride.empty())
-        {
-            manual_params.istride.push_back(1);
-            // TODO: add random size?
-        }
-
-        if(manual_params.ostride.empty())
-        {
-            manual_params.ostride.push_back(1);
-            // TODO: add random size?
-        }
-    }
 
     auto retval = RUN_ALL_TESTS();
 
@@ -333,6 +309,8 @@ int main(int argc, char* argv[])
         fftw_wisdom_file.close();
     }
 
+    std::cout << "half precision max l-inf epsilon: " << max_linf_eps_half << std::endl;
+    std::cout << "half precision max l2 epsilon:     " << max_l2_eps_half << std::endl;
     std::cout << "single precision max l-inf epsilon: " << max_linf_eps_single << std::endl;
     std::cout << "single precision max l2 epsilon:     " << max_l2_eps_single << std::endl;
     std::cout << "double precision max l-inf epsilon: " << max_linf_eps_double << std::endl;

@@ -39,6 +39,9 @@ void fft_vs_reference(hipfft_params& params, bool round_trip)
 {
     switch(params.precision)
     {
+    case fft_precision_half:
+        fft_vs_reference_impl<_Float16, hipfft_params>(params, round_trip);
+        break;
     case fft_precision_single:
         fft_vs_reference_impl<float, hipfft_params>(params, round_trip);
         break;

@@ -99,6 +99,7 @@ else()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
+  target_compile_options( hipfft-test PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 )
   target_link_libraries( hipfft-test  PRIVATE ${CUDA_LIBRARIES} )
   target_compile_definitions( hipfft-test PUBLIC _CUFFT_BACKEND )
 else()

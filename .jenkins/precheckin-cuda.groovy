@@ -104,7 +104,7 @@ ci: {
     String hBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                             -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
                             -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
-                            -DCMAKE_CXX_FLAGS="-gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86" \
+                            -DCMAKE_CXX_FLAGS="-gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86" \
                             -DBUILD_CLIENTS=ON -L ../..'
 
     setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir, runCI, 'hipcc', true)
