@@ -70,6 +70,7 @@ else()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
+  target_compile_options( hipfft-rider PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 )
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
 else()
   if( NOT hiprand_FOUND )

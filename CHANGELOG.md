@@ -2,6 +2,14 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## (Unreleased) hipFFT 1.0.12
+
+### Added
+- Implemented the hipfftXtMakePlanMany, hipfftXtGetSizeMany, hipfftXtExec APIs, to allow requesting half-precision transforms.
+
+### Changed
+- Added --precision argument to benchmark/test clients.  --double is still accepted but is deprecated as a method to request a double-precision transform.
+
 ## hipFFT 1.0.11 for ROCm 5.5.0
 
 ### Fixed

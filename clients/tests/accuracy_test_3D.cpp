@@ -23,7 +23,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "../rocFFT/clients/fft_params.h"
+#include "../rocFFT/shared/fft_params.h"
 
 #include "accuracy_test.h"
 #include "fftw_transform.h"

@@ -21,9 +21,11 @@
 #ifndef HIPFFT_PARAMS_H
 #define HIPFFT_PARAMS_H
 
+#include <optional>
+
 #include "hipfft.h"
 #include "hipfftXt.h"
-#include "rocFFT/clients/fft_params.h"
+#include "rocFFT/shared/fft_params.h"
 
 inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
 {
@@ -108,8 +110,15 @@ public:
 
     hipfftHandle plan = INVALID_PLAN_HANDLE;
 
-    hipfftType hipfft_transform_type;
-    int        direction;
+    // hipFFT has two ways to specify transform type - the hipfftType
+    // enum, and separate hipDataType enums for input/output.
+    // hipfftType has no way to express an fp16 transform, so
+    // hipfft_transform_type will not be set in that case.
+    std::optional<hipfftType> hipfft_transform_type;
+    hipDataType               inputType  = HIP_C_32F;
+    hipDataType               outputType = HIP_C_32F;
+
+    int direction;
 
     std::vector<int> int_length;
     std::vector<int> int_inembed;
@@ -157,25 +166,89 @@ public:
 
     fft_status setup_structs()
     {
+        // set direction
         switch(transform_type)
         {
-        case 0:
-            hipfft_transform_type = (precision == fft_precision_single) ? HIPFFT_C2C : HIPFFT_Z2Z;
-            direction             = HIPFFT_FORWARD;
+        case fft_transform_type_complex_forward:
+        case fft_transform_type_real_forward:
+            direction = HIPFFT_FORWARD;
             break;
-        case 1:
-            hipfft_transform_type = (precision == fft_precision_single) ? HIPFFT_C2C : HIPFFT_Z2Z;
-            direction             = HIPFFT_BACKWARD;
+        case fft_transform_type_complex_inverse:
+        case fft_transform_type_real_inverse:
+            direction = HIPFFT_BACKWARD;
+            break;
+        }
 
+        // set i/o types and transform type
+        switch(transform_type)
+        {
+        case fft_transform_type_complex_forward:
+        case fft_transform_type_complex_inverse:
+        {
+            switch(precision)
+            {
+            case fft_precision_half:
+                inputType  = HIP_C_16F;
+                outputType = HIP_C_16F;
+                hipfft_transform_type.reset();
+                break;
+            case fft_precision_single:
+                inputType             = HIP_C_32F;
+                outputType            = HIP_C_32F;
+                hipfft_transform_type = HIPFFT_C2C;
+                break;
+            case fft_precision_double:
+                inputType             = HIP_C_64F;
+                outputType            = HIP_C_64F;
+                hipfft_transform_type = HIPFFT_Z2Z;
+                break;
+            }
             break;
-        case 2:
-            hipfft_transform_type = (precision == fft_precision_single) ? HIPFFT_R2C : HIPFFT_D2Z;
-            direction             = HIPFFT_FORWARD;
+        }
+        case fft_transform_type_real_forward:
+        {
+            switch(precision)
+            {
+            case fft_precision_half:
+                inputType  = HIP_R_16F;
+                outputType = HIP_C_16F;
+                hipfft_transform_type.reset();
+                break;
+            case fft_precision_single:
+                inputType             = HIP_R_32F;
+                outputType            = HIP_C_32F;
+                hipfft_transform_type = HIPFFT_R2C;
+                break;
+            case fft_precision_double:
+                inputType             = HIP_R_64F;
+                outputType            = HIP_C_64F;
+                hipfft_transform_type = HIPFFT_D2Z;
+                break;
+            }
             break;
-        case 3:
-            hipfft_transform_type = (precision == fft_precision_single) ? HIPFFT_C2R : HIPFFT_Z2D;
-            direction             = HIPFFT_BACKWARD;
+        }
+        case fft_transform_type_real_inverse:
+        {
+            switch(precision)
+            {
+            case fft_precision_half:
+                inputType  = HIP_C_16F;
+                outputType = HIP_R_16F;
+                hipfft_transform_type.reset();
+                break;
+            case fft_precision_single:
+                inputType             = HIP_C_32F;
+                outputType            = HIP_R_32F;
+                hipfft_transform_type = HIPFFT_C2R;
+                break;
+            case fft_precision_double:
+                inputType             = HIP_C_64F;
+                outputType            = HIP_R_64F;
+                hipfft_transform_type = HIPFFT_Z2D;
+                break;
+            }
             break;
+        }
         default:
             throw std::runtime_error("Invalid transform type");
         }
@@ -253,6 +326,11 @@ public:
             ret = create_make_plan_many64();
             break;
         }
+        case CREATE_XT_MAKE_PLAN_MANY:
+        {
+            ret = create_xt_make_plan_many();
+            break;
+        }
         default:
         {
             throw std::runtime_error("no valid plan creation type");
@@ -268,8 +346,11 @@ public:
     {
         if(run_callbacks)
         {
+            if(!hipfft_transform_type)
+                throw std::runtime_error("callbacks require a valid hipfftType");
+
             hipfftResult ret{HIPFFT_EXEC_FAILED};
-            switch(hipfft_transform_type)
+            switch(*hipfft_transform_type)
             {
             case HIPFFT_R2C:
                 ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_REAL, &load_cb_data);
@@ -348,59 +429,80 @@ public:
     fft_status execute(void* ibuffer, void* obuffer)
     {
         hipfftResult ret{HIPFFT_EXEC_FAILED};
-        try
+
+        // we have two ways to execute in hipFFT - hipfftExecFOO and
+        // hipfftXtExec
+
+        // Transforms that aren't supported by the hipfftType enum
+        // require using the Xt method, but otherwise we hash the
+        // token to decide how to execute this FFT.  we want test
+        // cases to rotate between different execution APIs, but we also
+        // need the choice of API to be stable across reruns of the
+        // same test cases.
+        if(!hipfft_transform_type || std::hash<std::string>()(token()) % 2)
         {
-            switch(hipfft_transform_type)
+            ret = hipfftXtExec(plan, ibuffer, obuffer, direction);
+        }
+        else
+        {
+            try
             {
-            case HIPFFT_R2C:
-                ret = hipfftExecR2C(
-                    plan,
-                    (hipfftReal*)ibuffer,
-                    (hipfftComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer));
-                break;
-            case HIPFFT_D2Z:
-                ret = hipfftExecD2Z(
-                    plan,
-                    (hipfftDoubleReal*)ibuffer,
-                    (hipfftDoubleComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer));
-                break;
-            case HIPFFT_C2R:
-                ret = hipfftExecC2R(
-                    plan,
-                    (hipfftComplex*)ibuffer,
-                    (hipfftReal*)(placement == fft_placement_inplace ? ibuffer : obuffer));
-                break;
-            case HIPFFT_Z2D:
-                ret = hipfftExecZ2D(
-                    plan,
-                    (hipfftDoubleComplex*)ibuffer,
-                    (hipfftDoubleReal*)(placement == fft_placement_inplace ? ibuffer : obuffer));
-                break;
-            case HIPFFT_C2C:
-                ret = hipfftExecC2C(
-                    plan,
-                    (hipfftComplex*)ibuffer,
-                    (hipfftComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer),
-                    direction);
-                break;
-            case HIPFFT_Z2Z:
-                ret = hipfftExecZ2Z(
-                    plan,
-                    (hipfftDoubleComplex*)ibuffer,
-                    (hipfftDoubleComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer),
-                    direction);
-                break;
-            default:
-                throw std::runtime_error("Invalid execution type");
+                switch(*hipfft_transform_type)
+                {
+                case HIPFFT_R2C:
+                    ret = hipfftExecR2C(
+                        plan,
+                        (hipfftReal*)ibuffer,
+                        (hipfftComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer));
+                    break;
+                case HIPFFT_D2Z:
+                    ret = hipfftExecD2Z(plan,
+                                        (hipfftDoubleReal*)ibuffer,
+                                        (hipfftDoubleComplex*)(placement == fft_placement_inplace
+                                                                   ? ibuffer
+                                                                   : obuffer));
+                    break;
+                case HIPFFT_C2R:
+                    ret = hipfftExecC2R(
+                        plan,
+                        (hipfftComplex*)ibuffer,
+                        (hipfftReal*)(placement == fft_placement_inplace ? ibuffer : obuffer));
+                    break;
+                case HIPFFT_Z2D:
+                    ret = hipfftExecZ2D(plan,
+                                        (hipfftDoubleComplex*)ibuffer,
+                                        (hipfftDoubleReal*)(placement == fft_placement_inplace
+                                                                ? ibuffer
+                                                                : obuffer));
+                    break;
+                case HIPFFT_C2C:
+                    ret = hipfftExecC2C(
+                        plan,
+                        (hipfftComplex*)ibuffer,
+                        (hipfftComplex*)(placement == fft_placement_inplace ? ibuffer : obuffer),
+                        direction);
+                    break;
+                case HIPFFT_Z2Z:
+                    ret = hipfftExecZ2Z(plan,
+                                        (hipfftDoubleComplex*)ibuffer,
+                                        (hipfftDoubleComplex*)(placement == fft_placement_inplace
+                                                                   ? ibuffer
+                                                                   : obuffer),
+                                        direction);
+                    break;
+                default:
+                    throw std::runtime_error("Invalid execution type");
+                }
             }
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << std::endl;
-        }
-        catch(...)
-        {
-            std::cerr << "unkown exception in execute(void* ibuffer, void* obuffer)" << std::endl;
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
+            catch(...)
+            {
+                std::cerr << "unknown exception in execute(void* ibuffer, void* obuffer)"
+                          << std::endl;
+            }
         }
         return fft_status_from_hipfftparams(ret);
     }
@@ -431,6 +533,7 @@ private:
     // - hipfftCreate + hipfftMakePlan1d/2d/3d (separate alloc + init for specific dim)
     // - hipfftCreate + hipfftMakePlanMany (separate alloc + init with dim as param)
     // - hipfftCreate + hipfftMakePlanMany64 (separate alloc + init with dim as param, 64-bit)
+    // - hipfftCreate + hipfftXtMakePlanMany (separate alloc + init with separate i/o/exec types)
     //
     // Rotate through the choices for better test coverage.
     enum PlanCreateAPI
@@ -440,6 +543,7 @@ private:
         CREATE_MAKE_PLAN_Nd,
         CREATE_MAKE_PLAN_MANY,
         CREATE_MAKE_PLAN_MANY64,
+        CREATE_XT_MAKE_PLAN_MANY,
     };
 
     // Not all plan options work with all creation types.  Return a
@@ -451,22 +555,31 @@ private:
 
         std::vector<PlanCreateAPI> allowed_apis;
 
-        // separate alloc + init "Many" APIs are always allowed
-        allowed_apis.push_back(CREATE_MAKE_PLAN_MANY);
-        allowed_apis.push_back(CREATE_MAKE_PLAN_MANY64);
-
-        // combined PlanMany API can't do scaling
-        if(scale_factor == 1.0)
-            allowed_apis.push_back(PLAN_MANY);
-
-        // non-many APIs are only allowed if FFT is contiguous, and
-        // only the 1D API allows for batched FFTs.
-        if(contiguous && (!batched || dim() == 1))
+        // half-precision requires XtMakePlanMany
+        if(precision == fft_precision_half)
         {
-            // combined Nd API can't do scaling
+            allowed_apis.push_back(CREATE_XT_MAKE_PLAN_MANY);
+        }
+        else
+        {
+            // separate alloc + init "Many" APIs are always allowed
+            allowed_apis.push_back(CREATE_MAKE_PLAN_MANY);
+            allowed_apis.push_back(CREATE_MAKE_PLAN_MANY64);
+            allowed_apis.push_back(CREATE_XT_MAKE_PLAN_MANY);
+
+            // combined PlanMany API can't do scaling
             if(scale_factor == 1.0)
-                allowed_apis.push_back(PLAN_Nd);
-            allowed_apis.push_back(CREATE_MAKE_PLAN_Nd);
+                allowed_apis.push_back(PLAN_MANY);
+
+            // non-many APIs are only allowed if FFT is contiguous, and
+            // only the 1D API allows for batched FFTs.
+            if(contiguous && (!batched || dim() == 1))
+            {
+                // combined Nd API can't do scaling
+                if(scale_factor == 1.0)
+                    allowed_apis.push_back(PLAN_Nd);
+                allowed_apis.push_back(CREATE_MAKE_PLAN_Nd);
+            }
         }
 
         // hash the token to decide how to create this FFT.  we want
@@ -483,14 +596,14 @@ private:
         switch(dim())
         {
         case 1:
-            ret = hipfftPlan1d(&plan, int_length[0], hipfft_transform_type, nbatch);
+            ret = hipfftPlan1d(&plan, int_length[0], *hipfft_transform_type, nbatch);
             break;
         case 2:
-            ret = hipfftPlan2d(&plan, int_length[0], int_length[1], hipfft_transform_type);
+            ret = hipfftPlan2d(&plan, int_length[0], int_length[1], *hipfft_transform_type);
             break;
         case 3:
             ret = hipfftPlan3d(
-                &plan, int_length[0], int_length[1], int_length[2], hipfft_transform_type);
+                &plan, int_length[0], int_length[1], int_length[2], *hipfft_transform_type);
             break;
         default:
             throw std::runtime_error("invalid dim");
@@ -508,7 +621,7 @@ private:
                                   int_onembed.data(),
                                   ostride.back(),
                                   odist,
-                                  hipfft_transform_type,
+                                  *hipfft_transform_type,
                                   nbatch);
         return ret;
     }
@@ -537,16 +650,16 @@ private:
         {
         case 1:
             return hipfftMakePlan1d(
-                plan, int_length[0], hipfft_transform_type, nbatch, &workbuffersize);
+                plan, int_length[0], *hipfft_transform_type, nbatch, &workbuffersize);
         case 2:
             return hipfftMakePlan2d(
-                plan, int_length[0], int_length[1], hipfft_transform_type, &workbuffersize);
+                plan, int_length[0], int_length[1], *hipfft_transform_type, &workbuffersize);
         case 3:
             return hipfftMakePlan3d(plan,
                                     int_length[0],
                                     int_length[1],
                                     int_length[2],
-                                    hipfft_transform_type,
+                                    *hipfft_transform_type,
                                     &workbuffersize);
         default:
             throw std::runtime_error("invalid dim");
@@ -566,7 +679,7 @@ private:
                                   int_onembed.data(),
                                   ostride.back(),
                                   odist,
-                                  hipfft_transform_type,
+                                  *hipfft_transform_type,
                                   nbatch,
                                   &workbuffersize);
     }
@@ -584,9 +697,47 @@ private:
                                     ll_onembed.data(),
                                     ostride.back(),
                                     odist,
-                                    hipfft_transform_type,
+                                    *hipfft_transform_type,
                                     nbatch,
                                     &workbuffersize);
+    }
+
+    hipfftResult_t create_xt_make_plan_many()
+    {
+        auto ret = create_with_scale_factor();
+        if(ret != HIPFFT_SUCCESS)
+            return ret;
+
+        // execution type is always complex, matching the precision
+        // of the transform
+        hipDataType executionType;
+        switch(precision)
+        {
+        case fft_precision_half:
+            executionType = HIP_C_16F;
+            break;
+        case fft_precision_single:
+            executionType = HIP_C_32F;
+            break;
+        case fft_precision_double:
+            executionType = HIP_C_64F;
+            break;
+        }
+
+        return hipfftXtMakePlanMany(plan,
+                                    dim(),
+                                    ll_length.data(),
+                                    ll_inembed.data(),
+                                    istride.back(),
+                                    idist,
+                                    inputType,
+                                    ll_onembed.data(),
+                                    ostride.back(),
+                                    odist,
+                                    outputType,
+                                    nbatch,
+                                    &workbuffersize,
+                                    executionType);
     }
 };
 

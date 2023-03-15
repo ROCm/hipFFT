@@ -62,7 +62,8 @@ int main(int argc, char* argv[])
         ("verbose", po::value<int>(&verbose)->default_value(0), "Control output verbosity")
         ("ntrial,N", po::value<int>(&ntrial)->default_value(1), "Trial size for the problem")
         ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
-        ("double", "Double precision transform (default: single)")
+        ("double", "Double precision transform (deprecated: use --precision double)")
+        ("precision", po::value<fft_precision>(&params.precision), "Transform precision: single (default), double, half")
         ("transformType,t", po::value<fft_transform_type>(&params.transform_type)
          ->default_value(fft_transform_type_complex_forward),
          "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
@@ -149,7 +150,8 @@ int main(int argc, char* argv[])
 
         params.placement
             = vm.count("notInPlace") ? fft_placement_notinplace : fft_placement_inplace;
-        params.precision = vm.count("double") ? fft_precision_double : fft_precision_single;
+        if(vm.count("double"))
+            params.precision = fft_precision_double;
 
         if(vm.count("notInPlace"))
         {
