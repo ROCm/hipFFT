@@ -11,6 +11,18 @@ backend and results back to the application.
 [rocFFT]: https://github.com/ROCmSoftwarePlatform/rocFFT
 [cuFFT]: https://developer.nvidia.com/cufft
 
+## Documentation
+
+Run the steps below to build documentation locally.
+
+```
+cd docs
+
+pip3 install -r .sphinx/requirements.txt
+
+python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
+```
+
 ## Installing pre-built packages
 
 Download pre-built packages either from [ROCm's package servers].

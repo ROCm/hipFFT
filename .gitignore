@@ -35,8 +35,16 @@ tags
 # Visual Studio Code
 .vscode
 
-# install.sh build dir
+# documentation artifacts
 build/
+_build/
+_images/
+_static/
+_templates/
+_toc.yml
+docBin/
+
+docs/.doxygen/hipfft.h
 
 # python bytecode
 __pycache__
