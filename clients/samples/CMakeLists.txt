@@ -79,7 +79,7 @@ foreach( sample ${sample_list} )
   endif()
 
   if ( BUILD_WITH_LIB STREQUAL "CUDA" )
-    target_compile_options( ${sample} PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 )
+    target_compile_options( ${sample} PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 -Xptxas=-w)
     target_link_libraries( ${sample} PRIVATE ${CUDA_LIBRARIES} )
   else()
     if( NOT hiprand_FOUND )

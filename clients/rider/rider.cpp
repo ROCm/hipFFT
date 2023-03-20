@@ -252,13 +252,17 @@ int main(int argc, char* argv[])
     if(ret != fft_status_success)
         throw std::runtime_error("Plan creation failed");
 
+    hipError_t hip_rt;
+
     // GPU input buffer:
     auto                ibuffer_sizes = params.ibuffer_sizes();
     std::vector<gpubuf> ibuffer(ibuffer_sizes.size());
     std::vector<void*>  pibuffer(ibuffer_sizes.size());
     for(unsigned int i = 0; i < ibuffer.size(); ++i)
     {
-        HIP_V_THROW(ibuffer[i].alloc(ibuffer_sizes[i]), "Creating input Buffer failed");
+        hip_rt = ibuffer[i].alloc(ibuffer_sizes[i]);
+        if(hip_rt != hipSuccess)
+            throw std::runtime_error("Creating input Buffer failed");
         pibuffer[i] = ibuffer[i].data();
     }
 
@@ -271,11 +275,13 @@ int main(int argc, char* argv[])
         auto cpu_input = allocate_host_buffer(params.precision, params.itype, params.isize);
         for(unsigned int idx = 0; idx < ibuffer.size(); ++idx)
         {
-            HIP_V_THROW(hipMemcpy(cpu_input.at(idx).data(),
-                                  ibuffer[idx].data(),
-                                  ibuffer_sizes[idx],
-                                  hipMemcpyDeviceToHost),
-                        "hipMemcpy failed");
+            hip_rt = hipMemcpy(cpu_input.at(idx).data(),
+                               ibuffer[idx].data(),
+                               ibuffer_sizes[idx],
+                               hipMemcpyDeviceToHost);
+
+            if(hip_rt != hipSuccess)
+                throw std::runtime_error("hipMemcpy failed");
         }
 
         std::cout << "GPU input:\n";
@@ -295,7 +301,9 @@ int main(int argc, char* argv[])
         obuffer_data.resize(obuffer_sizes.size());
         for(unsigned int i = 0; i < obuffer_data.size(); ++i)
         {
-            HIP_V_THROW(obuffer_data[i].alloc(obuffer_sizes[i]), "Creating output Buffer failed");
+            hip_rt = obuffer_data[i].alloc(obuffer_sizes[i]);
+            if(hip_rt != hipSuccess)
+                throw std::runtime_error("Creating output Buffer failed");
         }
     }
     std::vector<void*> pobuffer(obuffer->size());
@@ -312,25 +320,41 @@ int main(int argc, char* argv[])
     std::vector<double> gpu_time(ntrial);
 
     hipEvent_t start, stop;
-    HIP_V_THROW(hipEventCreate(&start), "hipEventCreate failed");
-    HIP_V_THROW(hipEventCreate(&stop), "hipEventCreate failed");
+    hip_rt = hipEventCreate(&start);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipEventCreate failed");
+
+    hip_rt = hipEventCreate(&stop);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipEventCreate failed");
+
     for(size_t itrial = 0; itrial < gpu_time.size(); ++itrial)
     {
 
         params.compute_input(ibuffer);
 
-        HIP_V_THROW(hipEventRecord(start), "hipEventRecord failed");
+        hip_rt = hipEventRecord(start);
+        if(hip_rt != hipSuccess)
+            throw std::runtime_error("hipEventRecord failed");
 
         res = params.execute(pibuffer.data(), pobuffer.data());
 
-        HIP_V_THROW(hipEventRecord(stop), "hipEventRecord failed");
-        HIP_V_THROW(hipEventSynchronize(stop), "hipEventSynchronize failed");
+        hip_rt = hipEventRecord(stop);
+        if(hip_rt != hipSuccess)
+            throw std::runtime_error("hipEventRecord failed");
+
+        hip_rt = hipEventSynchronize(stop);
+        if(hip_rt != hipSuccess)
+            throw std::runtime_error("hipEventSynchronize failed");
 
         if(res != fft_status_success)
             throw std::runtime_error("Execution failed");
 
         float time;
-        hipEventElapsedTime(&time, start, stop);
+        hip_rt = hipEventElapsedTime(&time, start, stop);
+        if(hip_rt != hipSuccess)
+            throw std::runtime_error("hipEventElapsedTime failed");
+
         gpu_time[itrial] = time;
 
         if(verbose > 2)
@@ -338,11 +362,10 @@ int main(int argc, char* argv[])
             auto output = allocate_host_buffer(params.precision, params.otype, params.osize);
             for(unsigned int idx = 0; idx < output.size(); ++idx)
             {
-                HIP_V_THROW(hipMemcpy(output[idx].data(),
-                                      pobuffer[idx],
-                                      output[idx].size(),
-                                      hipMemcpyDeviceToHost),
-                            "hipMemcpy failed");
+                hip_rt = hipMemcpy(
+                    output[idx].data(), pobuffer[idx], output[idx].size(), hipMemcpyDeviceToHost);
+                if(hip_rt != hipSuccess)
+                    throw std::runtime_error("hipMemcpy failed");
             }
             std::cout << "GPU output:\n";
             params.print_obuffer(output);

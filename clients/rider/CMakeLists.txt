@@ -54,7 +54,6 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
 
     target_link_libraries( hipfft-rider PRIVATE hip::host hip::device )
   else()
-
     target_compile_definitions( hipfft-rider PRIVATE __HIP_PLATFORM_NVIDIA__)
     target_include_directories( hipfft-rider PRIVATE ${HIP_INCLUDE_DIRS})
   endif()
@@ -70,7 +69,7 @@ else()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
-  target_compile_options( hipfft-rider PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 )
+  target_compile_options( hipfft-rider PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 -Xptxas=-w)
   target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
 else()
   if( NOT hiprand_FOUND )

@@ -133,5 +133,9 @@ int main()
     }
     std::cout << std::endl;
 
-    hipFree(d_in_out);
+    hip_rt = hipFree(d_in_out);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
+
+    return 0;
 }

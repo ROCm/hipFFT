@@ -140,9 +140,18 @@ int main()
     std::cout << std::endl;
 
     hipfftDestroy(plan);
-    hipFree(cbdata_dev);
-    hipFree(filter_dev);
-    hipFree(x);
+
+    hip_rt = hipFree(cbdata_dev);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
+
+    hip_rt = hipFree(filter_dev);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
+
+    hip_rt = hipFree(x);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
 
     return 0;
 }

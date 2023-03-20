@@ -107,7 +107,10 @@ int main()
     std::cout << std::endl;
 
     hipfftDestroy(plan);
-    hipFree(x);
+
+    hip_rt = hipFree(x);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
 
     return 0;
 }
