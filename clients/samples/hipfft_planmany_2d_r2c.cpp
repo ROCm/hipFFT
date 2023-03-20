@@ -109,9 +109,12 @@ int main()
 
     hipError_t hip_rt;
     hip_rt = hipMalloc((void**)&gpu_data, total_bytes);
-    hipMemcpy(gpu_data, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
     if(hip_rt != hipSuccess)
         throw std::runtime_error("hipMalloc failed");
+
+    hip_rt = hipMemcpy(gpu_data, (void*)data.data(), total_bytes, hipMemcpyHostToDevice);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipMemcpy failed");
 
     hipfft_rt = hipfftExecR2C(hipForwardPlan, gpu_data, (hipfftComplex*)gpu_data);
     if(hipfft_rt != HIPFFT_SUCCESS)
@@ -140,6 +143,10 @@ int main()
     std::cout << std::endl;
 
     hipfftDestroy(hipForwardPlan);
-    hipFree(gpu_data);
+
+    hip_rt = hipFree(gpu_data);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
+
     return 0;
 }

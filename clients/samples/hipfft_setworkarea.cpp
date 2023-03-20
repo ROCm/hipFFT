@@ -127,8 +127,14 @@ int main()
     std::cout << std::endl;
 
     hipfftDestroy(plan);
-    hipFree(x);
-    hipFree(workBuf);
+
+    hip_rt = hipFree(x);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
+
+    hip_rt = hipFree(workBuf);
+    if(hip_rt != hipSuccess)
+        throw std::runtime_error("hipFree failed");
 
     return 0;
 }
