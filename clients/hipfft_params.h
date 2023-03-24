@@ -710,7 +710,8 @@ private:
 
         // execution type is always complex, matching the precision
         // of the transform
-        hipDataType executionType;
+        // Initializing as double by default
+        hipDataType executionType = HIP_C_64F;
         switch(precision)
         {
         case fft_precision_half:
