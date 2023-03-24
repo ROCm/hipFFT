@@ -1,4 +1,4 @@
-// Copyright (C) 2021 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2021 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,7 @@ INSTANTIATE_TEST_SUITE_P(callback,
                          accuracy_test,
                          ::testing::ValuesIn(param_generator_base(transform_types,
                                                                   callback_sizes,
-                                                                  precision_range,
+                                                                  precision_range_sp_dp,
                                                                   batch_range,
                                                                   generate_types,
                                                                   stride_range,
@@ -123,7 +123,7 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_callback,
                          accuracy_test,
                          ::testing::ValuesIn(param_generator_base(transform_types,
                                                                   callback_sizes,
-                                                                  precision_range,
+                                                                  precision_range_sp_dp,
                                                                   batch_range,
                                                                   generate_types,
                                                                   stride_range,
@@ -142,7 +142,7 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_callback,
 inline auto param_generator_scaling(const std::vector<std::vector<size_t>>& v_lengths)
 {
     auto params = param_generator(callback_sizes,
-                                  precision_range,
+                                  precision_range_sp_dp,
                                   batch_range,
                                   stride_range,
                                   stride_range,

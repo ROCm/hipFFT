@@ -92,6 +92,8 @@ __host__ __device__ Tdata load_callback(Tdata* input, size_t offset, void* cbdat
     }
 }
 
+__device__ auto load_callback_dev_half           = load_callback<_Float16>;
+__device__ auto load_callback_dev_complex_half   = load_callback<rocfft_complex<_Float16>>;
 __device__ auto load_callback_dev_float          = load_callback<float>;
 __device__ auto load_callback_dev_complex_float  = load_callback<rocfft_complex<float>>;
 __device__ auto load_callback_dev_double         = load_callback<double>;
@@ -109,6 +111,12 @@ void* get_load_callback_host(fft_array_type itype,
     {
         switch(precision)
         {
+        case fft_precision_half:
+            EXPECT_EQ(hipMemcpyFromSymbol(&load_callback_host,
+                                          HIP_SYMBOL(load_callback_dev_complex_half),
+                                          sizeof(void*)),
+                      hipSuccess);
+            return load_callback_host;
         case fft_precision_single:
             EXPECT_EQ(hipMemcpyFromSymbol(&load_callback_host,
                                           HIP_SYMBOL(load_callback_dev_complex_float),
@@ -127,6 +135,11 @@ void* get_load_callback_host(fft_array_type itype,
     {
         switch(precision)
         {
+        case fft_precision_half:
+            EXPECT_EQ(hipMemcpyFromSymbol(
+                          &load_callback_host, HIP_SYMBOL(load_callback_dev_half), sizeof(void*)),
+                      hipSuccess);
+            return load_callback_host;
         case fft_precision_single:
             EXPECT_EQ(hipMemcpyFromSymbol(
                           &load_callback_host, HIP_SYMBOL(load_callback_dev_float), sizeof(void*)),
@@ -158,6 +171,8 @@ __host__ __device__ static void
     // otherwise, wrong base address passed, just don't write
 }
 
+__device__ auto store_callback_dev_half           = store_callback<_Float16>;
+__device__ auto store_callback_dev_complex_half   = store_callback<rocfft_complex<_Float16>>;
 __device__ auto store_callback_dev_float          = store_callback<float>;
 __device__ auto store_callback_dev_complex_float  = store_callback<rocfft_complex<float>>;
 __device__ auto store_callback_dev_double         = store_callback<double>;
@@ -175,6 +190,12 @@ void* get_store_callback_host(fft_array_type otype,
     {
         switch(precision)
         {
+        case fft_precision_half:
+            EXPECT_EQ(hipMemcpyFromSymbol(&store_callback_host,
+                                          HIP_SYMBOL(store_callback_dev_complex_half),
+                                          sizeof(void*)),
+                      hipSuccess);
+            return store_callback_host;
         case fft_precision_single:
             EXPECT_EQ(hipMemcpyFromSymbol(&store_callback_host,
                                           HIP_SYMBOL(store_callback_dev_complex_float),
@@ -193,6 +214,11 @@ void* get_store_callback_host(fft_array_type otype,
     {
         switch(precision)
         {
+        case fft_precision_half:
+            EXPECT_EQ(hipMemcpyFromSymbol(
+                          &store_callback_host, HIP_SYMBOL(store_callback_dev_half), sizeof(void*)),
+                      hipSuccess);
+            return store_callback_host;
         case fft_precision_single:
             EXPECT_EQ(hipMemcpyFromSymbol(&store_callback_host,
                                           HIP_SYMBOL(store_callback_dev_float),
@@ -230,6 +256,22 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
     {
         switch(params.precision)
         {
+        case fft_precision_half:
+        {
+            const size_t elem_size = sizeof(std::complex<_Float16>);
+            const size_t num_elems = output.front().size() / elem_size;
+
+            auto output_begin = reinterpret_cast<rocfft_complex<_Float16>*>(output.front().data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                auto& element = output_begin[i];
+                if(params.scale_factor != 1.0)
+                    element = element * params.scale_factor;
+                if(params.run_callbacks)
+                    store_callback(output_begin, i, element, &cbdata, nullptr);
+            }
+            break;
+        }
         case fft_precision_single:
         {
             const size_t elem_size = sizeof(std::complex<float>);
@@ -271,6 +313,23 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
         // planar wouldn't run callbacks, but we could still want scaling
         switch(params.precision)
         {
+        case fft_precision_half:
+        {
+            const size_t elem_size = sizeof(std::complex<_Float16>);
+            for(auto& buf : output)
+            {
+                const size_t num_elems = buf.size() / elem_size;
+
+                auto output_begin = reinterpret_cast<rocfft_complex<_Float16>*>(buf.data());
+                for(size_t i = 0; i < num_elems; ++i)
+                {
+                    auto& element = output_begin[i];
+                    if(params.scale_factor != 1.0)
+                        element = element * params.scale_factor;
+                }
+            }
+            break;
+        }
         case fft_precision_single:
         {
             const size_t elem_size = sizeof(std::complex<float>);
@@ -312,6 +371,22 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
     {
         switch(params.precision)
         {
+        case fft_precision_half:
+        {
+            const size_t elem_size = sizeof(_Float16);
+            const size_t num_elems = output.front().size() / elem_size;
+
+            auto output_begin = reinterpret_cast<_Float16*>(output.front().data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                auto& element = output_begin[i];
+                if(params.scale_factor != 1.0)
+                    element = element * params.scale_factor;
+                if(params.run_callbacks)
+                    store_callback(output_begin, i, element, &cbdata, nullptr);
+            }
+            break;
+        }
         case fft_precision_single:
         {
             const size_t elem_size = sizeof(float);
@@ -372,6 +447,18 @@ void apply_load_callback(const fft_params& params, fftw_data_t& input)
     {
         switch(params.precision)
         {
+        case fft_precision_half:
+        {
+            const size_t elem_size = sizeof(std::complex<_Float16>);
+            const size_t num_elems = input.front().size() / elem_size;
+
+            auto input_begin = reinterpret_cast<rocfft_complex<_Float16>*>(input.front().data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                input_begin[i] = load_callback(input_begin, i, &cbdata, nullptr);
+            }
+            break;
+        }
         case fft_precision_single:
         {
             const size_t elem_size = sizeof(std::complex<float>);
@@ -403,6 +490,18 @@ void apply_load_callback(const fft_params& params, fftw_data_t& input)
     {
         switch(params.precision)
         {
+        case fft_precision_half:
+        {
+            const size_t elem_size = sizeof(_Float16);
+            const size_t num_elems = input.front().size() / elem_size;
+
+            auto input_begin = reinterpret_cast<_Float16*>(input.front().data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                input_begin[i] = load_callback(input_begin, i, &cbdata, nullptr);
+            }
+            break;
+        }
         case fft_precision_single:
         {
             const size_t elem_size = sizeof(float);
@@ -455,6 +554,21 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
         return;
     switch(params.precision)
     {
+    case fft_precision_half:
+    {
+        const size_t elem_size = sizeof(_Float16);
+        for(auto& buf : output)
+        {
+            const size_t num_elems    = buf.size() / elem_size;
+            auto         output_begin = reinterpret_cast<_Float16*>(buf.data());
+            for(size_t i = 0; i < num_elems; ++i)
+            {
+                auto& element = output_begin[i];
+                element       = static_cast<double>(element) * params.scale_factor;
+            }
+        }
+        break;
+    }
     case fft_precision_single:
     {
         const size_t elem_size = sizeof(float);
