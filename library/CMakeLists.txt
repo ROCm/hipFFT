@@ -49,11 +49,6 @@ set( hipfft_headers_public
 
 source_group( "Header Files\\Public" FILES ${hipfft_headers_public} )
 
-# nvcc can not recognize shared libraray file name with suffix other than *.so when linking.
-#if (NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
-#  rocm_setsoversion(hipfft ${hipfft_SOVERSION})
-#endif()
-
 # Include sources
 include( src/CMakeLists.txt )
 
@@ -119,6 +114,11 @@ endif()
 if( NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   set_target_properties( hipfft
     PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON )
+endif()
+
+# nvcc can not recognize shared libraray file name with suffix other than *.so when linking.
+if (NOT BUILD_WITH_COMPILER STREQUAL "HIP-NVCC")
+  rocm_set_soversion(hipfft ${hipfft_SOVERSION})
 endif()
 
 # Generate export header
