@@ -121,8 +121,8 @@ if( BUILD_CLIENTS_TESTS_OPENMP )
       target_include_directories( hipfft-test PRIVATE ${HIP_CLANG_ROOT}/include )
     else()
       if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        set(OpenMP_CXX_FLAG "-fopenmp=libomp")
-        target_link_libraries(hipfft-test ${OpenMP_CXX_LIBRARIES})
+        target_compile_options( hipfft-test PRIVATE -fopenmp=libomp )
+        target_link_options( hipfft-test PRIVATE -fopenmp=libomp )
       endif()
     endif()
   endif()
@@ -163,6 +163,7 @@ if (WIN32)
     LIST_DIRECTORIES OFF
     CONFIGURE_DEPENDS
     ${HIP_DIR}/bin/*.dll
+    C:/Windows/System32/libomp140*.dll
   )
   foreach( file_i ${third_party_dlls})
     add_custom_command( TARGET hipfft-test POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} ${PROJECT_BINARY_DIR}/staging )

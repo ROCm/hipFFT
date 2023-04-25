@@ -50,7 +50,8 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
 
 def runTestCommand (platform, project, gfilter)
 {
-    String cudaArgs = platform.jenkinsLabel.contains('cuda') ? '--double_epsilon=5e-11' : ''
+    String cudaArgs = platform.jenkinsLabel.contains('cuda') ? '--double_epsilon=5e-11'
+                        : '--precompile=rocfft-test-precompile.db'
 
     def command = """#!/usr/bin/env bash
                     set -x

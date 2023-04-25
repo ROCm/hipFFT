@@ -230,9 +230,13 @@ int main(int argc, char* argv[])
         std::cout << "Token: " << params.token() << std::endl;
     }
 
+    // Check free and total available memory:
+    size_t free  = 0;
+    size_t total = 0;
+    HIP_V_THROW(hipMemGetInfo(&free, &total), "hipMemGetInfo failed");
     const auto raw_vram_footprint
         = params.fft_params_vram_footprint() + twiddle_table_vram_footprint(params);
-    if(!vram_fits_problem(raw_vram_footprint))
+    if(!vram_fits_problem(raw_vram_footprint, free))
     {
         std::cout << "SKIPPED: Problem size (" << raw_vram_footprint
                   << ") raw data too large for device.\n";
@@ -240,7 +244,7 @@ int main(int argc, char* argv[])
     }
 
     const auto vram_footprint = params.vram_footprint();
-    if(!vram_fits_problem(vram_footprint))
+    if(!vram_fits_problem(vram_footprint, free))
     {
         std::cout << "SKIPPED: Problem size (" << vram_footprint
                   << ") raw data too large for device.\n";
