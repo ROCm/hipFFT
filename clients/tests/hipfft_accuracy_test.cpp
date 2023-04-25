@@ -240,7 +240,7 @@ void* get_store_callback_host(fft_array_type otype,
 }
 
 // implement result scaling as a store callback, as rocFFT tests do
-void apply_store_callback(const fft_params& params, fftw_data_t& output)
+void apply_store_callback(const fft_params& params, std::vector<hostbuf>& output)
 {
     if(!params.run_callbacks && params.scale_factor == 1.0)
         return;
@@ -429,7 +429,7 @@ void apply_store_callback(const fft_params& params, fftw_data_t& output)
 }
 
 // apply load callback if necessary
-void apply_load_callback(const fft_params& params, fftw_data_t& input)
+void apply_load_callback(const fft_params& params, std::vector<hostbuf>& input)
 {
     if(!params.run_callbacks)
         return;
@@ -545,10 +545,10 @@ void* get_load_callback_host(fft_array_type itype,
 {
     return nullptr;
 }
-void apply_load_callback(const fft_params& params, fftw_data_t& input) {}
+void apply_load_callback(const fft_params& params, std::vector<hostbuf>& input) {}
 
 // implement result scaling as a store callback, as rocFFT tests do
-void apply_store_callback(const fft_params& params, fftw_data_t& output)
+void apply_store_callback(const fft_params& params, std::vector<hostbuf>& output)
 {
     if(params.scale_factor == 1.0)
         return;

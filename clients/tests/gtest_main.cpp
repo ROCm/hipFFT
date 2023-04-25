@@ -22,13 +22,18 @@
 /// @brief googletest based unit tester for rocfft
 ///
 
+#include <chrono>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <random>
 #include <streambuf>
 #include <string>
 
 #include "../hipfft_params.h"
+#include "../rocFFT/shared/concurrency.h"
+#include "../rocFFT/shared/environment.h"
+#include "../rocFFT/shared/work_queue.h"
 #include "hipfft.h"
 #include "hipfft_accuracy_test.h"
 #include "hipfft_test_params.h"
@@ -48,8 +53,16 @@ int verbose;
 // Transform parameters for manual test:
 fft_params manual_params;
 
-// Ram limitation for tests (GiB):
+// Host memory limitation for tests (GiB):
 size_t ramgb;
+
+// Device memory limitation for tests (GiB):
+size_t vramgb;
+
+// Allow skipping tests if there is a runtime error
+bool skip_runtime_fails;
+// But count the number of failures
+int n_hip_failures = 0;
 
 // Manually specified precision cutoffs:
 double single_epsilon;
@@ -92,6 +105,96 @@ system_memory get_system_memory()
 
 system_memory start_memory = get_system_memory();
 
+void precompile_test_kernels(const std::string& precompile_file)
+{
+    std::cout << "precompiling test kernels...\n";
+    WorkQueue<std::string> tokenQueue;
+
+    std::vector<std::string> tokens;
+    auto                     ut = testing::UnitTest::GetInstance();
+    for(int ts_index = 0; ts_index < ut->total_test_suite_count(); ++ts_index)
+    {
+        const auto ts = ut->GetTestSuite(ts_index);
+        // skip disabled suites
+        if(strncmp(ts->name(), "DISABLED", 8) == 0)
+            continue;
+        for(int ti_index = 0; ti_index < ts->total_test_count(); ++ti_index)
+        {
+            const auto  ti   = ts->GetTestInfo(ti_index);
+            std::string name = ti->name();
+            // only care about accuracy tests
+            if(name.find("vs_fftw/") != std::string::npos)
+            {
+                name.erase(0, 8);
+
+                // change batch to 1, so we don't waste time creating
+                // multiple plans that differ only by batch
+                auto idx = name.find("_batch_");
+                if(idx == std::string::npos)
+                    continue;
+                // advance idx to batch number
+                idx += 7;
+                auto end = name.find('_', idx);
+                if(end == std::string::npos)
+                    continue;
+                name.replace(idx, end - idx, "1");
+
+                tokens.emplace_back(std::move(name));
+            }
+        }
+    }
+
+    std::random_device dev;
+    std::mt19937       dist(dev());
+    std::shuffle(tokens.begin(), tokens.end(), dist);
+    auto precompile_begin = std::chrono::steady_clock::now();
+    std::cout << "precompiling " << tokens.size() << " FFT plans...\n";
+
+    for(auto&& t : tokens)
+        tokenQueue.push(std::move(t));
+
+    EnvironmentSetTemp       env_compile_only{"ROCFFT_INTERNAL_COMPILE_ONLY", "1"};
+    const size_t             NUM_THREADS = rocfft_concurrency();
+    std::vector<std::thread> threads;
+    for(size_t i = 0; i < NUM_THREADS; ++i)
+    {
+        threads.emplace_back([&tokenQueue]() {
+            for(;;)
+            {
+                std::string token{tokenQueue.pop()};
+                if(token.empty())
+                    break;
+
+                try
+                {
+                    hipfft_params params;
+                    params.from_token(token);
+                    params.validate();
+                    params.create_plan();
+                }
+                catch(std::exception& e)
+                {
+                    // failed to create a plan, abort
+                    //
+                    // we could continue on, but the test should just
+                    // fail later anyway in the same way.  so report
+                    // which token failed early and get out
+                    throw std::runtime_error(token + " plan creation failure: " + e.what());
+                }
+            }
+        });
+        // insert empty tokens to tell threads to stop
+        tokenQueue.push({});
+    }
+    for(auto& t : threads)
+        t.join();
+
+    auto                                      precompile_end = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> precompile_ms  = precompile_end - precompile_begin;
+    std::cout << "done precompiling FFT plans in " << static_cast<size_t>(precompile_ms.count())
+              << " ms\n";
+}
+
 int main(int argc, char* argv[])
 {
     // NB: If we initialize gtest first, then it removes all of its own command-line
@@ -101,6 +204,9 @@ int main(int argc, char* argv[])
 
     // Filename for fftw and fftwf wisdom.
     std::string fftw_wisdom_filename;
+
+    // Filename for precompiled kernels to be written to
+    std::string precompile_file;
 
     // Token string to fully specify fft params for the manual test.
     std::string test_token;
@@ -131,6 +237,8 @@ int main(int argc, char* argv[])
         ("help,h", "produces this help message")
         ("verbose,v",  po::value<int>()->default_value(0),
         "print out detailed information for the tests.")
+        ("skip_runtime_fails",  po::value<bool>(&skip_runtime_fails)->default_value(true),
+        "Skip the test if there is a runtime failure.")
         ("transformType,t", po::value<fft_transform_type>(&manual_params.transform_type)
          ->default_value(fft_transform_type_complex_forward),
          "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
@@ -138,7 +246,8 @@ int main(int argc, char* argv[])
         ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
         ("callback", "Inject load/store callbacks")
         ("double", "Double precision transform (deprecated: use --precision double)")
-        ("precision", po::value<fft_precision>(&manual_params.precision), "Transform precision: single (default), double, half")
+        ("precision", po::value<fft_precision>(&manual_params.precision),
+         "Transform precision: single (default), double, half")
         ( "itype", po::value<fft_array_type>(&manual_params.itype)
           ->default_value(fft_array_type_unset),
           "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
@@ -167,6 +276,7 @@ int main(int argc, char* argv[])
         ("osize", po::value<std::vector<size_t>>(&manual_params.osize)->multitoken(),
          "Logical size of output.")
         ("R", po::value<size_t>(&ramgb)->default_value((start_memory.total_bytes + ONE_GiB - 1) / ONE_GiB), "Ram limit in GiB for tests.")
+        ("V", po::value<size_t>(&vramgb)->default_value(0), "vram limit in GiB for tests.")
         ("half_epsilon",  po::value<double>(&half_epsilon)->default_value(9.77e-4))
         ("single_epsilon",  po::value<double>(&single_epsilon)->default_value(3.75e-5))
         ("double_epsilon",  po::value<double>(&double_epsilon)->default_value(1e-15))
@@ -174,8 +284,12 @@ int main(int argc, char* argv[])
         ("wisdomfile,W",
          po::value<std::string>(&fftw_wisdom_filename)->default_value("wisdom3.txt"),
          "FFTW3 wisdom filename")
-        ("scalefactor", po::value<double>(&manual_params.scale_factor), "Scale factor to apply to output.")
-        ("token", po::value<std::string>(&test_token)->default_value(""), "Test token name for manual test");
+        ("scalefactor", po::value<double>(&manual_params.scale_factor),
+         "Scale factor to apply to output.")
+        ("token", po::value<std::string>(&test_token)->default_value(""),
+         "Test token name for manual test")
+        ("precompile",  po::value<std::string>(&precompile_file),
+         "Precompile kernels to a file for all test cases before running tests");
     // clang-format on
 
     po::variables_map vm;
@@ -226,6 +340,18 @@ int main(int argc, char* argv[])
         // TODO: add random size?
     }
 
+    // if precompiling, tell rocFFT to use the specified cache file
+    // to write kernels to
+    //
+    // but if our environment already has a cache file for RTC, then
+    // we should just use that
+    std::unique_ptr<EnvironmentSetTemp> env_precompile;
+    if(!precompile_file.empty() && rocfft_getenv("ROCFFT_RTC_CACHE_PATH").empty())
+    {
+        env_precompile = std::make_unique<EnvironmentSetTemp>("ROCFFT_RTC_CACHE_PATH",
+                                                              precompile_file.c_str());
+    }
+
     // rocfft_setup();
     // char v[256];
     // rocfft_get_version_string(v, 256);
@@ -233,7 +359,9 @@ int main(int argc, char* argv[])
 
 #ifdef FFTW_MULTITHREAD
     fftw_init_threads();
-    fftw_plan_with_nthreads(std::thread::hardware_concurrency());
+    fftwf_init_threads();
+    fftw_plan_with_nthreads(rocfft_concurrency());
+    fftwf_plan_with_nthreads(rocfft_concurrency());
 #endif
 
     if(use_fftw_wisdom)
@@ -296,6 +424,9 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
+
+    if(vm.count("precompile"))
+        precompile_test_kernels(precompile_file);
 
     auto retval = RUN_ALL_TESTS();
 
