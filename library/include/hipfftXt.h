@@ -23,7 +23,6 @@
 
 #ifndef HIPFFTXT_H_
 #define HIPFFTXT_H_
-#pragma once
 #include "hipfft.h"
 
 #ifdef __HIP_PLATFORM_NVIDIA__

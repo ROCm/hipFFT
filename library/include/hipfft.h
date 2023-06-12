@@ -41,7 +41,6 @@
 #define DISABLE_WARNING_RETURN_TYPE
 #endif
 
-#pragma once
 #include "hipfft-export.h"
 #include "hipfft-version.h"
 #include <hip/hip_complex.h>
