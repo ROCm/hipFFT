@@ -23,7 +23,7 @@
 #include <iostream>
 #include <vector>
 
-#include <hipfft.h>
+#include <hipfft/hipfft.h>
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_DEPRECATED_DECLARATIONS

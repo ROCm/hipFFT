@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 #include <complex>
-#include <hipfft.h>
+#include <hipfft/hipfft.h>
 #include <iostream>
 #include <vector>
 
