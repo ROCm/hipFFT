@@ -7,6 +7,9 @@
 import os
 from rocm_docs import ROCmDocs
 
+
+external_projects_current_project = "hipfft"
+
 os.system("sed -e 's/HIPFFT_EXPORT //g' ../library/include/hipfft.h > .doxygen/hipfft.h")
 
 docs_core = ROCmDocs("hipFFT Documentation")
