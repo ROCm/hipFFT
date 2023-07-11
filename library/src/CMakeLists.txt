@@ -22,8 +22,8 @@
 
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
   # hipFFT source
-  set(hipfft_source src/hcc_detail/hipfft.cpp)
+  set(hipfft_source src/amd_detail/hipfft.cpp)
 else()
   # hipFFT CUDA source
-  set(hipfft_source src/nvcc_detail/hipfft.cpp)
+  set(hipfft_source src/nvidia_detail/hipfft.cpp)
 endif()
