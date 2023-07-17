@@ -36,7 +36,7 @@ def runCI =
     {
         platform, project->
 
-        def gfilter = "-*len_768_*:*len_2880_*"
+        def gfilter = "*"
         commonGroovy.runTestCommand(platform, project, gfilter)
     }
 
