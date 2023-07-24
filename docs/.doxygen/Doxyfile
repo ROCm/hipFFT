@@ -112,7 +112,7 @@ REPEAT_BRIEF           = YES
 # This tag implements a quasi-intelligent brief description abbreviator that is
 # used to form the text in various listings. Each string in this list, if found
 # as the leading text of the brief description, will be stripped from the text
-# and the result, after phipessing the whole list, is used as the annotated
+# and the result, after processing the whole list, is used as the annotated
 # text. Otherwise, the brief description is used as-is. If left blank, the
 # following values are used ($name is automatically replaced with the name of
 # the entity):The $name class, The $name widget, The $name file, is, provides,
@@ -293,10 +293,10 @@ OPTIMIZE_OUTPUT_VHDL   = NO
 
 EXTENSION_MAPPING      = 
 
-# If the MARKDOWN_SUPPORT tag is enabled then doxygen pre-phipesses all comments
+# If the MARKDOWN_SUPPORT tag is enabled then doxygen pre-processes all comments
 # according to the Markdown format, which allows for more readable
 # documentation. See http://daringfireball.net/projects/markdown/ for details.
-# The output of markdown phipessing is further phipessed by doxygen, so you can
+# The output of markdown processing is further processed by doxygen, so you can
 # mix doxygen, HTML, and XML commands with Markdown formatting. Disable only in
 # case of backward compatibilities issues.
 # The default value is: YES.
@@ -403,7 +403,7 @@ TYPEDEF_HIDES_STRUCT   = YES
 
 # The size of the symbol lookup cache can be set using LOOKUP_CACHE_SIZE. This
 # cache is used to resolve symbols given their name and scope. Since this can be
-# an expensive phipess and often the same symbol appears multiple times in the
+# an expensive process and often the same symbol appears multiple times in the
 # code, doxygen keeps a cache of pre-resolved symbols. If the cache is too small
 # doxygen will become slower. If the cache is too large, memory is wasted. The
 # cache size is given by this formula: 2^(16+LOOKUP_CACHE_SIZE). The valid range
@@ -428,7 +428,7 @@ SHOW_NAMESPACES        = NO
 # normally produced when WARNINGS is set to YES.
 # The default value is: NO.
 
-EXTRACT_ALL            = NO
+EXTRACT_ALL            = YES
 
 # If the EXTRACT_PRIVATE tag is set to YES, all private members of a class will
 # be included in the documentation.
@@ -767,6 +767,15 @@ WARN_FORMAT            = "$file:$line: $text"
 
 WARN_LOGFILE           = 
 
+# If the WARN_AS_ERROR tag is set to YES then doxygen will immediately stop when
+# a warning is encountered. If the WARN_AS_ERROR tag is set to FAIL_ON_WARNINGS
+# then doxygen will continue running as if WARN_AS_ERROR tag is set to NO, but
+# at the end of the doxygen process doxygen will return with a non-zero status.
+# Possible values are: NO, YES and FAIL_ON_WARNINGS.
+# The default value is: NO.
+
+WARN_AS_ERROR          = YES
+
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
@@ -777,7 +786,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = hipfft.h
+INPUT                  = ../../library/include/hipfft.h
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1585,7 +1594,7 @@ SERVER_BASED_SEARCH    = NO
 
 # When EXTERNAL_SEARCH tag is enabled doxygen will no longer generate the PHP
 # script for searching. Instead the search results are written to an XML file
-# which needs to be phipessed by an external indexer. Doxygen will invoke an
+# which needs to be processed by an external indexer. Doxygen will invoke an
 # external search engine pointed to by the SEARCHENGINE_URL option to obtain the
 # search results.
 #
@@ -2012,11 +2021,11 @@ PERLMOD_PRETTY         = YES
 PERLMOD_MAKEVAR_PREFIX = 
 
 #---------------------------------------------------------------------------
-# Configuration options related to the prephipessor
+# Configuration options related to the preprocessor
 #---------------------------------------------------------------------------
 
-# If the ENABLE_PREPHIPESSING tag is set to YES, doxygen will evaluate all
-# C-prephipessor directives found in the sources and include files.
+# If the ENABLE_PREPROCESSING tag is set to YES, doxygen will evaluate all
+# C-preprocessor directives found in the sources and include files.
 # The default value is: YES.
 
 ENABLE_PREPROCESSING   = YES
@@ -2026,28 +2035,28 @@ ENABLE_PREPROCESSING   = YES
 # performed. Macro expansion can be done in a controlled way by setting
 # EXPAND_ONLY_PREDEF to YES.
 # The default value is: NO.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-MACRO_EXPANSION        = NO
+MACRO_EXPANSION        = YES
 
 # If the EXPAND_ONLY_PREDEF and MACRO_EXPANSION tags are both set to YES then
 # the macro expansion is limited to the macros specified with the PREDEFINED and
 # EXPAND_AS_DEFINED tags.
 # The default value is: NO.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-EXPAND_ONLY_PREDEF     = NO
+EXPAND_ONLY_PREDEF     = YES
 
 # If the SEARCH_INCLUDES tag is set to YES, the include files in the
 # INCLUDE_PATH will be searched if a #include is found.
 # The default value is: YES.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-SEARCH_INCLUDES        = YES
+SEARCH_INCLUDES        = NO
 
 # The INCLUDE_PATH tag can be used to specify one or more directories that
-# contain include files that are not input files but should be phipessed by the
-# prephipessor.
+# contain include files that are not input files but should be processed by the
+# preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
 INCLUDE_PATH           = 
@@ -2056,36 +2065,38 @@ INCLUDE_PATH           =
 # patterns (like *.h and *.hpp) to filter out the header-files in the
 # directories. If left blank, the patterns specified with FILE_PATTERNS will be
 # used.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 INCLUDE_FILE_PATTERNS  = 
 
 # The PREDEFINED tag can be used to specify one or more macro names that are
-# defined before the prephipessor is started (similar to the -D option of e.g.
+# defined before the preprocessor is started (similar to the -D option of e.g.
 # gcc). The argument of the tag is a list of macros of the form: name or
 # name=definition (no spaces). If the definition and the "=" are omitted, "=1"
 # is assumed. To prevent a macro definition from being undefined via #undef or
 # recursively expanded use the := operator instead of the = operator.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-PREDEFINED             = 
+PREDEFINED             = __attribute__(x)= \
+                         __inline= \
+                         HIPFFT_EXPORT=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
 # macro definition that is found in the sources will be used. Use the PREDEFINED
 # tag if you want to use a different macro definition that overrules the
 # definition found in the source code.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 EXPAND_AS_DEFINED      = 
 
-# If the SKIP_FUNCTION_MACROS tag is set to YES then doxygen's prephipessor will
+# If the SKIP_FUNCTION_MACROS tag is set to YES then doxygen's preprocessor will
 # remove all references to function-like macros that are alone on a line, have
 # an all uppercase name, and do not end with a semicolon. Such function macros
 # are typically used for boiler-plate code, and will confuse the parser if not
 # removed.
 # The default value is: YES.
-# This tag requires that the tag ENABLE_PREPHIPESSING is set to YES.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 SKIP_FUNCTION_MACROS   = YES
 
@@ -2187,8 +2198,8 @@ HAVE_DOT               = NO
 
 # The DOT_NUM_THREADS specifies the number of dot invocations doxygen is allowed
 # to run in parallel. When set to 0 doxygen will base this on the number of
-# phipessors available in the system. You can set it explicitly to a value
-# larger than 0 to get control over the balance between CPU load and phipessing
+# processors available in the system. You can set it explicitly to a value
+# larger than 0 to get control over the balance between CPU load and processing
 # speed.
 # Minimum value: 0, maximum value: 32, default value: 0.
 # This tag requires that the tag HAVE_DOT is set to YES.
@@ -2272,7 +2283,7 @@ UML_LIMIT_NUM_FIELDS   = 10
 
 TEMPLATE_RELATIONS     = NO
 
-# If the INCLUDE_GRAPH, ENABLE_PREPHIPESSING and SEARCH_INCLUDES tags are set to
+# If the INCLUDE_GRAPH, ENABLE_PREPROCESSING and SEARCH_INCLUDES tags are set to
 # YES then doxygen will generate a graph for each documented file showing the
 # direct and indirect include dependencies of the file with other documented
 # files.
@@ -2281,7 +2292,7 @@ TEMPLATE_RELATIONS     = NO
 
 INCLUDE_GRAPH          = YES
 
-# If the INCLUDED_BY_GRAPH, ENABLE_PREPHIPESSING and SEARCH_INCLUDES tags are
+# If the INCLUDED_BY_GRAPH, ENABLE_PREPROCESSING and SEARCH_INCLUDES tags are
 # set to YES then doxygen will generate a graph for each documented file showing
 # the direct and indirect include dependencies of the file with other documented
 # files.
@@ -2384,7 +2395,7 @@ DIAFILE_DIRS           =
 
 # When using plantuml, the PLANTUML_JAR_PATH tag should be used to specify the
 # path where java can find the plantuml.jar file. If left blank, it is assumed
-# PlantUML is not used or called during a prephipessing step. Doxygen will
+# PlantUML is not used or called during a preprocessing step. Doxygen will
 # generate a warning when it encounters a \startuml command in this case and
 # will not generate output for the diagram.
 
