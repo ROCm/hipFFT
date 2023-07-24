@@ -21,6 +21,10 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+/*! @file hipfft.h
+ *  hipfft.h defines all the public interfaces and types
+ *  */
+
 #ifndef HIPFFT_H_
 #define HIPFFT_H_
 
@@ -258,6 +262,7 @@ HIPFFT_EXPORT hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double sc
  *  @param[in] nx FFT length.
  *  @param[in] type FFT type.
  *  @param[in] batch Number of batched transforms to compute.
+ *  @param[out] workSize Pointer to work area size (returned value).
  *  */
 HIPFFT_EXPORT hipfftResult hipfftMakePlan1d(hipfftHandle plan,
                                             int          nx,
@@ -367,6 +372,7 @@ HIPFFT_EXPORT hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
  *
  *  @param[in] nx Number of elements in the x-direction.
  *  @param[in] type FFT type.
+ *  @param[in] batch Number of batched transforms to perform.
  *  @param[out] workSize Pointer to work area size (returned value).
  *  */
 HIPFFT_EXPORT hipfftResult hipfftEstimate1d(int        nx,
@@ -425,6 +431,7 @@ HIPFFT_EXPORT hipfftResult hipfftEstimateMany(int        rank,
  *  @param[in] plan Pointer to the FFT plan.
  *  @param[in] nx Number of elements in the x-direction.
  *  @param[in] type FFT type.
+ *  @param[in] batch Number of batched transforms to perform.
  *  @param[out] workSize Pointer to work area size (returned value).
  *  */
 HIPFFT_EXPORT hipfftResult hipfftGetSize1d(hipfftHandle plan,
@@ -500,6 +507,7 @@ HIPFFT_EXPORT hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
 /*! @brief Return size of the work area size required for a rank-dimensional plan.
  *
  *  @param[in] plan Pointer to the FFT plan.
+ *  @param[out] workSize Pointer to work area size (returned value).
  *  */
 HIPFFT_EXPORT hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize);
 

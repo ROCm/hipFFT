@@ -44,7 +44,5 @@ _templates/
 _toc.yml
 docBin/
 
-docs/.doxygen/hipfft.h
-
 # python bytecode
 __pycache__
