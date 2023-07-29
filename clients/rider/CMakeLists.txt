@@ -46,12 +46,7 @@ target_include_directories( hipfft-rider
   
 if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-    if( WIN32 )
-      find_package( HIP CONFIG REQUIRED )
-    else()
-      find_package( HIP MODULE REQUIRED )
-    endif()
-
+    find_package( HIP REQUIRED )
     target_link_libraries( hipfft-rider PRIVATE hip::host hip::device )
   else()
     target_compile_definitions( hipfft-rider PRIVATE __HIP_PLATFORM_NVIDIA__)
