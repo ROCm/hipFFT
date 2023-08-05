@@ -120,6 +120,6 @@ if( BUILD_CLIENTS_TESTS )
   add_subdirectory( tests )
 endif( )
 
-if( BUILD_CLIENTS_RIDER )
-  add_subdirectory( rider )
+if( BUILD_CLIENTS_BENCH )
+  add_subdirectory( bench )
 endif( )

@@ -26,16 +26,16 @@ find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
 
-set( hipfft_rider_source rider.cpp ../rocFFT/shared/array_validator.cpp )
-set( hipfft_rider_includes rider.h ../rocFFT/shared/array_validator.h )
+set( hipfft_bench_source bench.cpp ../rocFFT/shared/array_validator.cpp )
+set( hipfft_bench_includes bench.h ../rocFFT/shared/array_validator.h )
 
-add_executable( hipfft-rider ${hipfft_rider_source} ${hipfft_rider_includes} )
+add_executable( hipfft-bench ${hipfft_bench_source} ${hipfft_bench_includes} )
 
-target_compile_options( hipfft-rider PRIVATE ${WARNING_FLAGS} )
+target_compile_options( hipfft-bench PRIVATE ${WARNING_FLAGS} )
 
-set_target_properties( hipfft-rider PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
+set_target_properties( hipfft-bench PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON )
 
-target_include_directories( hipfft-rider
+target_include_directories( hipfft-bench
   PRIVATE
   $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
@@ -52,10 +52,10 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
       find_package( HIP MODULE REQUIRED )
     endif()
 
-    target_link_libraries( hipfft-rider PRIVATE hip::host hip::device )
+    target_link_libraries( hipfft-bench PRIVATE hip::host hip::device )
   else()
-    target_compile_definitions( hipfft-rider PRIVATE __HIP_PLATFORM_NVIDIA__)
-    target_include_directories( hipfft-rider PRIVATE ${HIP_INCLUDE_DIRS})
+    target_compile_definitions( hipfft-bench PRIVATE __HIP_PLATFORM_NVIDIA__)
+    target_include_directories( hipfft-bench PRIVATE ${HIP_INCLUDE_DIRS})
   endif()
 else()
   if( BUILD_WITH_LIB STREQUAL "CUDA" AND DEFINED boost_program_options_VERSION )
@@ -69,18 +69,34 @@ else()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
-  target_compile_options( hipfft-rider PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 -Xptxas=-w)
-  target_link_libraries( hipfft-rider PRIVATE ${CUDA_LIBRARIES} )
+  target_compile_options( hipfft-bench PRIVATE -arch sm_53 -gencode=arch=compute_53,code=sm_53 -Xptxas=-w)
+  target_link_libraries( hipfft-bench PRIVATE ${CUDA_LIBRARIES} )
 else()
   if( NOT hiprand_FOUND )
     find_package( hiprand REQUIRED )
   endif()
-  target_link_libraries( hipfft-rider PRIVATE hip::hiprand )
+  target_link_libraries( hipfft-bench PRIVATE hip::hiprand )
 endif()
 
-target_link_libraries( hipfft-rider PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )
+target_link_libraries( hipfft-bench PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )
 
-set_target_properties( hipfft-rider PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
-set_target_properties( hipfft-rider PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
+set_target_properties( hipfft-bench PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
+set_target_properties( hipfft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 
-rocm_install(TARGETS hipfft-rider COMPONENT benchmarks)
+rocm_install(TARGETS hipfft-bench COMPONENT benchmarks)
+
+# install compatibility for old name of bench program - symlink on
+# unix, hardlink on windows (since privilege is required to create
+# symlinks there)
+if( WIN32 )
+  set( BENCH_LINK_COMMAND create_hardlink )
+  set( BENCH_NEW_NAME ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/hipfft-bench${CMAKE_EXECUTABLE_SUFFIX} )
+  set( BENCH_OLD_NAME ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/hipfft-rider${CMAKE_EXECUTABLE_SUFFIX} )
+else()
+  set( BENCH_LINK_COMMAND create_symlink )
+  set( BENCH_NEW_NAME hipfft-bench )
+  set( BENCH_OLD_NAME ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/hipfft-rider )
+endif()
+install(
+  CODE "execute_process( COMMAND \"${CMAKE_COMMAND}\" -E ${BENCH_LINK_COMMAND} \"${BENCH_NEW_NAME}\" \"${BENCH_OLD_NAME}\" )"
+)
