@@ -60,7 +60,7 @@ set( BUILD_WITH_COMPILER "HOST-default" CACHE INTERNAL
 set( BUILD_WITH_LIB "ROCM" CACHE STRING "Build ${PROJECT_NAME} with ROCM or CUDA libraries" )
 
 option( BUILD_CLIENTS "Build all clients" OFF)
-option( BUILD_CLIENTS_RIDER "Build benchmark client" OFF )
+option( BUILD_CLIENTS_BENCH "Build benchmark client" OFF )
 option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependencies)" OFF )
 option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
@@ -164,16 +164,21 @@ add_subdirectory( library )
 
 # Build clients of the library
 if( BUILD_CLIENTS )
-  set( BUILD_CLIENTS_RIDER ON )
+  set( BUILD_CLIENTS_BENCH ON )
   set( BUILD_CLIENTS_SAMPLES ON )
   set( BUILD_CLIENTS_TESTS ON )
 endif()
 
+# old name for BUILD_CLIENTS_BENCH
+if( BUILD_CLIENTS_RIDER )
+  set( BUILD_CLIENTS_BENCH ${BUILD_CLIENTS_RIDER} )
+endif()
+
 # Build clients of the library
-if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
+if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   rocm_package_setup_component(clients)
-  if(BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_RIDER)
+  if(BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_BENCH)
     find_package( Boost COMPONENTS program_options REQUIRED)
     set(BOOST_DEB "libboost-program-options${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}.${Boost_VERSION_PATCH}")
     set(BOOST_RPM "boost-program-options = ${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}.${Boost_VERSION_PATCH}")
@@ -199,7 +204,7 @@ if( BUILD_CLIENTS_RIDER OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
         RPM ${BOOST_RPM} ${FFTW_RPM} rocrand
     )
   endif()
-  if(BUILD_CLIENTS_RIDER)
+  if(BUILD_CLIENTS_BENCH)
     rocm_package_setup_client_component(
       benchmarks
       DEPENDS

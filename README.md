@@ -53,7 +53,7 @@ To build the hipFFT library:
 * The clients (samples, tests etc) included with the hipFFT source
   depend on FFTW, gtest, and boost program-options.
 
-* The rider and test clients also require the rocFFT source tree to
+* The bench and test clients also require the rocFFT source tree to
   build:
 
     git submodule update --init

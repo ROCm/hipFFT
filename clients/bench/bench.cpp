@@ -25,7 +25,7 @@
 #include <numeric>
 #include <random>
 
-#include "rider.h"
+#include "bench.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
     // clang-format doesn't handle boost program options very well:
     // clang-format off
-    po::options_description opdesc("hipfft rider command line options");
+    po::options_description opdesc("hipfft bench command line options");
     opdesc.add_options()("help,h", "produces this help message")
         ("version,v", "Print queryable version information from the hipfft library")
         ("device", po::value<int>(&deviceId)->default_value(0), "Select a specific device id")

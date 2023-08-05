@@ -2,6 +2,13 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## hipFFT 1.0.13 for ROCm 6.0.0
+
+### Changed
+- hipfft-rider has been renamed to hipfft-bench, controlled by the BUILD_CLIENTS_BENCH CMake option.  A link for the 
+  old file name is installed, and the old BUILD_CLIENTS_RIDER CMake option is accepted for compatibility but both 
+  will be removed in a future release.
+
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
 ### Added

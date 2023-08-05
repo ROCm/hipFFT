@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef RIDER_H
-#define RIDER_H
+#ifndef HIPFFT_BENCH_H
+#define HIPFFT_BENCH_H
 
 #include "../hipfft_params.h"
 #include "hipfft.h"
@@ -77,4 +77,4 @@ inline hipfftResult lib_V_Throw(hipfftResult       res,
 #define HIP_V_THROW(_status, _message) hip_V_Throw(_status, _message, __LINE__, __FILE__)
 #define LIB_V_THROW(_status, _message) lib_V_Throw(_status, _message, __LINE__, __FILE__)
 
-#endif // RIDER_H
+#endif // HIPFFT_BENCH_H
