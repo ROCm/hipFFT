@@ -96,7 +96,7 @@ foreach( sample ${sample_list} )
     ${HIP_ROOT_DIR}
     )
   
-  set_target_properties( ${sample} PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
+  set_target_properties( ${sample} PROPERTIES CXX_EXTENSIONS NO )
   set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
   
 endforeach()

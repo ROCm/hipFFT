@@ -80,7 +80,7 @@ endif()
 
 target_link_libraries( hipfft-bench PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )
 
-set_target_properties( hipfft-bench PROPERTIES DEBUG_POSTFIX "-d" CXX_EXTENSIONS NO )
+set_target_properties( hipfft-bench PROPERTIES CXX_EXTENSIONS NO )
 set_target_properties( hipfft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 
 rocm_install(TARGETS hipfft-bench COMPONENT benchmarks)
