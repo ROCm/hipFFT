@@ -8,6 +8,7 @@ Partial documentation for hipFFT is available at [hipFFT].
 - hipfft-rider has been renamed to hipfft-bench, controlled by the BUILD_CLIENTS_BENCH CMake option.  A link for the 
   old file name is installed, and the old BUILD_CLIENTS_RIDER CMake option is accepted for compatibility but both 
   will be removed in a future release.
+- Binaries in debug builds no longer have a "-d" suffix.
 
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
