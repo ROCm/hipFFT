@@ -7,10 +7,11 @@
 from rocm_docs import ROCmDocs
 
 
+external_projects_current_project = "hipfft"
+
 docs_core = ROCmDocs("hipFFT Documentation")
 docs_core.run_doxygen()
 docs_core.setup()
-
 
 for sphinx_var in ROCmDocs.SPHINX_VARS:
     globals()[sphinx_var] = getattr(docs_core, sphinx_var)
