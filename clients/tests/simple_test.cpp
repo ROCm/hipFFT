@@ -374,7 +374,10 @@ TEST(hipfftTest, CheckBufferSizeR2C)
 {
     hipfftHandle plan = hipfft_params::INVALID_PLAN_HANDLE;
     ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
-    size_t n        = 2048;
+    // real forward transform cannot modify input, so we need to pick
+    // a sufficiently small N such that rocFFT can fuse
+    // post-processing into one kernel and avoid a temp buffer
+    size_t n        = 256;
     size_t workSize = 0;
 
     ASSERT_EQ(hipfftMakePlan1d(plan, n, HIPFFT_R2C, 1, &workSize), HIPFFT_SUCCESS);
@@ -424,7 +427,10 @@ TEST(hipfftTest, CheckBufferSizeD2Z)
 {
     hipfftHandle plan = hipfft_params::INVALID_PLAN_HANDLE;
     ASSERT_EQ(hipfftCreate(&plan), HIPFFT_SUCCESS);
-    size_t n        = 2048;
+    // real forward transform cannot modify input, so we need to pick
+    // a sufficiently small N such that rocFFT can fuse
+    // post-processing into one kernel and avoid a temp buffer
+    size_t n        = 256;
     size_t batch    = 1000;
     size_t workSize = 0;
 
