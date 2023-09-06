@@ -12,7 +12,7 @@ def runCI =
     def prj = new rocProject('hipFFT-internal', 'PreCheckin')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocRAND','rocFFT-internal']
+    prj.libraryDependencies = ['rocRAND','rocFFT-internal', 'hipRAND']
     prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
