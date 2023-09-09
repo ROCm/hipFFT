@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "hipfft.h"
-#include "hipfftXt.h"
+#include "hipfft/hipfft.h"
+#include "hipfft/hipfftXt.h"
 #include "rocfft/rocfft.h"
 #include <algorithm>
 #include <sstream>

@@ -34,7 +34,7 @@
 #include "../rocFFT/shared/concurrency.h"
 #include "../rocFFT/shared/environment.h"
 #include "../rocFFT/shared/work_queue.h"
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 #include "hipfft_accuracy_test.h"
 #include "hipfft_test_params.h"
 

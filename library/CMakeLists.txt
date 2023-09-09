@@ -35,15 +35,14 @@ find_package(HIP REQUIRED)
 set(HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include")
 
 # Configure a header file to pass the hipFFT version
-configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft-version.h.in"
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/include/hipfft/hipfft-version.h.in"
   "${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h"
   )
 
-
 # Public hipFFT headers
 set( hipfft_headers_public
-  include/hipfft.h
-  include/hipfftXt.h
+  include/hipfft/hipfft.h
+  include/hipfft/hipfftXt.h
   ${PROJECT_BINARY_DIR}/include/hipfft/hipfft-version.h
   )
 
