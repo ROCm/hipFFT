@@ -22,7 +22,7 @@
 #define HIPFFT_BENCH_H
 
 #include "../hipfft_params.h"
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 
 #include <vector>
 

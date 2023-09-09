@@ -22,7 +22,7 @@
 #ifndef TESTCONSTANTS_H
 #define TESTCONSTANTS_H
 
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 
 #include <stdexcept>
 

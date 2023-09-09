@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 
 #include "../hipfft_params.h"
 #include "../rocFFT/clients/tests/fftw_transform.h"

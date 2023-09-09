@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "hipfft.h"
+#include "hipfft/hipfft.h"
 #include <fftw3.h>
 #include <gtest/gtest.h>
 #include <hip/hip_vector_types.h>
