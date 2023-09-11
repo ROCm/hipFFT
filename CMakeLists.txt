@@ -230,7 +230,7 @@ endif()
 if( ROCM_FOUND )
   # Package specific CPACK vars
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
-    rocm_package_add_dependencies(DEPENDS "rocfft >= 1.0.19")
+    rocm_package_add_dependencies(DEPENDS "rocfft >= 1.0.21")
   else()
     rocm_package_add_dependencies(DEPENDS "cufft >= 10.0.0")
   endif()
