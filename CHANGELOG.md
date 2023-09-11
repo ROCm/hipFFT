@@ -9,6 +9,7 @@ Partial documentation for hipFFT is available at [hipFFT].
   old file name is installed, and the old BUILD_CLIENTS_RIDER CMake option is accepted for compatibility but both 
   will be removed in a future release.
 - Binaries in debug builds no longer have a "-d" suffix.
+- The minimum rocFFT required version has been updated to 1.0.21.
 
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
