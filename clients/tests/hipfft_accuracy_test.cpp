@@ -67,8 +67,11 @@ TEST_P(accuracy_test, vs_fftw)
         GTEST_SKIP();
     }
 
+    // only do round trip for non-field FFTs
+    bool round_trip = params.ifields.empty() && params.ofields.empty();
+
     if(!params.run_callbacks)
-        fft_vs_reference(params, true);
+        fft_vs_reference(params, round_trip);
 
     SUCCEED();
 }

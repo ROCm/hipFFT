@@ -11,6 +11,9 @@ Partial documentation for hipFFT is available at [hipFFT].
 - Binaries in debug builds no longer have a "-d" suffix.
 - The minimum rocFFT required version has been updated to 1.0.21.
 
+### Added
+- Implemented hipfftXtSetGPUs, hipfftXtMalloc, hipfftXtMemcpy, hipfftXtFree, hipfftXtExecDescriptor APIs to allow computing FFTs on multiple devices in a single process. 
+
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
 ### Added

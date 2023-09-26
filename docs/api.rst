@@ -70,6 +70,8 @@ More advanced plans
 -------------------
 
 .. doxygenfunction:: hipfftMakePlanMany
+.. doxygenfunction:: hipfftXtMakePlanMany
+
 
 
 Estimating work area sizes
@@ -105,7 +107,8 @@ obtained with these routines.
 
 .. doxygenfunction:: hipfftGetSizeMany
 
-
+.. doxygenfunction:: hipfftXtGetSizeMany
+		     
 Executing plans
 ---------------
 
@@ -127,3 +130,41 @@ For complex-to-real transforms, the output buffer XXX
 .. doxygenfunction:: hipfftExecD2Z
 
 .. doxygenfunction:: hipfftExecZ2D
+
+.. doxygenfunction:: hipfftXtExec
+		     
+Callbacks
+---------
+
+.. doxygenfunction:: hipfftXtSetCallback
+.. doxygenfunction:: hipfftXtClearCallback	     
+.. doxygenfunction:: hipfftXtSetCallbackSharedSize
+
+		     
+Single-process Multi-gpu Transforms
+-----------------------------------
+
+hipFFT offers experimental single-process multi-GPU transforms.
+		     
+Multiple devices can be associated to a :cpp:type:`hipfftHandle` using
+:cpp:func:`hipfftXtSetGPUs`.  Once a plan is associated to multiple
+GPUs, :cpp:struct:`hipLibXtDesc` is used to pass multiple GPU buffers
+to the plan for execution.  These buffers are allocated via
+:cpp:func:`hipfftXtMalloc`, and free'd with :cpp:func:`hipfftXtFree`.
+The function :cpp:func:`hipfftXtMemcpy` allows one to move data to or
+from a :cpp:struct:`hipLibXtDesc` and a contiguous host buffer, or
+between two :cpp:struct:`hipLibXtDesc` s.
+
+Execution is performed with the appropriate
+:cpp:func:`hipfftXtExecDescriptor`
+
+.. doxygenfunction:: hipfftXtSetGPUs
+
+.. doxygenstruct:: hipXtDesc
+.. doxygenstruct:: hipLibXtDesc
+
+.. doxygenfunction:: hipfftXtMalloc
+.. doxygenfunction:: hipfftXtFree
+.. doxygenfunction:: hipfftXtMemcpy
+		     
+.. doxygengroup:: hipfftXtExecDescriptors

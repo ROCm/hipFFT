@@ -38,6 +38,7 @@ set( sample_list
   hipfft_3d_d2z
   hipfft_planmany_2d_z2z
   hipfft_planmany_2d_r2c
+  hipfft_multigpu_2d_z2z
   hipfft_setworkarea
   )
 

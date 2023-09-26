@@ -9,11 +9,11 @@ def runCI =
 {
     nodeDetails, jobName, buildCommand, label, runTest ->
 
-    def prj = new rocProject('hipFFT', 'PreCheckin-Cuda')
+    def prj = new rocProject('hipFFT', 'multigpu')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['hipRAND']
-    prj.timeout.test = 600
+    prj.libraryDependencies = ['rocRAND', 'rocFFT', 'hipRAND']
+    prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
     def nodes = new dockerNodes(nodeDetails, jobName, prj)
@@ -29,14 +29,14 @@ def runCI =
         project.paths.construct_build_prefix()
 
         commonGroovy = load "${project.paths.project_src_prefix}/.jenkins/common.groovy"
-        commonGroovy.runCompileCommand(platform, project, jobName, true)
+        commonGroovy.runCompileCommand(platform, project,jobName)
     }
 
     def testCommand =
     {
         platform, project->
 
-        def gfilter = '-*swap*:*multi_gpu*'
+        def gfilter = "*multi_gpu*"
         commonGroovy.runTestCommand(platform, project, gfilter)
     }
 
@@ -68,7 +68,7 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label, runTest)
     {
         properties(auxiliary.addCommonProperties([pipelineTriggers([cron('0 1 * * *')])]))
         stage(label + ' ' + urlJobName) {
-            runCI(['ubuntu20-cuda11':['anycuda']], urlJobName, buildCommand, label, runTest)
+            runCI([ubuntu18:['gfx906']], urlJobName, buildCommand, label)
         }
     }
 }
@@ -76,10 +76,12 @@ def setupCI(urlJobName, jobNameList, buildCommand, runCI, label, runTest)
 ci: {
     String urlJobName = auxiliary.getTopJobName(env.BUILD_URL)
 
-    def propertyList = []
+    def propertyList = ["main":[pipelineTriggers([cron('0 6 * * 0')])]]
+
     propertyList = auxiliary.appendPropertyList(propertyList)
 
-    def jobNameList = [:]
+    def jobNameList = ["main":([ubuntu20:['8gfx90a']])]
+    jobNameList = auxiliary.appendJobNameList(jobNameList)
     
     propertyList.each
     {
@@ -87,26 +89,8 @@ ci: {
         if (urlJobName == jobName)
             properties(auxiliary.addCommonProperties(property))
     }
+    
+    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
 
-    String compilerVar = ' -DCMAKE_CXX_COMPILER='
-    String gBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                            -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
-                            -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
-                            -L ../..'
-    String boostLibraryDir = ' -DBOOST_LIBRARYDIR=/usr/lib/x86_64-linux-gnu'
-
-    // Run tests on normal g++ build
-    setupCI(urlJobName, jobNameList, compilerVar + 'g++' + gBuildCommand, runCI, 'g++', false)
-    // Also build with hipcc+CUDA backend, both shared and static lib.
-    // Static build allows the hipFFT callback sample to be built.
-    // Skip tests since the first build would have already run tests.
-
-    String hBuildCommand = ' -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                            -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
-                            -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
-                            -DCMAKE_CXX_FLAGS="-gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86" \
-                            -DBUILD_CLIENTS=ON -L ../..'
-
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir, runCI, 'hipcc', true)
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
+    setupCI(urlJobName, jobNameList, hipClangBuildCommand, runCI, 'hip-clang', true)
 }

@@ -1,3 +1,13 @@
 # Anywhere {branch} is used, the branch name will be substituted.
 # These comments will also be removed.
 root: index
+defaults:
+  numbered: False
+subtrees:
+  - caption: API
+    entries:
+    - file: api
+    - file: allapi
+  - caption: License
+    entries:
+    - file: license

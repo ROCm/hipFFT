@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2021 - 2022 Advanced Micro Devices, Inc. All rights
+ * Copyright (C) 2021 - 2023 Advanced Micro Devices, Inc. All rights
  * reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,9 +21,14 @@
  * THE SOFTWARE.
  *******************************************************************************/
 
+/*! @file hipfftXt.h
+ *  hipfftXt.h defines extended interfaces and types for hipFFT
+ *  */
+
 #ifndef HIPFFTXT_H_
 #define HIPFFTXT_H_
 #include "hipfft/hipfft.h"
+#include "hipfft/hiplibxt.h"
 
 #ifdef __HIP_PLATFORM_NVIDIA__
 #include <cufftXt.h>
@@ -240,6 +245,145 @@ HIPFFT_EXPORT hipfftResult hipfftXtExec(hipfftHandle plan,
                                         void*        input,
                                         void*        output,
                                         int          direction);
+
+/*! @brief Set multiple GPUs on a plan.
+ *
+ *  Instructs hipFFT to use multiple GPUs for a plan.
+ * 
+ *  This function must be called after the plan is allocated using
+ *  ::hipfftCreate, but before the plan is initialized by any of the
+ *  "MakePlan" functions.  Therefore, API functions that combine
+ *  creation and initialization (::hipfftPlan1d, ::hipfftPlan2d,
+ *  ::hipfftPlan3d, and ::hipfftPlanMany) cannot use multiple GPUs.
+ *
+ * @param[in, out] plan
+ * @param[in] count: length gpus array
+ * @param[in] gpus: array of ints specifying deviceIDs
+ *
+ * @warning Experimental
+ */
+HIPFFT_EXPORT hipfftResult hipfftXtSetGPUs(hipfftHandle plan, int count, int* gpus);
+
+typedef enum hipfftXtSubFormat_t
+{
+    HIPFFT_XT_FORMAT_INPUT             = 0x00,
+    HIPFFT_XT_FORMAT_OUTPUT            = 0x01,
+    HIPFFT_XT_FORMAT_INPLACE           = 0x02,
+    HIPFFT_XT_FORMAT_INPLACE_SHUFFLED  = 0x03,
+    HIPFFT_XT_FORMAT_1D_INPUT_SHUFFLED = 0x04,
+    HIPFFT_FORMAT_UNDEFINED            = 0x05
+} hipfftXtSubFormat;
+
+/*! @brief Allocate memory on multiple devices.
+ *
+ *  Allocate memory on multiple devices for the specified plan.
+ *  Returns a \ref hipLibXtDesc_t descriptor which includes pointers
+ *  to the allocated memory, devices that memory resides on, and
+ *  sizes allocated.
+ *
+ *  The subformat indicates whether the memory will be used for FFT
+ *  input or output.
+ *
+ *  The memory must be freed by calling ::hipfftXtFree.
+ *
+ * @warning Experimental
+ */
+HIPFFT_EXPORT hipfftResult hipfftXtMalloc(hipfftHandle      plan,
+                                          hipLibXtDesc**    desc,
+                                          hipfftXtSubFormat format);
+
+/*! @brief Copy data to/from \ref hipLibXtDesc_t descriptors.
+ *
+ *  Copy data according to the ::hipfftXtCopyType_t:
+ *
+ *  - ::HIPFFT_COPY_HOST_TO_DEVICE: dest points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  src points to a host memory buffer.
+ *  - ::HIPFFT_COPY_DEVICE_TO_HOST: src points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  dest points to a host memory buffer.
+ *  - ::HIPFFT_COPY_DEVICE_TO_DEVICE: Both dest and src point to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  The two structures must describe memory with the same number of devices and memory sizes.
+ *
+ * @warning Experimental
+ */
+HIPFFT_EXPORT hipfftResult hipfftXtMemcpy(hipfftHandle     plan,
+                                          void*            dest,
+                                          void*            src,
+                                          hipfftXtCopyType type);
+
+/*! @brief Free memory allocated by \ref hipfftXtMalloc.
+ *
+ * @warning Experimental
+ */
+HIPFFT_EXPORT hipfftResult hipfftXtFree(hipLibXtDesc* desc);
+
+/** @defgroup hipfftXtExecDescriptor Execute FFTs using \ref hipLibXtDesc_t descriptors.
+ *
+ *  Execute FFTs using \ref hipLibXtDesc_t descriptors.  Inputs and
+ *  outputs are pointers to \ref hipLibXtDesc_t descriptors.
+ *  In-place transforms are performed by passing the same pointer for
+ *  input and output.
+ * 
+ * @warning Experimental
+ */
+
+/**
+ * @addtogroup hipfftXtExecDescriptor
+ * @{
+*/
+
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute single-precision complex-to-complex transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output,
+                                                     int           direction);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute single-precision real forward transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute single-precision real backward transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute double-precision complex-to-complex transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output,
+                                                     int           direction);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute double-precision real forward transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute double-precision real backward transform.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle  plan,
+                                                     hipLibXtDesc* input,
+                                                     hipLibXtDesc* output);
+/**
+ * @ingroup hipfftXtExecDescriptor
+ * @brief Execute general transform - types of the descriptors must match the plan.
+*/
+HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptor(hipfftHandle  plan,
+                                                  hipLibXtDesc* input,
+                                                  hipLibXtDesc* output,
+                                                  int           direction);
+
+/**
+ * @}
+*/
 
 #ifdef __cplusplus
 }
