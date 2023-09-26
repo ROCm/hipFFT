@@ -9,10 +9,10 @@ def runCI =
 {
     nodeDetails, jobName, buildCommand ->
 
-    def prj = new rocProject('hipFFT-internal', 'Debug')
+    def prj = new rocProject('hipFFT', 'Debug')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocRAND','rocFFT-internal']
+    prj.libraryDependencies = ['rocRAND', 'rocFFT', 'hipRAND']
 
     // Define test architectures, optional rocm version argument is available
     def nodes = new dockerNodes(nodeDetails, jobName, prj)

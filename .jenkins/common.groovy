@@ -60,7 +60,7 @@ def runTestCommand (platform, project, gfilter)
                 """
 
     platform.runCommand(this, command)
-    junit "${project.paths.project_build_prefix}/build/release/clients/staging/*.xml"
+    //junit "${project.paths.project_build_prefix}/build/release/clients/staging/*.xml"
 }
 
 def runPackageCommand(platform, project, jobName, label='')

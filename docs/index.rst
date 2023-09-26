@@ -9,7 +9,6 @@ either rocFFT_ or cuFFT_ as backends.
    :caption: Contents:
 
    overview
-   api
 
 Indices and tables
 ==================

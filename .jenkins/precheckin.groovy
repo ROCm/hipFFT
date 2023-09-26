@@ -9,10 +9,10 @@ def runCI =
 {
     nodeDetails, jobName, buildCommand, label, runTest ->
 
-    def prj = new rocProject('hipFFT-internal', 'PreCheckin')
+    def prj = new rocProject('hipFFT', 'PreCheckin')
     // customize for project
     prj.paths.build_command = buildCommand
-    prj.libraryDependencies = ['rocRAND','rocFFT-internal', 'hipRAND']
+    prj.libraryDependencies = ['rocRAND', 'rocFFT', 'hipRAND']
     prj.timeout.test = 360
 
     // Define test architectures, optional rocm version argument is available
@@ -36,7 +36,7 @@ def runCI =
     {
         platform, project->
 
-        def gfilter = "*"
+        def gfilter = "*-*multi_gpu*"
         commonGroovy.runTestCommand(platform, project, gfilter)
     }
 

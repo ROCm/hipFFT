@@ -1,4 +1,4 @@
-// Copyright (C) 2021 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2021 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -128,10 +128,36 @@ public:
     std::vector<long long int> ll_inembed;
     std::vector<long long int> ll_onembed;
 
-    hipfft_params(){};
+    struct hipLibXtDesc_deleter
+    {
+        void operator()(hipLibXtDesc* d)
+        {
+            hipfftXtFree(d);
+        }
+    };
+    // allocated memory on devices for multi-GPU transforms - inplace
+    // just uses xt_output
+    std::unique_ptr<hipLibXtDesc, hipLibXtDesc_deleter> xt_input;
+    std::unique_ptr<hipLibXtDesc, hipLibXtDesc_deleter> xt_output;
+
+    // backend library can write N worksize values for N GPUs, so
+    // allocate a vector for that if necessary
+    std::vector<size_t> xt_worksize;
+
+    // pointer we pass to the backend library.  By default point to the
+    // single-GPU workbuffer size.
+    size_t* workbuffersize_ptr;
+
+    hipfft_params()
+    {
+        workbuffersize_ptr = &workbuffersize;
+    }
 
     hipfft_params(const fft_params& p)
-        : fft_params(p){};
+        : fft_params(p)
+    {
+        workbuffersize_ptr = &workbuffersize;
+    }
 
     ~hipfft_params()
     {
@@ -145,6 +171,8 @@ public:
             hipfftDestroy(plan);
             plan = INVALID_PLAN_HANDLE;
         }
+        xt_input.reset();
+        xt_output.reset();
     }
 
     size_t vram_footprint() override
@@ -336,7 +364,16 @@ public:
             throw std::runtime_error("no valid plan creation type");
         }
         }
+
         return fft_status_from_hipfftparams(ret);
+    }
+
+    void validate_fields() const override
+    {
+        // hipFFT interprets any present field info as "use hipfftXt
+        // APIs to distribute data to multiple GPUs".  Since the
+        // library comes up with the data distribution, there's nothing
+        // to validate on the client side.
     }
 
     fft_status set_callbacks(void* load_cb_host,
@@ -430,8 +467,75 @@ public:
     {
         hipfftResult ret{HIPFFT_EXEC_FAILED};
 
-        // we have two ways to execute in hipFFT - hipfftExecFOO and
-        // hipfftXtExec
+        // if we're doing multi-GPU, we need to use ExecDescriptor
+        // methods to execute.
+        if(!ifields.empty() || !ofields.empty())
+        {
+            // rotate between generic ExecDescriptor and specific
+            // ExecDescriptorX2Y functions by hashing token (for
+            // stability across reruns of test cases)
+            //
+            // the specific functions are only for the main transform
+            // types expressible through the hipfftType enum
+            bool generic_ExecDescriptor
+                = !hipfft_transform_type || std::hash<std::string>()(token()) % 2;
+
+            if(generic_ExecDescriptor)
+            {
+                ret = hipfftXtExecDescriptor(plan,
+                                             placement == fft_placement_inplace ? xt_output.get()
+                                                                                : xt_input.get(),
+                                             xt_output.get(),
+                                             direction);
+            }
+            else
+            {
+                switch(*hipfft_transform_type)
+                {
+                case HIPFFT_R2C:
+                    ret = hipfftXtExecDescriptorR2C(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get());
+                    break;
+                case HIPFFT_C2R:
+                    ret = hipfftXtExecDescriptorC2R(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get());
+                    break;
+                case HIPFFT_C2C:
+                    ret = hipfftXtExecDescriptorC2C(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get(),
+                        direction);
+                    break;
+                case HIPFFT_D2Z:
+                    ret = hipfftXtExecDescriptorD2Z(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get());
+                    break;
+                case HIPFFT_Z2D:
+                    ret = hipfftXtExecDescriptorZ2D(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get());
+                    break;
+                case HIPFFT_Z2Z:
+                    ret = hipfftXtExecDescriptorZ2Z(
+                        plan,
+                        placement == fft_placement_inplace ? xt_output.get() : xt_input.get(),
+                        xt_output.get(),
+                        direction);
+                }
+            }
+            return fft_status_from_hipfftparams(ret);
+        }
+
+        // otherwise, we have two ways to execute in hipFFT -
+        // hipfftExecFOO and hipfftXtExec
 
         // Transforms that aren't supported by the hipfftType enum
         // require using the Xt method, but otherwise we hash the
@@ -526,6 +630,98 @@ public:
         return compute_idist() == idist && compute_odist() == odist;
     }
 
+    // call the hipFFT APIs to distribute data to multiple GPUs
+    void multi_gpu_prepare(std::vector<gpubuf>& ibuffer,
+                           std::vector<void*>&  pibuffer,
+                           std::vector<void*>&  pobuffer) override
+    {
+        if(ifields.empty() && ofields.empty())
+            return;
+
+        // input data is on the device - copy it back to the host so
+        // hipfftXtMemcpy can deal with it
+        hostbuf input_host;
+        input_host.alloc(ibuffer.front().size());
+        if(hipMemcpy(input_host.data(),
+                     ibuffer.front().data(),
+                     ibuffer.front().size(),
+                     hipMemcpyDeviceToHost)
+           != hipSuccess)
+            throw std::runtime_error("copy back to host failed");
+
+        // allocate data on the multiple GPUs
+        if(placement == fft_placement_inplace)
+        {
+            hipLibXtDesc* xt_tmp = nullptr;
+            if(hipfftXtMalloc(plan, &xt_tmp, HIPFFT_XT_FORMAT_INPLACE) != HIPFFT_SUCCESS)
+                throw std::runtime_error("hipfftXtMalloc failed");
+            xt_output.reset(xt_tmp);
+            xt_tmp = nullptr;
+
+            if(hipfftXtMemcpy(plan, xt_output.get(), input_host.data(), HIPFFT_COPY_HOST_TO_DEVICE)
+               != HIPFFT_SUCCESS)
+                throw std::runtime_error("hipfftXtMemcpy failed");
+
+            pibuffer.clear();
+            std::copy_n(xt_output->descriptor->data,
+                        xt_output->descriptor->nGPUs,
+                        std::back_inserter(pibuffer));
+            pobuffer.clear();
+        }
+        else
+        {
+            hipLibXtDesc* xt_tmp = nullptr;
+            if(hipfftXtMalloc(plan, &xt_tmp, HIPFFT_XT_FORMAT_INPLACE) != HIPFFT_SUCCESS)
+                throw std::runtime_error("hipfftXtMalloc failed");
+            xt_input.reset(xt_tmp);
+            xt_tmp = nullptr;
+
+            if(hipfftXtMemcpy(plan, xt_input.get(), input_host.data(), HIPFFT_COPY_HOST_TO_DEVICE)
+               != HIPFFT_SUCCESS)
+                throw std::runtime_error("hipfftXtMemcpy failed");
+            if(hipfftXtMalloc(plan, &xt_tmp, HIPFFT_XT_FORMAT_OUTPUT) != HIPFFT_SUCCESS)
+                throw std::runtime_error("hipfftXtMalloc failed");
+            xt_output.reset(xt_tmp);
+            xt_tmp = nullptr;
+
+            pibuffer.clear();
+            std::copy_n(xt_input->descriptor->data,
+                        xt_input->descriptor->nGPUs,
+                        std::back_inserter(pibuffer));
+            pobuffer.clear();
+            std::copy_n(xt_output->descriptor->data,
+                        xt_output->descriptor->nGPUs,
+                        std::back_inserter(pobuffer));
+        }
+    }
+
+    // call the hipFFT APIs to gather the data back from the multiple GPUs
+    virtual void multi_gpu_finalize(std::vector<gpubuf>& obuffer,
+                                    std::vector<void*>&  pobuffer) override
+    {
+        if(ifields.empty() && ofields.empty())
+            return;
+
+        // allocate a host buffer for hipFFTXtMemcpy's sake
+        hostbuf output_host;
+        output_host.alloc(obuffer.front().size());
+
+        if(hipfftXtMemcpy(plan, output_host.data(), xt_output.get(), HIPFFT_COPY_DEVICE_TO_HOST)
+           != HIPFFT_SUCCESS)
+            throw std::runtime_error("hipfftXtMemcpy failed");
+
+        // copy final result back to device for comparison
+        if(hipMemcpy(obuffer.front().data(),
+                     output_host.data(),
+                     obuffer.front().size(),
+                     hipMemcpyHostToDevice)
+           != hipSuccess)
+            throw std::runtime_error("finalizing hipMemcpy failed");
+
+        pobuffer.clear();
+        pobuffer.push_back(obuffer.front().data());
+    }
+
 private:
     // hipFFT provides multiple ways to create FFT plans:
     // - hipfftPlan1d/2d/3d (combined allocate + init for specific dim)
@@ -545,6 +741,17 @@ private:
         CREATE_MAKE_PLAN_MANY64,
         CREATE_XT_MAKE_PLAN_MANY,
     };
+
+    // return true if we need to use hipFFT APIs that separate plan
+    // allocation and plan init
+    bool need_separate_create_make() const
+    {
+        // scale factor and multi-GPU need API calls between create +
+        // init
+        if(scale_factor != 1.0 || !ifields.empty() || !ofields.empty())
+            return true;
+        return false;
+    }
 
     // Not all plan options work with all creation types.  Return a
     // suitable plan creation type for the current FFT parameters.
@@ -567,16 +774,14 @@ private:
             allowed_apis.push_back(CREATE_MAKE_PLAN_MANY64);
             allowed_apis.push_back(CREATE_XT_MAKE_PLAN_MANY);
 
-            // combined PlanMany API can't do scaling
-            if(scale_factor == 1.0)
+            if(!need_separate_create_make())
                 allowed_apis.push_back(PLAN_MANY);
 
             // non-many APIs are only allowed if FFT is contiguous, and
             // only the 1D API allows for batched FFTs.
             if(contiguous && (!batched || dim() == 1))
             {
-                // combined Nd API can't do scaling
-                if(scale_factor == 1.0)
+                if(!need_separate_create_make())
                     allowed_apis.push_back(PLAN_Nd);
                 allowed_apis.push_back(CREATE_MAKE_PLAN_Nd);
             }
@@ -626,8 +831,9 @@ private:
         return ret;
     }
 
-    // call hipfftCreate + hipfftMake* functions
-    hipfftResult_t create_with_scale_factor()
+    // call hipfftCreate + hipfftMake* functions, inserting calls to
+    // relevant pre-Make APIs (scale factor, XtSetGPUs)
+    hipfftResult_t create_with_pre_make()
     {
         auto ret = hipfftCreate(&plan);
         if(ret != HIPFFT_SUCCESS)
@@ -638,11 +844,23 @@ private:
             if(ret != HIPFFT_SUCCESS)
                 return ret;
         }
+        if(!ifields.empty() || !ofields.empty())
+        {
+            int deviceCount = 0;
+            (void)hipGetDeviceCount(&deviceCount);
+
+            std::vector<int> GPUs(static_cast<size_t>(deviceCount));
+            std::iota(GPUs.begin(), GPUs.end(), 0);
+            ret = hipfftXtSetGPUs(plan, deviceCount, GPUs.data());
+
+            xt_worksize.resize(GPUs.size());
+            workbuffersize_ptr = xt_worksize.data();
+        }
         return ret;
     }
     hipfftResult_t create_make_plan_Nd()
     {
-        auto ret = create_with_scale_factor();
+        auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
 
@@ -650,24 +868,24 @@ private:
         {
         case 1:
             return hipfftMakePlan1d(
-                plan, int_length[0], *hipfft_transform_type, nbatch, &workbuffersize);
+                plan, int_length[0], *hipfft_transform_type, nbatch, workbuffersize_ptr);
         case 2:
             return hipfftMakePlan2d(
-                plan, int_length[0], int_length[1], *hipfft_transform_type, &workbuffersize);
+                plan, int_length[0], int_length[1], *hipfft_transform_type, workbuffersize_ptr);
         case 3:
             return hipfftMakePlan3d(plan,
                                     int_length[0],
                                     int_length[1],
                                     int_length[2],
                                     *hipfft_transform_type,
-                                    &workbuffersize);
+                                    workbuffersize_ptr);
         default:
             throw std::runtime_error("invalid dim");
         }
     }
     hipfftResult_t create_make_plan_many()
     {
-        auto ret = create_with_scale_factor();
+        auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
         return hipfftMakePlanMany(plan,
@@ -681,11 +899,11 @@ private:
                                   odist,
                                   *hipfft_transform_type,
                                   nbatch,
-                                  &workbuffersize);
+                                  workbuffersize_ptr);
     }
     hipfftResult_t create_make_plan_many64()
     {
-        auto ret = create_with_scale_factor();
+        auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
         return hipfftMakePlanMany64(plan,
@@ -699,12 +917,12 @@ private:
                                     odist,
                                     *hipfft_transform_type,
                                     nbatch,
-                                    &workbuffersize);
+                                    workbuffersize_ptr);
     }
 
     hipfftResult_t create_xt_make_plan_many()
     {
-        auto ret = create_with_scale_factor();
+        auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
 
@@ -737,7 +955,7 @@ private:
                                     odist,
                                     outputType,
                                     nbatch,
-                                    &workbuffersize,
+                                    workbuffersize_ptr,
                                     executionType);
     }
 };

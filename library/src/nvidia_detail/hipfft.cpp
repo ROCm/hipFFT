@@ -1,4 +1,4 @@
-// Copyright (C) 2020 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2020 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
 #include <cuda_runtime_api.h>
+#include <cudalibxt.h>
 #include <cufft.h>
 #include <cufftXt.h>
 #include <iostream>
@@ -31,7 +32,11 @@ DISABLE_WARNING_RETURN_TYPE
 #include <hip/hip_runtime_api.h>
 DISABLE_WARNING_POP
 
-hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
+// ensure that hipfft's XtDesc structs look the same as cufft's
+static_assert(sizeof(hipLibXtDesc) == sizeof(cudaLibXtDesc)
+              && sizeof(hipXtDesc) == sizeof(cudaXtDesc));
+
+static hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
 {
     switch(cufft_result)
     {
@@ -84,11 +89,11 @@ hipfftResult_t cufftResultToHipResult(cufftResult_t cufft_result)
         return HIPFFT_NOT_SUPPORTED;
 
     default:
-        throw "Non existent result";
+        throw HIPFFT_INVALID_VALUE;
     }
 }
 
-cufftType_t hipfftTypeToCufftType(hipfftType_t hipfft_type)
+static cufftType_t hipfftTypeToCufftType(hipfftType_t hipfft_type)
 {
     switch(hipfft_type)
     {
@@ -110,11 +115,11 @@ cufftType_t hipfftTypeToCufftType(hipfftType_t hipfft_type)
     case HIPFFT_Z2Z:
         return CUFFT_Z2Z;
     default:
-        throw "Non existent hipFFT type.";
+        throw HIPFFT_INVALID_VALUE;
     }
 }
 
-// cudaDataType_t hipDataTypeToCudaDataType(hipDataType hip_data_type)
+// static cudaDataType_t hipDataTypeToCudaDataType(hipDataType hip_data_type)
 // {
 //     switch(hipfft_type)
 //     {
@@ -137,11 +142,11 @@ cufftType_t hipfftTypeToCufftType(hipfftType_t hipfft_type)
 //         return CUDA_C_64F;
 
 //     default:
-//         throw "Not supported hip data type.";
+//         throw HIPFFT_INVALID_VALUE;
 //     }
 // }
 
-libraryPropertyType hipfftLibraryPropertyTypeToCufftLibraryPropertyType(
+static libraryPropertyType hipfftLibraryPropertyTypeToCufftLibraryPropertyType(
     hipfftLibraryPropertyType_t hipfft_lib_prop_type)
 {
     switch(hipfft_lib_prop_type)
@@ -156,11 +161,11 @@ libraryPropertyType hipfftLibraryPropertyTypeToCufftLibraryPropertyType(
         return PATCH_LEVEL;
 
     default:
-        throw "Non existent hipFFT library property type.";
+        throw HIPFFT_INVALID_VALUE;
     }
 }
 
-cufftXtCallbackType_t hipfftCallbackTypeToCufftCallbackType(hipfftXtCallbackType_t type)
+static cufftXtCallbackType_t hipfftCallbackTypeToCufftCallbackType(hipfftXtCallbackType_t type)
 {
     switch(type)
     {
@@ -183,7 +188,45 @@ cufftXtCallbackType_t hipfftCallbackTypeToCufftCallbackType(hipfftXtCallbackType
     case HIPFFT_CB_UNDEFINED:
         return CUFFT_CB_UNDEFINED;
     default:
-        throw "Non existent hipFFT XT callback type.";
+        throw HIPFFT_INVALID_VALUE;
+    }
+}
+
+static cufftXtSubFormat hipfftXtSubFormatTocufftXtSubFormat(hipfftXtSubFormat f)
+{
+    switch(f)
+    {
+    case HIPFFT_XT_FORMAT_INPUT:
+        return CUFFT_XT_FORMAT_INPUT;
+    case HIPFFT_XT_FORMAT_OUTPUT:
+        return CUFFT_XT_FORMAT_OUTPUT;
+    case HIPFFT_XT_FORMAT_INPLACE:
+        return CUFFT_XT_FORMAT_INPLACE;
+    case HIPFFT_XT_FORMAT_INPLACE_SHUFFLED:
+        return CUFFT_XT_FORMAT_INPLACE_SHUFFLED;
+    case HIPFFT_XT_FORMAT_1D_INPUT_SHUFFLED:
+        return CUFFT_XT_FORMAT_1D_INPUT_SHUFFLED;
+    case HIPFFT_FORMAT_UNDEFINED:
+        return CUFFT_FORMAT_UNDEFINED;
+    default:
+        throw HIPFFT_INVALID_VALUE;
+    }
+}
+
+static cufftXtCopyType hipfftXtCopyTypeTocufftXtCopyType(hipfftXtCopyType t)
+{
+    switch(t)
+    {
+    case HIPFFT_COPY_HOST_TO_DEVICE:
+        return CUFFT_COPY_HOST_TO_DEVICE;
+    case HIPFFT_COPY_DEVICE_TO_HOST:
+        return CUFFT_COPY_DEVICE_TO_HOST;
+    case HIPFFT_COPY_DEVICE_TO_DEVICE:
+        return CUFFT_COPY_DEVICE_TO_DEVICE;
+    case HIPFFT_COPY_UNDEFINED:
+        return CUFFT_COPY_UNDEFINED;
+    default:
+        throw HIPFFT_INVALID_VALUE;
     }
 }
 
@@ -204,13 +247,9 @@ hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType
     {
         cufftret = cufftPlan3d(plan, nx, ny, nz, hipfftTypeToCufftType(type));
     }
-    catch(const std::exception& e)
+    catch(hipfftResult e)
     {
-        std::cerr << e.what() << std::endl;
-    }
-    catch(...)
-    {
-        std::cerr << "unknown exception in cufftPlan3d" << std::endl;
+        return e;
     }
     return cufftResultToHipResult(cufftret);
 }
@@ -248,13 +287,9 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
                                      hipfftTypeToCufftType(type),
                                      batch);
         }
-        catch(const std::exception& e)
+        catch(hipfftResult e)
         {
-            std::cerr << e.what() << std::endl;
-        }
-        catch(...)
-        {
-            std::cerr << "unknown exception in cufftPlanMany" << std::endl;
+            return e;
         }
         return cufftResultToHipResult(cufftret);
     }
@@ -324,13 +359,9 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                      batch,
                                      workSize);
     }
-    catch(const std::exception& e)
+    catch(hipfftResult e)
     {
-        std::cerr << e.what() << std::endl;
-    }
-    catch(...)
-    {
-        std::cerr << "unknown exception in cufftMakePlanMany" << std::endl;
+        return e;
     }
     return cufftResultToHipResult(cufftret);
 }
@@ -645,4 +676,107 @@ hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
 hipfftResult hipfftXtExec(hipfftHandle plan, void* input, void* output, int direction)
 {
     return cufftResultToHipResult(cufftXtExec(plan, input, output, direction));
+}
+
+hipfftResult hipfftXtSetGPUs(hipfftHandle plan, int count, int* gpus)
+{
+    return cufftResultToHipResult(cufftXtSetGPUs(plan, count, gpus));
+}
+
+hipfftResult hipfftXtMalloc(hipfftHandle plan, hipLibXtDesc** desc, hipfftXtSubFormat format)
+{
+    try
+    {
+        auto cufftret = cufftXtMalloc(plan,
+                                      reinterpret_cast<cudaLibXtDesc**>(desc),
+                                      hipfftXtSubFormatTocufftXtSubFormat(format));
+        return cufftResultToHipResult(cufftret);
+    }
+    catch(hipfftResult e)
+    {
+        return e;
+    }
+}
+
+hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCopyType type)
+{
+    try
+    {
+        auto cufftret = cufftXtMemcpy(plan, dest, src, hipfftXtCopyTypeTocufftXtCopyType(type));
+        return cufftResultToHipResult(cufftret);
+    }
+    catch(hipfftResult e)
+    {
+        return e;
+    }
+}
+
+hipfftResult hipfftXtFree(hipLibXtDesc* desc)
+{
+    auto cufftret = cufftXtFree(reinterpret_cast<cudaLibXtDesc*>(desc));
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
+                                       hipLibXtDesc* input,
+                                       hipLibXtDesc* output,
+                                       int           direction)
+{
+    auto cufftret = cufftXtExecDescriptorC2C(plan,
+                                             reinterpret_cast<cudaLibXtDesc*>(input),
+                                             reinterpret_cast<cudaLibXtDesc*>(output),
+                                             direction);
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+{
+    auto cufftret = cufftXtExecDescriptorR2C(
+        plan, reinterpret_cast<cudaLibXtDesc*>(input), reinterpret_cast<cudaLibXtDesc*>(output));
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+{
+    auto cufftret = cufftXtExecDescriptorC2R(
+        plan, reinterpret_cast<cudaLibXtDesc*>(input), reinterpret_cast<cudaLibXtDesc*>(output));
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
+                                       hipLibXtDesc* input,
+                                       hipLibXtDesc* output,
+                                       int           direction)
+{
+    auto cufftret = cufftXtExecDescriptorZ2Z(plan,
+                                             reinterpret_cast<cudaLibXtDesc*>(input),
+                                             reinterpret_cast<cudaLibXtDesc*>(output),
+                                             direction);
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+{
+    auto cufftret = cufftXtExecDescriptorD2Z(
+        plan, reinterpret_cast<cudaLibXtDesc*>(input), reinterpret_cast<cudaLibXtDesc*>(output));
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+{
+    auto cufftret = cufftXtExecDescriptorZ2D(
+        plan, reinterpret_cast<cudaLibXtDesc*>(input), reinterpret_cast<cudaLibXtDesc*>(output));
+    return cufftResultToHipResult(cufftret);
+}
+
+hipfftResult hipfftXtExecDescriptor(hipfftHandle  plan,
+                                    hipLibXtDesc* input,
+                                    hipLibXtDesc* output,
+                                    int           direction)
+{
+    auto cufftret = cufftXtExecDescriptor(plan,
+                                          reinterpret_cast<cudaLibXtDesc*>(input),
+                                          reinterpret_cast<cudaLibXtDesc*>(output),
+                                          direction);
+    return cufftResultToHipResult(cufftret);
 }

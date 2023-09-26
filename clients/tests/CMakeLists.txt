@@ -36,6 +36,7 @@ set( hipfft-test_source
   accuracy_test_2D.cpp
   accuracy_test_3D.cpp
   accuracy_test_callback.cpp
+  multi_device_test.cpp
   ../rocFFT/shared/array_validator.cpp
   )
 
