@@ -23,11 +23,11 @@ different library functions.
 
 .. doxygendefine:: HIPFFT_BACKWARD
 
-.. doxygenenum:: hipfftType
+.. doxygenenum:: hipfftType_t
 
 .. doxygentypedef:: hipfftHandle
 
-.. doxygenenum:: hipfftResult
+.. doxygenenum:: hipfftResult_t
 
 
 Simple plans
@@ -160,11 +160,11 @@ Execution is performed with the appropriate
 
 .. doxygenfunction:: hipfftXtSetGPUs
 
-.. doxygenstruct:: hipXtDesc
-.. doxygenstruct:: hipLibXtDesc
+.. doxygenstruct:: hipXtDesc_t
+.. doxygenstruct:: hipLibXtDesc_t
 
 .. doxygenfunction:: hipfftXtMalloc
 .. doxygenfunction:: hipfftXtFree
 .. doxygenfunction:: hipfftXtMemcpy
 		     
-.. doxygengroup:: hipfftXtExecDescriptors
+.. doxygengroup:: hipfftXtExecDescriptor
