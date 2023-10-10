@@ -734,15 +734,19 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
 
         for(const auto& brick : plan->inBricks)
         {
-            if(rocfft_field_add_brick(inField,
-                                      brick.field_lower.data(),
-                                      brick.field_upper.data(),
-                                      brick.brick_stride.data(),
-                                      brick.field_lower.size(),
-                                      brick.device,
-                                      rocfft_brick_type_normal)
+            rocfft_brick rbrick = nullptr;
+            if(rocfft_brick_create(&rbrick,
+                                   brick.field_lower.data(),
+                                   brick.field_upper.data(),
+                                   brick.brick_stride.data(),
+                                   brick.field_lower.size(),
+                                   brick.device)
                != rocfft_status_success)
+                throw std::runtime_error("create input brick failed");
+
+            if(rocfft_field_add_brick(inField, rbrick) != rocfft_status_success)
                 throw std::runtime_error("add input brick failed");
+            rocfft_brick_destroy(rbrick);
         }
 
         // inBricks are used for out-of-place transforms
@@ -761,15 +765,19 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
 
         for(const auto& brick : plan->outBricks)
         {
-            if(rocfft_field_add_brick(outField,
-                                      brick.field_lower.data(),
-                                      brick.field_upper.data(),
-                                      brick.brick_stride.data(),
-                                      brick.field_lower.size(),
-                                      brick.device,
-                                      rocfft_brick_type_normal)
+            rocfft_brick rbrick = nullptr;
+            if(rocfft_brick_create(&rbrick,
+                                   brick.field_lower.data(),
+                                   brick.field_upper.data(),
+                                   brick.brick_stride.data(),
+                                   brick.field_lower.size(),
+                                   brick.device)
                != rocfft_status_success)
+                throw std::runtime_error("create output brick failed");
+
+            if(rocfft_field_add_brick(outField, rbrick) != rocfft_status_success)
                 throw std::runtime_error("add output brick failed");
+            rocfft_brick_destroy(rbrick);
         }
 
         // outBricks are used for both sides of in-place transforms,
