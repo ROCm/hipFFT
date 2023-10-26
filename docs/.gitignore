@@ -1,1 +1,4 @@
 _doxygen/
+doxygen/html/
+doxygen/rtf/
+doxygen/xml/
