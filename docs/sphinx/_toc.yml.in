@@ -8,6 +8,6 @@ subtrees:
     entries:
     - file: api
     - file: allapi
-  - caption: License
+  - caption: About
     entries:
     - file: license
