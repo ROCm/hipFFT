@@ -403,8 +403,9 @@ static void set_bricks(const std::vector<size_t>& length,
     // that's bigger than 1
     auto split_dim_iter = std::find_if(
         length_with_batch.rbegin(), length_with_batch.rend(), [](size_t len) { return len > 1; });
+    // if all dimensions are 1 there's nothing to split
     if(split_dim_iter == length_with_batch.rend())
-        throw HIPFFT_INVALID_VALUE;
+        return;
     size_t split_dim_idx = std::distance(length_with_batch.begin(), split_dim_iter.base()) - 1;
 
     for(size_t i = 0; i < bricks.size(); ++i)
