@@ -233,7 +233,9 @@ int main(int argc, char* argv[])
     // Check free and total available memory:
     size_t free  = 0;
     size_t total = 0;
-    HIP_V_THROW(hipMemGetInfo(&free, &total), "hipMemGetInfo failed");
+    if(hipMemGetInfo(&free, &total) != hipSuccess)
+        throw std::runtime_error("hipMemGetInfo failed");
+
     const auto raw_vram_footprint
         = params.fft_params_vram_footprint() + twiddle_table_vram_footprint(params);
     if(!vram_fits_problem(raw_vram_footprint, free))
