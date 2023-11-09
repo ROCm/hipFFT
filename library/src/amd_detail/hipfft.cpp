@@ -173,6 +173,8 @@ struct hipfftIOType
         case HIP_R_64F:
         case HIP_C_64F:
             return rocfft_precision_double;
+        default:
+            throw std::runtime_error("Required precision is invalid!");
         }
     }
 
@@ -188,6 +190,8 @@ struct hipfftIOType
         case HIP_C_32F:
         case HIP_C_64F:
             return false;
+        default:
+            return HIPFFT_NOT_IMPLEMENTED;
         }
     }
 
@@ -203,6 +207,8 @@ struct hipfftIOType
         case HIP_C_32F:
         case HIP_C_64F:
             return false;
+        default:
+            return HIPFFT_NOT_IMPLEMENTED;
         }
     }
 
@@ -886,8 +892,10 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
         if(plan->autoAllocate)
         {
             if(plan->workBuffer && plan->workBufferNeedsFree)
+            {
                 if(hipFree(plan->workBuffer) != hipSuccess)
                     return HIPFFT_ALLOC_FAILED;
+            }
             if(hipMalloc(&plan->workBuffer, workBufferSize) != hipSuccess)
                 return HIPFFT_ALLOC_FAILED;
             plan->workBufferNeedsFree = true;
