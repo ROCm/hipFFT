@@ -1,4 +1,4 @@
-# Change log for hipFFT
+# Changelog for hipFFT
 
 Documentation for hipFFT is available at
 [https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
