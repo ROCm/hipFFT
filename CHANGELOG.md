@@ -1,126 +1,139 @@
-# Change log for hipFFT
+# Changelog for hipFFT
 
-Partial documentation for hipFFT is available at [hipFFT].
+Documentation for hipFFT is available at
+[https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
 
 ## hipFFT 1.0.13 for ROCm 6.0.0
 
-### Changed
-- hipfft-rider has been renamed to hipfft-bench, controlled by the BUILD_CLIENTS_BENCH CMake option.  A link for the 
-  old file name is installed, and the old BUILD_CLIENTS_RIDER CMake option is accepted for compatibility but both 
-  will be removed in a future release.
-- Binaries in debug builds no longer have a "-d" suffix.
-- The minimum rocFFT required version has been updated to 1.0.21.
+### Changes
 
-### Added
-- Implemented hipfftXtSetGPUs, hipfftXtMalloc, hipfftXtMemcpy, hipfftXtFree, hipfftXtExecDescriptor APIs to allow computing FFTs on multiple devices in a single process. 
+* `hipfft-rider` has been renamed to `hipfft-bench`; it is controlled by the `BUILD_CLIENTS_BENCH`
+  CMake option (note that a link for the old file name is installed, and the old `BUILD_CLIENTS_RIDER`
+  CMake option is accepted for backwards compatibility, but both will be removed in a future release)
+* Binaries in debug builds no longer have a `-d` suffix
+* The minimum rocFFT required version has been updated to 1.0.21
+
+### Additions
+
+* `hipfftXtSetGPUs`, `hipfftXtMalloc, hipfftXtMemcpy`, `hipfftXtFree`, and `hipfftXtExecDescriptor` APIs
+  have been implemented to allow FFT computing on multiple devices in a single process
 
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
-### Added
-- Implemented the hipfftXtMakePlanMany, hipfftXtGetSizeMany, hipfftXtExec APIs, to allow requesting half-precision transforms.
+### Additions
 
-### Changed
-- Added --precision argument to benchmark/test clients.  --double is still accepted but is deprecated as a method to request a double-precision transform.
+* `hipfftXtMakePlanMany`, `hipfftXtGetSizeMany`, and `hipfftXtExec` APIs have been implemented to
+  allow half-precision transform requests
+
+### Changes
+
+* Added the `--precision` argument to benchmark and test clients (`--double` is still accepted, but has
+  been deprecated as a method to request a double-precision transform)
 
 ## hipFFT 1.0.11 for ROCm 5.5.0
 
-### Fixed
+### Fixes
 
-- Fixed old version rocm include/lib folders not removed on upgrade.
+* Fixed old version ROCm include and lib folders that were not removed during upgrades
 
 ## hipFFT 1.0.10 for ROCm 5.4.0
 
-### Added
-- Added hipfftExtPlanScaleFactor API to efficiently multiply each output element of a FFT by a given scaling factor.  Result scaling must be supported in the backend FFT library.
+### Additions
 
-### Changed
-- When hipFFT is built against the rocFFT backend, rocFFT 1.0.19 or higher is now required.
-- Data is initialized directly on GPUs using hipRAND.
-- Updated build files to use standard C++17.
+* Added the `hipfftExtPlanScaleFactor` API to efficiently multiply each output element of an FFT by a
+  given scaling factor (result scaling must be supported in the backend FFT library)
+
+### Changes
+
+* rocFFT 1.0.19 or higher is now required for hipFFT builds on the rocFFT backend
+* Data are initialized directly on GPUs using hipRAND
+* Updated build files now use standard C++17
 
 ## hipFFT 1.0.9 for ROCm 5.3.0
 
-### Changed
+### Changes
 
-- Clean up build warnings.
-- GNUInstall Dir enhancements.
-- Requires gtest 1.11.
+* Cleaned up build warnings
+* GNUInstallDirs enhancements
+* GoogleTest 1.11 is required
 
 ## hipFFT 1.0.8 for ROCm 5.2.0
 
-### Added
-- Added File/Folder Reorg Changes with backward compatibility support using ROCM-CMAKE wrapper functions.
-- Packages for test and benchmark executables on all supported OSes using CPack.
-- Implemented hipfftMakePlanMany64 and hipfftGetSizeMany64.
+### Additions
+
+* Added file and folder reorganization changes with backward compatibility support when using
+  rocm-cmake wrapper functions
+* New packages for test and benchmark executables on all supported operating systems that use
+  CPack
+* Implemented `hipfftMakePlanMany64` and `hipfftGetSizeMany64`
 
 ## hipFFT 1.0.7 for ROCm 5.1.0
 
-### Changed
+### Changes
 
-- Use fft_params struct for accuracy and benchmark clients.
+* Use `fft_params` struct for accuracy and benchmark clients
 
 ## hipFFT 1.0.6 for ROCm 5.0.0
 
-### Fixed
+### Fixes
 
-- Fixed incorrect reporting of rocFFT version.
+* Incorrect reporting of rocFFT version
 
-### Changed
+### Changes
 
-- Unconditionally enabled callback functionality.  On the CUDA backend, callbacks only run
-  correctly when hipFFT is built as a static library, and is linked against the static cuFFT
-  library.
+* Unconditionally enabled callback functionality: On the CUDA backend, callbacks only run
+  correctly when hipFFT is built as a static library, and linked against the static cuFFT library
 
 ## hipFFT 1.0.5 for ROCm 4.5.0
 
-### Added
+### Additions
 
-- Added support for Windows 10 as a build target.
+* Added support for Windows 10 as a build target
 
-### Changed
+### Changes
 
-- Packaging split into a runtime package called hipfft and a development package called hipfft-devel.
-  The development package depends on runtime. The runtime package suggests the development package
-  for all supported OSes except CentOS 7 to aid in the transition. The suggests feature in packaging
-  is introduced as a deprecated feature and will be removed in a future rocm release.
+* Packaging has been split into a runtime package (`hipfft`) and a development package
+  (`hipfft-devel`):
+  The development package depends on the runtime package. When installing the runtime package,
+  the package manager will suggest the installation of the development package to aid users
+  transitioning from the previous version's combined package. This suggestion by package manager is
+  for all supported operating systems (except CentOS 7) to aid in the transition. The `suggestion`
+  feature in the runtime package is introduced as a deprecated feature and will be removed in a future
+  ROCm release.
 
 ## hipFFT 1.0.4 for ROCm 4.4.0
 
-### Fixed
+### Fixes
 
-- Add calls to rocFFT setup/cleanup.
-- Cmake fixes for clients and backend support.
+* Add calls to rocFFT setup and cleanup
+* CMake fixes for clients and backend support
 
-### Added
+### Additions
 
-- Added support for Windows 10 as a build target.
+* Added support for Windows 10 as a build target
 
 ## hipFFT 1.0.3 for ROCm 4.3.0
 
-### Fixed
+### Fixes
 
-- Cmake updates.
+* CMake updates
 
-### Added
+### Additions
 
-- Added callback API in hipfftXt.h header.
+* New callback API in `hipfftXt.h` header
 
 ## hipFFT 1.0.2 for ROCm 4.2.0
 
-- No changes.
+* No changes
 
 ## hipFFT 1.0.1 for ROCm 4.1.0
 
-### Fixed
+### Fixes
 
-- Fix batch support for `hipfftMakePlanMany`.
-- Fix work area handling during plan creation and `hipfftSetWorkArea`.
-- Honour `autoAllocate` flag.
+* Batch support for `hipfftMakePlanMany`
+* Work area handling during plan creation and `hipfftSetWorkArea`
+* Honour `autoAllocate` flag
 
-### Changed
+### Changes
 
-- Testing infrastructure reuses code from [rocFFT].
-
-[rocFFT]: https://github.com/ROCmSoftwarePlatform/rocFFT
-[hipFFT]: https://github.com/ROCmSoftwarePlatform/hipFFT
-[hipfft.readthedocs.io]: https://rocfft.readthedocs.io/en/latest/
+* Testing infrastructure reuses code from [rocFFT](https://github.com/ROCmSoftwarePlatform/rocFFT)
