@@ -27,6 +27,7 @@ Documentation for hipFFT is available at
 
 * `hipfftXtSetGPUs`, `hipfftXtMalloc, hipfftXtMemcpy`, `hipfftXtFree`, and `hipfftXtExecDescriptor` APIs
   have been implemented to allow FFT computing on multiple devices in a single process
+* CMake support for documentation.
 
 ## hipFFT 1.0.12 for ROCm 5.6.0
 
