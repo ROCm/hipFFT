@@ -294,7 +294,7 @@ HIPFFT_EXPORT hipfftResult hipfftXtMalloc(hipfftHandle      plan,
 
 /*! @brief Copy data to/from \ref hipLibXtDesc_t descriptors.
  *
- *  Copy data according to the ::hipfftXtCopyType_t:
+ *  Copy data according to the hipfftXtCopyType_t
  *
  *  - ::HIPFFT_COPY_HOST_TO_DEVICE: dest points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  src points to a host memory buffer.
  *  - ::HIPFFT_COPY_DEVICE_TO_HOST: src points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  dest points to a host memory buffer.
