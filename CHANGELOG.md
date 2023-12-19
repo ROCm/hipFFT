@@ -3,6 +3,12 @@
 Documentation for hipFFT is available at
 [https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
 
+## hipFFT 1.0.14 for ROCm 6.1.0
+
+### Fixes
+
+* Fixed error when creating length-1 plans.
+
 ## hipFFT 1.0.13 for ROCm 6.0.0
 
 ### Changes
