@@ -17,5 +17,5 @@ Indices and tables
 * :ref:`search`
 
 
-.. _rocFFT: https://rocfft.readthedocs.io/
+.. _rocFFT: https://rocm.docs.amd.com/projects/rocFFT/en/latest/index.html
 .. _cuFFT: https://developer.nvidia.com/cufft
