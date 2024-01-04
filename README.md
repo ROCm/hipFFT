@@ -60,10 +60,14 @@ To build the hipFFT library:
 
 ### Building hipFFT
 
-To show all build options:
+3. Build hipFFT:
 
-    mkdir build && cd build
-    cmake -LH ..
+    To show all build options:
+
+    ```bash
+      mkdir build && cd build
+      cmake -LH ..
+    ```
 
 Here are some CMake build examples:
 
