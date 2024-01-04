@@ -23,9 +23,9 @@
 
 #include <optional>
 
+#include "../shared/fft_params.h"
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
-#include "rocFFT/shared/fft_params.h"
 
 inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
 {
