@@ -23,11 +23,11 @@
 #include <stdexcept>
 #include <vector>
 
-#include "../rocFFT/shared/fft_params.h"
+#include "../../shared/fft_params.h"
 
-#include "accuracy_test.h"
-#include "fftw_transform.h"
-#include "rocfft_against_fftw.h"
+#include "../../shared/accuracy_test.h"
+#include "../../shared/fftw_transform.h"
+#include "../../shared/rocfft_against_fftw.h"
 
 using ::testing::ValuesIn;
 
