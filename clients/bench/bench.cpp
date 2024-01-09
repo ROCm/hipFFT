@@ -29,7 +29,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "../rocFFT/shared/gpubuf.h"
+#include "../../shared/gpubuf.h"
 
 int main(int argc, char* argv[])
 {

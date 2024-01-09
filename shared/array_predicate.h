@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2021 - 2022 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,14 +18,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
+#ifndef ROCFFT_ARRAY_PREDICATE_H
+#define ROCFFT_ARRAY_PREDICATE_H
 
-#ifndef ROCFFT_ACCURACY_TEST
-#define ROCFFT_ACCURACY_TEST
+#include "rocfft/rocfft.h"
 
-#include "../../shared/accuracy_test.h"
-#include "../hipfft_params.h"
-
-void fft_vs_reference(hipfft_params& params, bool round_trip = false);
+namespace
+{
+    bool array_type_is_complex(rocfft_array_type type)
+    {
+        return type == rocfft_array_type_complex_interleaved
+               || type == rocfft_array_type_complex_planar
+               || type == rocfft_array_type_hermitian_interleaved
+               || type == rocfft_array_type_hermitian_planar;
+    }
+    bool array_type_is_interleaved(rocfft_array_type type)
+    {
+        return type == rocfft_array_type_complex_interleaved
+               || type == rocfft_array_type_hermitian_interleaved;
+    }
+    bool array_type_is_planar(rocfft_array_type type)
+    {
+        return type == rocfft_array_type_complex_planar
+               || type == rocfft_array_type_hermitian_planar;
+    }
+}
 
 #endif

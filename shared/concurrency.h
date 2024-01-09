@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2022 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,22 @@
 
 #pragma once
 
-#ifndef ROCFFT_ACCURACY_TEST
-#define ROCFFT_ACCURACY_TEST
+#include <thread>
 
-#include "../../shared/accuracy_test.h"
-#include "../hipfft_params.h"
-
-void fft_vs_reference(hipfft_params& params, bool round_trip = false);
-
+#ifndef WIN32
+#include <sched.h>
 #endif
+
+// work out how many parallel tasks to run, based on available
+// resources.  on Linux, this will look at the cpu affinity mask (if
+// available) which might be restricted in a container.  otherwise,
+// return std::thread::hardware_concurrency().
+static unsigned int rocfft_concurrency()
+{
+#ifndef WIN32
+    cpu_set_t cpuset;
+    if(sched_getaffinity(0, sizeof(cpuset), &cpuset) == 0)
+        return CPU_COUNT(&cpuset);
+#endif
+    return std::thread::hardware_concurrency();
+}

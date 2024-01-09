@@ -26,8 +26,8 @@ find_package( Boost COMPONENTS program_options REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
 
-set( hipfft_bench_source bench.cpp ../rocFFT/shared/array_validator.cpp )
-set( hipfft_bench_includes bench.h ../rocFFT/shared/array_validator.h )
+set( hipfft_bench_source bench.cpp ../../shared/array_validator.cpp )
+set( hipfft_bench_includes bench.h ../../shared/array_validator.h )
 
 add_executable( hipfft-bench ${hipfft_bench_source} ${hipfft_bench_includes} )
 

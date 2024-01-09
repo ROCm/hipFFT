@@ -29,11 +29,12 @@
 #include "hipfft/hipfft.h"
 
 #include "../hipfft_params.h"
-#include "../rocFFT/clients/tests/fftw_transform.h"
-#include "../rocFFT/clients/tests/rocfft_accuracy_test.h"
-#include "../rocFFT/clients/tests/rocfft_against_fftw.h"
-#include "../rocFFT/shared/gpubuf.h"
-#include "../rocFFT/shared/rocfft_complex.h"
+
+#include "../../shared/accuracy_test.h"
+#include "../../shared/fftw_transform.h"
+#include "../../shared/gpubuf.h"
+#include "../../shared/rocfft_against_fftw.h"
+#include "../../shared/rocfft_complex.h"
 
 void fft_vs_reference(hipfft_params& params, bool round_trip)
 {

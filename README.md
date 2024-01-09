@@ -61,8 +61,6 @@ To build hipFFT from source, follow these steps:
    * The clients (samples, tests, etc) included with the hipFFT source depend on FFTW, GoogleTest, and
       boost program options.
 
-   * The bench and test clients also require the rocFFT source tree (`git submodule update --init`).
-
 3. Build hipFFT:
 
     To show all build options:

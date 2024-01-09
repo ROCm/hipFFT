@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2023 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,14 +18,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
+#ifndef __ROCFFT_HIP_H__
+#define __ROCFFT_HIP_H__
 
-#ifndef ROCFFT_ACCURACY_TEST
-#define ROCFFT_ACCURACY_TEST
+#include <hip/hip_runtime_api.h>
+#include <stdexcept>
 
-#include "../../shared/accuracy_test.h"
-#include "../hipfft_params.h"
+class rocfft_scoped_device
+{
+public:
+    rocfft_scoped_device(int device)
+    {
+        if(hipGetDevice(&orig_device) != hipSuccess)
+            throw std::runtime_error("hipGetDevice failure");
 
-void fft_vs_reference(hipfft_params& params, bool round_trip = false);
+        if(hipSetDevice(device) != hipSuccess)
+            throw std::runtime_error("hipSetDevice failure");
+    }
+    ~rocfft_scoped_device()
+    {
+        (void)hipSetDevice(orig_device);
+    }
 
-#endif
+    // not copyable or movable
+    rocfft_scoped_device(const rocfft_scoped_device&) = delete;
+    rocfft_scoped_device(rocfft_scoped_device&&)      = delete;
+    rocfft_scoped_device& operator=(const rocfft_scoped_device&) = delete;
+
+private:
+    int orig_device;
+};
+
+#endif // __ROCFFT_HIP_H__
