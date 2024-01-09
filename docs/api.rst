@@ -1,10 +1,12 @@
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
+.. meta::
+  :description: hipFFT documentation and API reference library
+  :keywords: FFT, hipFFT, rocFFT, ROCm, API, documentation
 
-=========
-API Usage
-=========
+.. _hipfft-api-usage:
+
+********************************************************************
+hipFFT API Usage
+********************************************************************
 
 This section describes usage of the hipFFT library API.  The hipFFT
 API follows the `cuFFT`_ API.
@@ -12,7 +14,7 @@ API follows the `cuFFT`_ API.
 .. _cuFFT: https://docs.nvidia.com/cuda/cufft/
 
 Types
------
+=====
 
 There are a few data structures that are internal to the library.  The
 pointer types to these structures are given below.  The user would
@@ -31,7 +33,7 @@ different library functions.
 
 
 Simple plans
-------------
+============
 
 These planning routines allocate a plan for you.  If execution of the
 plan requires a work buffer, it will be created (and destroyed)
@@ -66,8 +68,8 @@ If you want to manage your own work buffer... XXX
 .. doxygenfunction:: hipfftMakePlan3d
 
 
-More advanced plans
--------------------
+Advanced plans
+===================
 
 .. doxygenfunction:: hipfftMakePlanMany
 .. doxygenfunction:: hipfftXtMakePlanMany
@@ -75,7 +77,7 @@ More advanced plans
 
 
 Estimating work area sizes
---------------------------
+==========================
 
 These call return estimates of the work area required to support a
 plan generated with the same parameters (either with the simple or
@@ -109,8 +111,9 @@ obtained with these routines.
 
 .. doxygenfunction:: hipfftXtGetSizeMany
 		     
+
 Executing plans
----------------
+===============
 
 Once you have created an FFT plan, you can execute it using one of the
 `hipfftExec*` functions.
@@ -133,16 +136,17 @@ For complex-to-real transforms, the output buffer XXX
 
 .. doxygenfunction:: hipfftXtExec
 		     
+
 Callbacks
----------
+=========
 
 .. doxygenfunction:: hipfftXtSetCallback
 .. doxygenfunction:: hipfftXtClearCallback	     
 .. doxygenfunction:: hipfftXtSetCallbackSharedSize
 
 		     
-Single-process Multi-gpu Transforms
------------------------------------
+Single-process Multi-GPU Transforms
+===================================
 
 hipFFT offers experimental single-process multi-GPU transforms.
 		     

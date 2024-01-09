@@ -1,13 +1,11 @@
-# Anywhere {branch} is used, the branch name will be substituted.
-# These comments will also be removed.
-root: index
 defaults:
   numbered: False
+root: index
 subtrees:
-  - caption: API
-    entries:
-    - file: api
-    - file: allapi
-  - caption: About
-    entries:
-    - file: license
+- entries:
+  - file: overview.rst
+    title: hipFFT Overview
+  - file: api.rst
+    title: API Usage
+  - file: license.md
+    title: License
