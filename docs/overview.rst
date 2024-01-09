@@ -1,13 +1,15 @@
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
+.. meta::
+  :description: hipFFT documentation and API reference library
+  :keywords: FFT, hipFFT, rocFFT, ROCm, API, documentation
 
-======
-hipFFT
-======
+.. _hipfft-overview:
 
-hipFFT is a GPU FFT marshalling library. Currently, hipFFT supports
-either `rocFFT`_ or `cuFFT`_ as backends.
+********************************************************************
+hipFFT Overview
+********************************************************************
+
+hipFFT is a GPU FFT marshalling library that supports
+either `rocFFT`_ or `cuFFT`_ as the backend.
 
 hipFFT exports an interface that does not require the client to
 change, regardless of the chosen backend.  It sits between the
@@ -16,9 +18,9 @@ backend and results back to the application.
 
 The basic usage pattern is:
 
-* create a transform plan (once)
-* perform (many) transforms using the plan
-* destroy the plan
+* Create a transform plan (once)
+* Perform (many) transforms using the plan
+* Destroy the plan when finished
 
 .. _rocFFT: https://rocm.docs.amd.com/projects/rocFFT/en/latest/index.html
 .. _cuFFT: https://developer.nvidia.com/cufft
