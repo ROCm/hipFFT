@@ -5,6 +5,10 @@ Documentation for hipFFT is available at
 
 ## hipFFT 1.0.14 for ROCm 6.1.0
 
+### Changes
+
+* When building hipFFT from source, rocFFT code no longer needs to be initialized as a git submodule.
+
 ### Fixes
 
 * Fixed error when creating length-1 plans.

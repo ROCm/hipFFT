@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2022 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,30 @@
 
 #pragma once
 
-#ifndef ROCFFT_ACCURACY_TEST
-#define ROCFFT_ACCURACY_TEST
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+template <typename _WorkItem>
+struct WorkQueue
+{
+    void push(_WorkItem&& i)
+    {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        items.emplace(std::move(i));
+        emptyWait.notify_all();
+    }
+    _WorkItem pop()
+    {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        while(items.empty())
+            emptyWait.wait(lock);
+        _WorkItem item(items.front());
+        items.pop();
+        return item;
+    }
 
-#include "../../shared/accuracy_test.h"
-#include "../hipfft_params.h"
-
-void fft_vs_reference(hipfft_params& params, bool round_trip = false);
-
-#endif
+private:
+    std::queue<_WorkItem>   items;
+    std::mutex              queueMutex;
+    std::condition_variable emptyWait;
+};
