@@ -37,14 +37,7 @@ set( hipfft-test_source
   accuracy_test_3D.cpp
   accuracy_test_callback.cpp
   multi_device_test.cpp
-  ../rocFFT/shared/array_validator.cpp
-  )
-
-set( hipfft-test_includes
-  ../rocFFT/clients/tests/fftw_transform.h
-  ../rocFFT/clients/tests/rocfft_against_fftw.h
-  ../rocFFT/clients/tests/misc/include/test_exception.h
-  ../rocFFT/shared/array_validator.h
+  ../../shared/array_validator.cpp
   )
 
 add_executable( hipfft-test ${hipfft-test_source} ${hipfft-test_includes} )
@@ -56,8 +49,6 @@ target_include_directories(
   $<BUILD_INTERFACE:${FFTW_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/library/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/clients/tests>
   )
 
 

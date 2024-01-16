@@ -1,4 +1,4 @@
-// Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2022 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,14 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
+#ifndef ARRAY_VALIDATOR_H
+#define ARRAY_VALIDATOR_H
 
-#ifndef ROCFFT_ACCURACY_TEST
-#define ROCFFT_ACCURACY_TEST
+#include <vector>
 
-#include "../../shared/accuracy_test.h"
-#include "../hipfft_params.h"
-
-void fft_vs_reference(hipfft_params& params, bool round_trip = false);
+// Checks whether the array with given length and stride has multi-index collisions.
+bool array_valid(const std::vector<size_t>& length,
+                 const std::vector<size_t>& stride,
+                 const int                  verbose = 0);
 
 #endif

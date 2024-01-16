@@ -2,6 +2,12 @@
 
 Partial documentation for hipFFT is available at [hipFFT].
 
+## hipFFT 1.0.13 for ROCm 6.0.1
+
+### Changed
+
+- Remove the git submodule for shared files between rocFFT and hipFFT; instead, just copy the files over.  This should help simplify downstream builds and packaging.
+
 ## hipFFT 1.0.13 for ROCm 6.0.0
 
 ### Changed
