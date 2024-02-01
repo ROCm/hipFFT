@@ -21,9 +21,13 @@
 #ifndef HIPFFT_PARAMS_H
 #define HIPFFT_PARAMS_H
 
+#include <atomic>
+#include <numeric>
 #include <optional>
 
+#include "../shared/concurrency.h"
 #include "../shared/fft_params.h"
+#include "../shared/hipfft_brick.h"
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
 
@@ -139,6 +143,11 @@ public:
     // just uses xt_output
     std::unique_ptr<hipLibXtDesc, hipLibXtDesc_deleter> xt_input;
     std::unique_ptr<hipLibXtDesc, hipLibXtDesc_deleter> xt_output;
+
+    // rocFFT brick decomposition for Xt memory - multi-GPU tests will
+    // confirm that rocFFT's decomposition matches cuFFT's
+    std::vector<hipfft_brick> xt_inBricks;
+    std::vector<hipfft_brick> xt_outBricks;
 
     // backend library can write N worksize values for N GPUs, so
     // allocate a vector for that if necessary
@@ -370,10 +379,10 @@ public:
 
     void validate_fields() const override
     {
-        // hipFFT interprets any present field info as "use hipfftXt
-        // APIs to distribute data to multiple GPUs".  Since the
-        // library comes up with the data distribution, there's nothing
-        // to validate on the client side.
+        // hipFFT has no explicit field/brick API, but
+        // library-decomposed multi-GPU is allowed
+        if(!ifields.empty() || !ofields.empty())
+            throw std::runtime_error("input/output fields are unsupported");
     }
 
     fft_status set_callbacks(void* load_cb_host,
@@ -469,7 +478,7 @@ public:
 
         // if we're doing multi-GPU, we need to use ExecDescriptor
         // methods to execute.
-        if(!ifields.empty() || !ofields.empty())
+        if(multiGPU > 1)
         {
             // rotate between generic ExecDescriptor and specific
             // ExecDescriptorX2Y functions by hashing token (for
@@ -630,12 +639,83 @@ public:
         return compute_idist() == idist && compute_odist() == odist;
     }
 
+    // stride is row-major like everything else in fft_params.  brick
+    // indexes/strides are col-major because those would normally be
+    // passed to rocFFT directly
+    static bool xt_desc_matches_brick(const hostbuf&                   field,
+                                      const std::vector<size_t>&       stride,
+                                      size_t                           dist,
+                                      const hipXtDesc*                 desc,
+                                      const std::vector<hipfft_brick>& bricks,
+                                      size_t                           elem_size,
+                                      const char*                      dir)
+    {
+        // construct field stride that includes batch distance too, since
+        // brick coordinates include it
+        auto field_stride_cm = stride;
+        std::reverse(field_stride_cm.begin(), field_stride_cm.end());
+        field_stride_cm.push_back(dist);
+
+        std::atomic<bool> compare_err = false;
+        std::atomic<bool> runtime_err = false;
+
+        std::vector<hostbuf> brick_hosts;
+        brick_hosts.resize(bricks.size());
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(rocfft_concurrency())
+#endif
+        for(size_t i = 0; i < bricks.size(); ++i)
+        {
+            // copy the ith brick back to host memory
+            rocfft_scoped_device device(desc->GPUs[i]);
+            hostbuf&             brick_host = brick_hosts[i];
+            brick_host.alloc(desc->size[i]);
+            if(hipMemcpy(brick_host.data(), desc->data[i], brick_host.size(), hipMemcpyDeviceToHost)
+               != hipSuccess)
+            {
+                runtime_err = true;
+                continue;
+            }
+
+            // convert to row-major
+            auto brick_length_rm = bricks[i].length();
+            std::reverse(brick_length_rm.begin(), brick_length_rm.end());
+
+            // start at brick origin
+            auto brick_idx_rm = brick_length_rm;
+            std::fill(brick_idx_rm.begin(), brick_idx_rm.end(), 0);
+
+            do
+            {
+                auto brick_idx_cm = brick_idx_rm;
+                std::reverse(brick_idx_cm.begin(), brick_idx_cm.end());
+
+                auto field_offset = bricks[i].field_offset(brick_idx_cm, field_stride_cm);
+                auto brick_offset = bricks[i].brick_offset(brick_idx_cm);
+
+                if(memcmp(brick_host.data_offset(brick_offset * elem_size),
+                          field.data_offset(field_offset * elem_size),
+                          elem_size)
+                   != 0)
+                {
+                    compare_err = true;
+                    break;
+                }
+            } while(increment_rowmajor(brick_idx_rm, brick_length_rm));
+        }
+
+        if(runtime_err)
+            throw std::runtime_error("failed to memcpy brick back to host");
+        return !compare_err;
+    }
+
     // call the hipFFT APIs to distribute data to multiple GPUs
     void multi_gpu_prepare(std::vector<gpubuf>& ibuffer,
                            std::vector<void*>&  pibuffer,
                            std::vector<void*>&  pobuffer) override
     {
-        if(ifields.empty() && ofields.empty())
+        if(multiGPU <= 1)
             return;
 
         // input data is on the device - copy it back to the host so
@@ -671,7 +751,7 @@ public:
         else
         {
             hipLibXtDesc* xt_tmp = nullptr;
-            if(hipfftXtMalloc(plan, &xt_tmp, HIPFFT_XT_FORMAT_INPLACE) != HIPFFT_SUCCESS)
+            if(hipfftXtMalloc(plan, &xt_tmp, HIPFFT_XT_FORMAT_INPUT) != HIPFFT_SUCCESS)
                 throw std::runtime_error("hipfftXtMalloc failed");
             xt_input.reset(xt_tmp);
             xt_tmp = nullptr;
@@ -693,13 +773,30 @@ public:
                         xt_output->descriptor->nGPUs,
                         std::back_inserter(pobuffer));
         }
+
+        // create bricks for this transform so we can confirm data layout
+        hipLibXtDesc* compare_desc
+            = placement == fft_placement_inplace ? xt_output.get() : xt_input.get();
+        xt_inBricks.resize(compare_desc->descriptor->nGPUs);
+        xt_outBricks.resize(compare_desc->descriptor->nGPUs);
+        set_io_bricks(ilength_cm(), olength_cm(), nbatch, xt_inBricks, xt_outBricks);
+
+        // check cufftXtMemcpy versus hipfft's implementation
+        if(!xt_desc_matches_brick(input_host,
+                                  istride,
+                                  idist,
+                                  compare_desc->descriptor,
+                                  xt_inBricks,
+                                  var_size<size_t>(precision, itype),
+                                  "input"))
+            throw std::runtime_error("Xt input does not match");
     }
 
     // call the hipFFT APIs to gather the data back from the multiple GPUs
     virtual void multi_gpu_finalize(std::vector<gpubuf>& obuffer,
                                     std::vector<void*>&  pobuffer) override
     {
-        if(ifields.empty() && ofields.empty())
+        if(multiGPU <= 1)
             return;
 
         // allocate a host buffer for hipFFTXtMemcpy's sake
@@ -709,6 +806,19 @@ public:
         if(hipfftXtMemcpy(plan, output_host.data(), xt_output.get(), HIPFFT_COPY_DEVICE_TO_HOST)
            != HIPFFT_SUCCESS)
             throw std::runtime_error("hipfftXtMemcpy failed");
+
+        // check cufftXtMemcpy versus hipfft's implementation
+        if(placement == fft_placement_notinplace)
+        {
+            if(!xt_desc_matches_brick(output_host,
+                                      ostride,
+                                      odist,
+                                      xt_output->descriptor,
+                                      xt_outBricks,
+                                      var_size<size_t>(precision, otype),
+                                      "output"))
+                throw std::runtime_error("Xt output does not match");
+        }
 
         // copy final result back to device for comparison
         if(hipMemcpy(obuffer.front().data(),
@@ -748,7 +858,7 @@ private:
     {
         // scale factor and multi-GPU need API calls between create +
         // init
-        if(scale_factor != 1.0 || !ifields.empty() || !ofields.empty())
+        if(scale_factor != 1.0 || multiGPU > 1)
             return true;
         return false;
     }
@@ -844,7 +954,7 @@ private:
             if(ret != HIPFFT_SUCCESS)
                 return ret;
         }
-        if(!ifields.empty() || !ofields.empty())
+        if(multiGPU > 1)
         {
             int deviceCount = 0;
             (void)hipGetDeviceCount(&deviceCount);

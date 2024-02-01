@@ -68,8 +68,8 @@ TEST_P(accuracy_test, vs_fftw)
         GTEST_SKIP();
     }
 
-    // only do round trip for non-field FFTs
-    bool round_trip = params.ifields.empty() && params.ofields.empty();
+    // only do round trip for single-GPU FFTs
+    bool round_trip = params.multiGPU <= 1;
 
     if(!params.run_callbacks)
         fft_vs_reference(params, round_trip);
