@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "hipfft/hipfft.h"
+#include "../../../shared/hipfft_brick.h"
 #include "hipfft/hipfftXt.h"
 #include "rocfft/rocfft.h"
 #include <algorithm>
@@ -247,18 +248,6 @@ struct hipfftIOType
     }
 };
 
-struct hipfft_brick
-{
-    // device that the brick lives on
-    int device = 0;
-
-    std::vector<size_t> field_lower;
-    std::vector<size_t> field_upper;
-    std::vector<size_t> brick_stride;
-
-    size_t min_size = 0;
-};
-
 struct hipfftHandle_t
 {
     hipfftIOType type;
@@ -383,61 +372,6 @@ hipfftResult hipfftPlanMany64(hipfftHandle*  plan,
 
     return hipfftMakePlanMany64(
         *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
-}
-
-static void set_bricks(const std::vector<size_t>& length,
-                       const std::vector<size_t>& strides,
-                       size_t                     batch,
-                       size_t                     dist,
-                       std::vector<hipfft_brick>& bricks)
-{
-    const size_t dim = length.size();
-
-    // construct length/stride (including batch)
-    const size_t        dim_with_batch = dim + 1;
-    std::vector<size_t> length_with_batch(dim_with_batch);
-    std::vector<size_t> stride_with_batch(dim_with_batch);
-
-    // convert length-stride to column-major and include batch
-    std::copy_n(length.begin(), dim, length_with_batch.begin());
-    length_with_batch.back() = batch;
-
-    std::copy_n(strides.begin(), dim, stride_with_batch.begin());
-    stride_with_batch.back() = dist;
-
-    // pick a dimension to split on - we want the slowest dimension
-    // that's bigger than 1
-    auto split_dim_iter = std::find_if(
-        length_with_batch.rbegin(), length_with_batch.rend(), [](size_t len) { return len > 1; });
-    // if all dimensions are 1 there's nothing to split
-    if(split_dim_iter == length_with_batch.rend())
-        return;
-    size_t split_dim_idx = std::distance(length_with_batch.begin(), split_dim_iter.base()) - 1;
-
-    for(size_t i = 0; i < bricks.size(); ++i)
-    {
-        auto& brick = bricks[i];
-
-        // lower idx starts at origin, upper is one-past-the-end
-        brick.field_lower.resize(dim_with_batch);
-        std::fill(brick.field_lower.begin(), brick.field_lower.end(), 0);
-        brick.field_upper = length_with_batch;
-
-        // length of the brick along the split dimension
-        size_t split_len                 = length_with_batch[split_dim_idx] / bricks.size();
-        brick.field_lower[split_dim_idx] = split_len * i;
-        if(i != bricks.size() - 1)
-            brick.field_upper[split_dim_idx] = brick.field_lower[split_dim_idx] + split_len;
-
-        brick.brick_stride = stride_with_batch;
-
-        // work out how big a buffer we need to allocate
-        std::vector<size_t> brick_len(dim_with_batch);
-        for(size_t d = 0; d < dim_with_batch; ++d)
-            brick_len[d] = brick.field_upper[d] - brick.field_lower[d];
-        brick.min_size
-            = std::max(brick.min_size, compute_ptrdiff(brick_len, stride_with_batch, 0, 0));
-    }
 }
 
 hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
@@ -729,8 +663,7 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
     }
 
     // problem dimensions and strides are known, set up the bricks for multi-GPU
-    set_bricks(plan->inLength, plan->inStrides, plan->batch, plan->iDist, plan->inBricks);
-    set_bricks(plan->outLength, plan->outStrides, plan->batch, plan->oDist, plan->outBricks);
+    set_io_bricks(plan->inLength, plan->outLength, plan->batch, plan->inBricks, plan->outBricks);
 
     // create fields for the bricks
     if(!plan->inBricks.empty())
@@ -1754,7 +1687,7 @@ hipfftResult hipfftXtMalloc(hipfftHandle plan, hipLibXtDesc** desc, hipfftXtSubF
 
         lib_desc->version       = 0;
         lib_desc->library       = HIPLIB_FORMAT_HIPFFT;
-        lib_desc->subFormat     = 0;
+        lib_desc->subFormat     = format;
         lib_desc->libDescriptor = nullptr;
 
         auto xt_desc = std::make_unique<hipXtDesc>();
@@ -1807,7 +1740,38 @@ hipfftResult hipfftXtMalloc(hipfftHandle plan, hipLibXtDesc** desc, hipfftXtSubF
     return HIPFFT_SUCCESS;
 }
 
-hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCopyType type)
+// collapse contiguous dimensions in the specified length + stride -
+// user data might be split on any dimension so if we can simplify to
+// just one split dimension and one contiguous dimension we can more
+// easily map a XtMemcpy to a 2DMemcpy.
+static void collapse_contiguous_dims(std::vector<size_t>& brick_length,
+                                     std::vector<size_t>& brick_stride,
+
+                                     std::vector<size_t>& field_stride)
+{
+    // go backwards from slowest to fastest dims
+    for(size_t i = brick_length.size() - 1; i != 0; --i)
+    {
+        if(brick_length[i - 1] * brick_stride[i - 1] == brick_stride[i]
+           && brick_length[i - 1] * field_stride[i - 1] == field_stride[i])
+        {
+            brick_length[i - 1] *= brick_length[i];
+            brick_length.erase(brick_length.begin() + i);
+            brick_stride.erase(brick_stride.begin() + i);
+            field_stride.erase(field_stride.begin() + i);
+        }
+    }
+    // we should be splitting on exactly one dimension, so we
+    // should end up with at most two dimensions after
+    // collapsing
+    if(brick_length.size() > 2 || brick_stride.size() > 2 || field_stride.size() > 2)
+        throw std::runtime_error("should have at most 2 dims after collapsing");
+    // fastest dim is expected to be contiguous
+    if(brick_stride.front() != 1 || field_stride.front() != 1)
+        throw std::runtime_error("fastest dim not contiguous after collapsing");
+}
+
+hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCopyType cptype)
 {
     if(!plan || !dest || !src)
         return HIPFFT_INVALID_VALUE;
@@ -1815,85 +1779,153 @@ hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCo
     // get pointer into buf, at the index pointed to by lower
     // assuming lengths are strided by stride
     auto offset_buffer = [](void*                      buf,
-                            hipDataType                type,
+                            hipDataType                dtype,
                             const std::vector<size_t>& lower,
                             const std::vector<size_t>& stride) {
         auto offset_elems = std::inner_product(lower.begin(), lower.end(), stride.begin(), 0);
 
-        return static_cast<void*>(static_cast<char*>(buf) + hipDataType_bytes(type, offset_elems));
+        return static_cast<void*>(static_cast<char*>(buf) + hipDataType_bytes(dtype, offset_elems));
     };
 
-    switch(type)
-    {
-    case HIPFFT_COPY_HOST_TO_DEVICE:
-    {
-        // dest is a hipLibXtDesc
-        auto destDesc = static_cast<hipLibXtDesc*>(dest);
-        if(!destDesc->descriptor)
-            return HIPFFT_INVALID_VALUE;
-
-        std::vector<size_t> srcStride = plan->inStrides;
-        srcStride.push_back(plan->iDist);
-        for(size_t i = 0; i < static_cast<size_t>(destDesc->descriptor->nGPUs); ++i)
+    auto brick_layout = [plan](int subFormat) -> const std::vector<hipfft_brick>& {
+        switch(subFormat)
         {
-            rocfft_scoped_device dev(destDesc->descriptor->GPUs[i]);
-
-            const auto& brick = plan->inBricks[i];
-            if(hipMemcpy(destDesc->descriptor->data[i],
-                         offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
-                         destDesc->descriptor->size[i],
-                         hipMemcpyHostToDevice)
-               != hipSuccess)
-                return HIPFFT_INTERNAL_ERROR;
+        case HIPFFT_XT_FORMAT_INPUT:
+            return plan->inBricks;
+        case HIPFFT_XT_FORMAT_OUTPUT:
+        case HIPFFT_XT_FORMAT_INPLACE:
+            return plan->outBricks;
+        default:
+            throw HIPFFT_INVALID_VALUE;
         }
-        return HIPFFT_SUCCESS;
-    }
-    case HIPFFT_COPY_DEVICE_TO_HOST:
+    };
+
+    try
     {
-        // src is a hipLibXtDesc
-        auto srcDesc = static_cast<const hipLibXtDesc*>(src);
-        if(!srcDesc->descriptor)
-            return HIPFFT_INVALID_VALUE;
-
-        std::vector<size_t> destStride = plan->outStrides;
-        destStride.push_back(plan->oDist);
-        for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
+        switch(cptype)
         {
-            rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
+        case HIPFFT_COPY_HOST_TO_DEVICE:
+        {
+            // dest is a hipLibXtDesc
+            auto destDesc = static_cast<hipLibXtDesc*>(dest);
+            if(!destDesc->descriptor)
+                return HIPFFT_INVALID_VALUE;
 
-            const auto& brick = plan->outBricks[i];
-            if(hipMemcpy(offset_buffer(dest, plan->type.outputType, brick.field_lower, destStride),
-                         srcDesc->descriptor->data[i],
-                         srcDesc->descriptor->size[i],
-                         hipMemcpyDeviceToHost)
-               != hipSuccess)
-                return HIPFFT_INTERNAL_ERROR;
+            std::vector<size_t> srcStride = plan->inStrides;
+            srcStride.push_back(plan->iDist);
+            for(size_t i = 0; i < static_cast<size_t>(destDesc->descriptor->nGPUs); ++i)
+            {
+                rocfft_scoped_device dev(destDesc->descriptor->GPUs[i]);
+
+                const auto& brick = brick_layout(destDesc->subFormat)[i];
+
+                auto brick_length = brick.length();
+                auto brick_stride = brick.brick_stride;
+                auto field_stride = srcStride;
+                collapse_contiguous_dims(brick_length, brick_stride, field_stride);
+
+                // if we can do a 1D memcpy, just do that
+                if(brick_length.size() == 1)
+                {
+                    if(hipMemcpy(
+                           destDesc->descriptor->data[i],
+                           offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
+                           destDesc->descriptor->size[i],
+                           hipMemcpyHostToDevice)
+                       != hipSuccess)
+                        return HIPFFT_INTERNAL_ERROR;
+                }
+                else
+                {
+                    if(hipMemcpy2D(
+                           destDesc->descriptor->data[i],
+                           hipDataType_bytes(plan->type.inputType, brick_stride[1]),
+                           offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
+                           hipDataType_bytes(plan->type.inputType, field_stride[1]),
+                           hipDataType_bytes(plan->type.inputType, brick_length[0]),
+                           brick_length[1],
+                           hipMemcpyHostToDevice)
+                       != hipSuccess)
+                        return HIPFFT_INTERNAL_ERROR;
+                }
+            }
+            return HIPFFT_SUCCESS;
         }
-        return HIPFFT_SUCCESS;
+        case HIPFFT_COPY_DEVICE_TO_HOST:
+        {
+            // src is a hipLibXtDesc
+            auto srcDesc = static_cast<const hipLibXtDesc*>(src);
+            if(!srcDesc->descriptor)
+                return HIPFFT_INVALID_VALUE;
+
+            std::vector<size_t> destStride = plan->outStrides;
+            destStride.push_back(plan->oDist);
+            for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
+            {
+                rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
+
+                const auto& brick = brick_layout(srcDesc->subFormat)[i];
+
+                auto brick_length = brick.length();
+                auto brick_stride = brick.brick_stride;
+                auto field_stride = destStride;
+                collapse_contiguous_dims(brick_length, brick_stride, field_stride);
+
+                // if we can do a 1D memcpy, just do that
+                if(brick_length.size() == 1)
+                {
+                    if(hipMemcpy(offset_buffer(
+                                     dest, plan->type.outputType, brick.field_lower, destStride),
+                                 srcDesc->descriptor->data[i],
+                                 srcDesc->descriptor->size[i],
+                                 hipMemcpyDeviceToHost)
+                       != hipSuccess)
+                        return HIPFFT_INTERNAL_ERROR;
+                }
+                else
+                {
+                    if(hipMemcpy2D(offset_buffer(
+                                       dest, plan->type.outputType, brick.field_lower, destStride),
+                                   hipDataType_bytes(plan->type.outputType, field_stride[1]),
+                                   srcDesc->descriptor->data[i],
+                                   hipDataType_bytes(plan->type.outputType, brick_stride[1]),
+                                   hipDataType_bytes(plan->type.outputType, brick_length[0]),
+                                   brick_length[1],
+                                   hipMemcpyDeviceToHost)
+                       != hipSuccess)
+                        return HIPFFT_INTERNAL_ERROR;
+                }
+            }
+            return HIPFFT_SUCCESS;
+        }
+        case HIPFFT_COPY_DEVICE_TO_DEVICE:
+        {
+            // src and dest are both hipLibXtDescs
+            auto srcDesc  = static_cast<const hipLibXtDesc*>(src);
+            auto destDesc = static_cast<hipLibXtDesc*>(dest);
+            if(!srcDesc->descriptor || !destDesc->descriptor
+               || srcDesc->descriptor->nGPUs != destDesc->descriptor->nGPUs)
+                return HIPFFT_INVALID_VALUE;
+
+            for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
+            {
+                rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
+                if(hipMemcpy(destDesc->descriptor->data[i],
+                             srcDesc->descriptor->data[i],
+                             srcDesc->descriptor->size[i],
+                             hipMemcpyDeviceToDevice)
+                   != hipSuccess)
+                    return HIPFFT_INTERNAL_ERROR;
+            }
+            return HIPFFT_SUCCESS;
+        }
+        case HIPFFT_COPY_UNDEFINED:
+            return HIPFFT_NOT_IMPLEMENTED;
+        }
     }
-    case HIPFFT_COPY_DEVICE_TO_DEVICE:
+    catch(hipfftResult err)
     {
-        // src and dest are both hipLibXtDescs
-        auto srcDesc  = static_cast<const hipLibXtDesc*>(src);
-        auto destDesc = static_cast<hipLibXtDesc*>(dest);
-        if(!srcDesc->descriptor || !destDesc->descriptor
-           || srcDesc->descriptor->nGPUs != destDesc->descriptor->nGPUs)
-            return HIPFFT_INVALID_VALUE;
-
-        for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
-        {
-            rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
-            if(hipMemcpy(destDesc->descriptor->data[i],
-                         srcDesc->descriptor->data[i],
-                         srcDesc->descriptor->size[i],
-                         hipMemcpyDeviceToDevice)
-               != hipSuccess)
-                return HIPFFT_INTERNAL_ERROR;
-        }
-        return HIPFFT_SUCCESS;
-    }
-    case HIPFFT_COPY_UNDEFINED:
-        return HIPFFT_NOT_IMPLEMENTED;
+        return err;
     }
 }
 

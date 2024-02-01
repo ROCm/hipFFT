@@ -23,9 +23,8 @@
 #include <hip/hip_runtime_api.h>
 
 static const std::vector<std::vector<size_t>> multi_gpu_sizes = {
-    {256},
-    {256, 256},
-    {256, 256, 256},
+    {128, 256},
+    {64, 128, 256},
 };
 
 std::vector<fft_params> param_generator_multi_gpu()
@@ -38,72 +37,45 @@ std::vector<fft_params> param_generator_multi_gpu()
         return {};
 
     static const std::vector<std::vector<size_t>> stride_range = {{1}};
-    std::vector<fft_params>                       all_params
-        = param_generator_complex(multi_gpu_sizes,
-                                  precision_range_sp_dp,
-                                  {1},
-                                  stride_generator(stride_range),
-                                  stride_generator(stride_range),
-                                  {{0, 0}},
-                                  {{0, 0}},
-                                  {fft_placement_inplace, fft_placement_notinplace},
-                                  false);
+    auto params_complex = param_generator_complex(multi_gpu_sizes,
+                                                  precision_range_sp_dp,
+                                                  {1, 10},
+                                                  stride_generator(stride_range),
+                                                  stride_generator(stride_range),
+                                                  {{0, 0}},
+                                                  {{0, 0}},
+                                                  {fft_placement_inplace, fft_placement_notinplace},
+                                                  false);
 
-    // cuFFT does not seem to support 3D out-of-place FFTs
-    all_params.erase(std::remove_if(all_params.begin(),
-                                    all_params.end(),
-                                    [](fft_params& params) {
-                                        return params.length.size() == 3
-                                               && params.placement == fft_placement_notinplace;
-                                    }),
-                     all_params.end());
+    auto params_real = param_generator_real(multi_gpu_sizes,
+                                            precision_range_sp_dp,
+                                            {1, 10},
+                                            stride_generator(stride_range),
+                                            stride_generator(stride_range),
+                                            {{0, 0}},
+                                            {{0, 0}},
+                                            {fft_placement_notinplace},
+                                            false);
 
-    for(auto& params : all_params)
-    {
-        // split up the slowest FFT dimension among the available
-        // devices
-        size_t slowLen = params.length.front();
-        if(slowLen < static_cast<unsigned int>(deviceCount))
-            continue;
+    std::vector<fft_params> all_params;
 
-        // add input and output fields
-        auto& ifield = params.ifields.emplace_back();
-        auto& ofield = params.ofields.emplace_back();
-
-        for(int i = 0; i < deviceCount; ++i)
+    auto distribute_params = [&all_params, deviceCount](const std::vector<fft_params>& params) {
+        for(auto& param : params)
         {
-            // start at origin
-            std::vector<size_t> field_lower(params.length.size());
-            std::vector<size_t> field_upper(params.length.size());
+            auto param_multi = param;
 
-            // note: slowest FFT dim is index 1 in these coordinates
-            field_lower[0] = slowLen / deviceCount * i;
-            // last brick needs to include the whole slow len
-            if(i == deviceCount - 1)
-                field_upper[0] = slowLen;
-            else
-                field_upper[0] = std::min(slowLen, field_lower[0] + slowLen / deviceCount);
+            // for single-batch, cuFFT only allows in-place
+            if(param.nbatch == 1 && param.placement == fft_placement_notinplace)
+                continue;
 
-            for(unsigned int upperDim = 1; upperDim < field_upper.size(); ++upperDim)
-            {
-                field_upper[upperDim] = params.length[upperDim];
-            }
-
-            // field coordinates also need to include batch
-            field_lower.insert(field_lower.begin(), 0);
-            field_upper.insert(field_upper.begin(), params.nbatch);
-
-            auto field_istride = params.istride;
-            field_istride.insert(field_istride.begin(), params.idist);
-            auto field_ostride = params.ostride;
-            field_ostride.insert(field_ostride.begin(), params.odist);
-
-            ifield.bricks.push_back(
-                fft_params::fft_brick{field_lower, field_upper, field_istride, i});
-            ofield.bricks.push_back(
-                fft_params::fft_brick{field_lower, field_upper, field_ostride, i});
+            param_multi.multiGPU = deviceCount;
+            all_params.emplace_back(std::move(param_multi));
         }
-    }
+    };
+
+    distribute_params(params_complex);
+    distribute_params(params_real);
+
     return all_params;
 }
 
