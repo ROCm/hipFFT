@@ -80,8 +80,11 @@ if( BUILD_WITH_LIB STREQUAL "CUDA" )
   target_include_directories( hipfft PUBLIC $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}> )
 endif()
 
+set(static_depends)
+
 # Target link libraries
 if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
+  list(APPEND static_depends PACKAGE rocfft)
   target_link_libraries( hipfft PRIVATE roc::rocfft )
   if( WIN32 )
     target_link_libraries( hipfft PRIVATE hip::device hip::host )
@@ -151,5 +154,7 @@ if( ROCM_FOUND )
 
   rocm_export_targets( TARGETS hip::hipfft
     DEPENDS PACKAGE hip
+    STATIC_DEPENDS
+      ${static_depends}
     NAMESPACE hip:: )
 endif()
