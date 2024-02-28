@@ -308,6 +308,7 @@ struct hipfft_plan_description_t
 };
 
 hipfftResult hipfftPlan1d(hipfftHandle* plan, int nx, hipfftType type, int batch)
+try
 {
     hipfftHandle handle = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
@@ -315,23 +316,51 @@ hipfftResult hipfftPlan1d(hipfftHandle* plan, int nx, hipfftType type, int batch
 
     return hipfftMakePlan1d(*plan, nx, type, batch, nullptr);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftPlan2d(hipfftHandle* plan, int nx, int ny, hipfftType type)
+try
 {
+
     hipfftHandle handle = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
     *plan = handle;
 
     return hipfftMakePlan2d(*plan, nx, ny, type, nullptr);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftPlan3d(hipfftHandle* plan, int nx, int ny, int nz, hipfftType type)
+try
 {
+
     hipfftHandle handle = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
     *plan = handle;
 
     return hipfftMakePlan3d(*plan, nx, ny, nz, type, nullptr);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftPlanMany(hipfftHandle* plan,
@@ -345,6 +374,7 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
                             int           odist,
                             hipfftType    type,
                             int           batch)
+try
 {
     hipfftHandle handle = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
@@ -352,6 +382,14 @@ hipfftResult hipfftPlanMany(hipfftHandle* plan,
 
     return hipfftMakePlanMany(
         *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftPlanMany64(hipfftHandle*  plan,
@@ -365,6 +403,7 @@ hipfftResult hipfftPlanMany64(hipfftHandle*  plan,
                               long long int  odist,
                               hipfftType     type,
                               long long int  batch)
+try
 {
     hipfftHandle handle = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftCreate(&handle));
@@ -372,6 +411,14 @@ hipfftResult hipfftPlanMany64(hipfftHandle*  plan,
 
     return hipfftMakePlanMany64(
         *plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, nullptr);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
@@ -851,6 +898,7 @@ hipfftResult hipfftMakePlan_internal(hipfftHandle               plan,
 }
 
 hipfftResult hipfftCreate(hipfftHandle* plan)
+try
 {
     // NOTE: cufft backend uses int for handle type, so this wouldn't
     // work using cufft types.  This is the rocfft backend, but
@@ -868,19 +916,36 @@ hipfftResult hipfftCreate(hipfftHandle* plan)
     *plan = h;
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftExtPlanScaleFactor(hipfftHandle plan, double scalefactor)
+try
 {
     if(!std::isfinite(scalefactor))
         return HIPFFT_INVALID_VALUE;
     plan->scale_factor = scalefactor;
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult
     hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
+try
 {
-
     if(nx < 0 || batch < 0)
     {
         return HIPFFT_INVALID_SIZE;
@@ -897,10 +962,18 @@ hipfftResult
     return hipfftMakePlan_internal(
         plan, 1, lengths, iotype, number_of_transforms, desc, workSize, false);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
+try
 {
-
     if(nx < 0 || ny < 0)
     {
         return HIPFFT_INVALID_SIZE;
@@ -918,11 +991,19 @@ hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type
     return hipfftMakePlan_internal(
         plan, 2, lengths, iotype, number_of_transforms, desc, workSize, false);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult
     hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
+try
 {
-
     if(nx < 0 || ny < 0 || nz < 0)
     {
         return HIPFFT_INVALID_SIZE;
@@ -940,6 +1021,14 @@ hipfftResult
 
     return hipfftMakePlan_internal(
         plan, 3, lengths, iotype, number_of_transforms, desc, workSize, false);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 template <typename T>
@@ -1061,12 +1150,21 @@ hipfftResult hipfftMakePlanMany(hipfftHandle plan,
                                 hipfftType   type,
                                 int          batch,
                                 size_t*      workSize)
+try
 {
     hipfftIOType iotype;
     HIP_FFT_CHECK_AND_RETURN(iotype.init(type));
 
     return hipfftMakePlanMany_internal<int>(
         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, iotype, batch, workSize);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
@@ -1081,6 +1179,7 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
                                   hipfftType     type,
                                   long long int  batch,
                                   size_t*        workSize)
+try
 {
     hipfftIOType iotype;
     HIP_FFT_CHECK_AND_RETURN(iotype.init(type));
@@ -1088,26 +1187,61 @@ hipfftResult hipfftMakePlanMany64(hipfftHandle   plan,
     return hipfftMakePlanMany_internal<long long int>(
         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, iotype, batch, workSize);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t* workSize)
+try
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSize1d(plan, nx, type, batch, workSize);
     return ret;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t* workSize)
+try
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSize2d(plan, nx, ny, type, workSize);
     return ret;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t* workSize)
+try
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSize3d(plan, nx, ny, nz, type, workSize);
     return ret;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftEstimateMany(int        rank,
@@ -1121,17 +1255,26 @@ hipfftResult hipfftEstimateMany(int        rank,
                                 hipfftType type,
                                 int        batch,
                                 size_t*    workSize)
+try
 {
     hipfftHandle plan = nullptr;
     hipfftResult ret  = hipfftGetSizeMany(
         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch, workSize);
     return ret;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult
     hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t* workSize)
+try
 {
-
     if(nx < 0 || batch < 0)
     {
         return HIPFFT_INVALID_SIZE;
@@ -1144,8 +1287,17 @@ hipfftResult
 
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t* workSize)
+try
 {
     if(nx < 0 || ny < 0)
     {
@@ -1159,9 +1311,18 @@ hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type,
 
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult
     hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t* workSize)
+try
 {
     if(nx < 0 || ny < 0 || nz < 0)
     {
@@ -1174,6 +1335,14 @@ hipfftResult
     HIP_FFT_CHECK_AND_RETURN(hipfftDestroy(p));
 
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftGetSizeMany(hipfftHandle plan,
@@ -1188,8 +1357,8 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
                                hipfftType   type,
                                int          batch,
                                size_t*      workSize)
+try
 {
-
     hipfftHandle p;
     HIP_FFT_CHECK_AND_RETURN(
         hipfftPlanMany(&p, rank, n, inembed, istride, idist, onembed, ostride, odist, type, batch));
@@ -1197,6 +1366,14 @@ hipfftResult hipfftGetSizeMany(hipfftHandle plan,
     HIP_FFT_CHECK_AND_RETURN(hipfftDestroy(p));
 
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
@@ -1211,6 +1388,7 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
                                  hipfftType     type,
                                  long long int  batch,
                                  size_t*        workSize)
+try
 {
     hipfftHandle p = nullptr;
     HIP_FFT_CHECK_AND_RETURN(hipfftPlanMany64(
@@ -1220,21 +1398,48 @@ hipfftResult hipfftGetSizeMany64(hipfftHandle   plan,
 
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftGetSize(hipfftHandle plan, size_t* workSize)
+try
 {
     *workSize = plan->workBufferSize;
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate)
+try
 {
     if(plan != nullptr)
         plan->autoAllocate = bool(autoAllocate);
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
+try
 {
     if(plan->workBuffer && plan->workBufferNeedsFree)
     {
@@ -1248,6 +1453,14 @@ hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea)
             rocfft_execution_info_set_work_buffer(plan->info, workArea, plan->workBufferSize));
     }
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 // Find the specific plan to execute - check placement and direction
@@ -1294,6 +1507,7 @@ static hipfftResult hipfftExecBackward(hipfftHandle plan, void* idata, void* oda
 
 hipfftResult
     hipfftExecC2C(hipfftHandle plan, hipfftComplex* idata, hipfftComplex* odata, int direction)
+try
 {
     switch(direction)
     {
@@ -1304,21 +1518,48 @@ hipfftResult
     }
     return HIPFFT_EXEC_FAILED;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal* idata, hipfftComplex* odata)
+try
 {
     return hipfftExecForward(plan, idata, odata);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex* idata, hipfftReal* odata)
+try
 {
     return hipfftExecBackward(plan, idata, odata);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
                            hipfftDoubleComplex* idata,
                            hipfftDoubleComplex* odata,
                            int                  direction)
+try
 {
     switch(direction)
     {
@@ -1329,24 +1570,60 @@ hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
     }
     return HIPFFT_EXEC_FAILED;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal* idata, hipfftDoubleComplex* odata)
+try
 {
     return hipfftExecForward(plan, idata, odata);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex* idata, hipfftDoubleReal* odata)
+try
 {
     return hipfftExecBackward(plan, idata, odata);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream)
+try
 {
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_execution_info_set_stream(plan->info, stream));
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftDestroy(hipfftHandle plan)
+try
 {
     if(plan != nullptr)
     {
@@ -1372,8 +1649,17 @@ hipfftResult hipfftDestroy(hipfftHandle plan)
 
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftGetVersion(int* version)
+try
 {
     char v[256];
     ROC_FFT_CHECK_INVALID_VALUE(rocfft_get_version_string(v, 256));
@@ -1400,8 +1686,17 @@ hipfftResult hipfftGetVersion(int* version)
     *version = std::stoi(result.str());
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftGetProperty(hipfftLibraryPropertyType type, int* value)
+try
 {
     int full;
     hipfftGetVersion(&full);
@@ -1421,11 +1716,20 @@ hipfftResult hipfftGetProperty(hipfftLibraryPropertyType type, int* value)
 
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
                                  void**               callbacks,
                                  hipfftXtCallbackType cbtype,
                                  void**               callbackData)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -1512,14 +1816,32 @@ hipfftResult hipfftXtSetCallback(hipfftHandle         plan,
         return HIPFFT_INVALID_VALUE;
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtClearCallback(hipfftHandle plan, hipfftXtCallbackType cbtype)
+try
 {
     return hipfftXtSetCallback(plan, nullptr, cbtype, nullptr);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult
     hipfftXtSetCallbackSharedSize(hipfftHandle plan, hipfftXtCallbackType cbtype, size_t sharedSize)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -1557,6 +1879,14 @@ hipfftResult
         return HIPFFT_INVALID_VALUE;
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtMakePlanMany(hipfftHandle   plan,
                                   int            rank,
@@ -1572,11 +1902,20 @@ hipfftResult hipfftXtMakePlanMany(hipfftHandle   plan,
                                   long long int  batch,
                                   size_t*        workSize,
                                   hipDataType    executiontype)
+try
 {
     hipfftIOType iotype;
     HIP_FFT_CHECK_AND_RETURN(iotype.init(inputtype, outputtype, executiontype));
     return hipfftMakePlanMany_internal<long long int>(
         plan, rank, n, inembed, istride, idist, onembed, ostride, odist, iotype, batch, workSize);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
@@ -1593,6 +1932,7 @@ hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
                                  long long int  batch,
                                  size_t*        workSize,
                                  hipDataType    executiontype)
+try
 {
     hipfftIOType iotype;
     HIP_FFT_CHECK_AND_RETURN(iotype.init(inputtype, outputtype, executiontype));
@@ -1605,8 +1945,17 @@ hipfftResult hipfftXtGetSizeMany(hipfftHandle   plan,
     HIP_FFT_CHECK_AND_RETURN(hipfftDestroy(p));
     return HIPFFT_SUCCESS;
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExec(hipfftHandle plan, void* input, void* output, int direction)
+try
 {
     bool        inplace  = input == output;
     rocfft_plan plan_ptr = nullptr;
@@ -1623,8 +1972,17 @@ hipfftResult hipfftXtExec(hipfftHandle plan, void* input, void* output, int dire
 
     return hipfftExec(plan_ptr, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtSetGPUs(hipfftHandle plan, int count, int* gpus)
+try
 {
     if(count <= 0)
         return HIPFFT_INVALID_VALUE;
@@ -1644,6 +2002,14 @@ hipfftResult hipfftXtSetGPUs(hipfftHandle plan, int count, int* gpus)
     }
 
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 // get number of bytes used for elements of a given hipDataType
@@ -1676,68 +2042,70 @@ static size_t hipDataType_bytes(hipDataType t, size_t numElems)
 }
 
 hipfftResult hipfftXtMalloc(hipfftHandle plan, hipLibXtDesc** desc, hipfftXtSubFormat format)
+try
 {
     if(!plan || !desc)
         return HIPFFT_INVALID_VALUE;
 
-    try
+    auto lib_desc = std::make_unique<hipLibXtDesc>();
+    memset(lib_desc.get(), 0, sizeof(hipLibXtDesc));
+
+    lib_desc->version       = 0;
+    lib_desc->library       = HIPLIB_FORMAT_HIPFFT;
+    lib_desc->subFormat     = format;
+    lib_desc->libDescriptor = nullptr;
+
+    auto xt_desc = std::make_unique<hipXtDesc>();
+    memset(xt_desc.get(), 0, sizeof(hipXtDesc));
+    xt_desc->version = 0;
+
+    std::vector<hipfft_brick>* bricks           = nullptr;
+    size_t                     bits_per_element = 0;
+
+    switch(format)
     {
-        auto lib_desc = std::make_unique<hipLibXtDesc>();
-        memset(lib_desc.get(), 0, sizeof(hipLibXtDesc));
-
-        lib_desc->version       = 0;
-        lib_desc->library       = HIPLIB_FORMAT_HIPFFT;
-        lib_desc->subFormat     = format;
-        lib_desc->libDescriptor = nullptr;
-
-        auto xt_desc = std::make_unique<hipXtDesc>();
-        memset(xt_desc.get(), 0, sizeof(hipXtDesc));
-        xt_desc->version = 0;
-
-        std::vector<hipfft_brick>* bricks           = nullptr;
-        size_t                     bits_per_element = 0;
-
-        switch(format)
-        {
-        case HIPFFT_XT_FORMAT_INPUT:
-            bricks           = &plan->inBricks;
-            bits_per_element = hipDataType_bits(plan->type.inputType);
-            break;
-        case HIPFFT_XT_FORMAT_OUTPUT:
-            bricks           = &plan->outBricks;
-            bits_per_element = hipDataType_bits(plan->type.outputType);
-            break;
-        case HIPFFT_XT_FORMAT_INPLACE:
-            bricks           = &plan->outBricks;
-            bits_per_element = std::max(hipDataType_bits(plan->type.inputType),
-                                        hipDataType_bits(plan->type.outputType));
-            break;
-        default:
-            return HIPFFT_NOT_IMPLEMENTED;
-        }
-
-        xt_desc->nGPUs = static_cast<int>(bricks->size());
-
-        for(size_t i = 0; i < bricks->size(); ++i)
-        {
-            auto& brick = (*bricks)[i];
-
-            rocfft_scoped_device dev(brick.device);
-
-            xt_desc->GPUs[i] = brick.device;
-            xt_desc->size[i] = brick.min_size * bits_per_element / 8;
-            if(hipMalloc(&(xt_desc->data[i]), xt_desc->size[i]) != hipSuccess)
-                return HIPFFT_INTERNAL_ERROR;
-        }
-
-        lib_desc->descriptor = xt_desc.release();
-        *desc                = lib_desc.release();
+    case HIPFFT_XT_FORMAT_INPUT:
+        bricks           = &plan->inBricks;
+        bits_per_element = hipDataType_bits(plan->type.inputType);
+        break;
+    case HIPFFT_XT_FORMAT_OUTPUT:
+        bricks           = &plan->outBricks;
+        bits_per_element = hipDataType_bits(plan->type.outputType);
+        break;
+    case HIPFFT_XT_FORMAT_INPLACE:
+        bricks           = &plan->outBricks;
+        bits_per_element = std::max(hipDataType_bits(plan->type.inputType),
+                                    hipDataType_bits(plan->type.outputType));
+        break;
+    default:
+        return HIPFFT_NOT_IMPLEMENTED;
     }
-    catch(std::exception&)
+
+    xt_desc->nGPUs = static_cast<int>(bricks->size());
+
+    for(size_t i = 0; i < bricks->size(); ++i)
     {
-        return HIPFFT_ALLOC_FAILED;
+        auto& brick = (*bricks)[i];
+
+        rocfft_scoped_device dev(brick.device);
+
+        xt_desc->GPUs[i] = brick.device;
+        xt_desc->size[i] = brick.min_size * bits_per_element / 8;
+        if(hipMalloc(&(xt_desc->data[i]), xt_desc->size[i]) != hipSuccess)
+            return HIPFFT_INTERNAL_ERROR;
     }
+
+    lib_desc->descriptor = xt_desc.release();
+    *desc                = lib_desc.release();
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_ALLOC_FAILED;
 }
 
 // collapse contiguous dimensions in the specified length + stride -
@@ -1772,6 +2140,7 @@ static void collapse_contiguous_dims(std::vector<size_t>& brick_length,
 }
 
 hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCopyType cptype)
+try
 {
     if(!plan || !dest || !src)
         return HIPFFT_INVALID_VALUE;
@@ -1800,136 +2169,137 @@ hipfftResult hipfftXtMemcpy(hipfftHandle plan, void* dest, void* src, hipfftXtCo
         }
     };
 
-    try
+    switch(cptype)
     {
-        switch(cptype)
-        {
-        case HIPFFT_COPY_HOST_TO_DEVICE:
-        {
-            // dest is a hipLibXtDesc
-            auto destDesc = static_cast<hipLibXtDesc*>(dest);
-            if(!destDesc->descriptor)
-                return HIPFFT_INVALID_VALUE;
+    case HIPFFT_COPY_HOST_TO_DEVICE:
+    {
+        // dest is a hipLibXtDesc
+        auto destDesc = static_cast<hipLibXtDesc*>(dest);
+        if(!destDesc->descriptor)
+            return HIPFFT_INVALID_VALUE;
 
-            std::vector<size_t> srcStride = plan->inStrides;
-            srcStride.push_back(plan->iDist);
-            for(size_t i = 0; i < static_cast<size_t>(destDesc->descriptor->nGPUs); ++i)
+        std::vector<size_t> srcStride = plan->inStrides;
+        srcStride.push_back(plan->iDist);
+        for(size_t i = 0; i < static_cast<size_t>(destDesc->descriptor->nGPUs); ++i)
+        {
+            rocfft_scoped_device dev(destDesc->descriptor->GPUs[i]);
+
+            const auto& brick = brick_layout(destDesc->subFormat)[i];
+
+            auto brick_length = brick.length();
+            auto brick_stride = brick.brick_stride;
+            auto field_stride = srcStride;
+            collapse_contiguous_dims(brick_length, brick_stride, field_stride);
+
+            // if we can do a 1D memcpy, just do that
+            if(brick_length.size() == 1)
             {
-                rocfft_scoped_device dev(destDesc->descriptor->GPUs[i]);
-
-                const auto& brick = brick_layout(destDesc->subFormat)[i];
-
-                auto brick_length = brick.length();
-                auto brick_stride = brick.brick_stride;
-                auto field_stride = srcStride;
-                collapse_contiguous_dims(brick_length, brick_stride, field_stride);
-
-                // if we can do a 1D memcpy, just do that
-                if(brick_length.size() == 1)
-                {
-                    if(hipMemcpy(
-                           destDesc->descriptor->data[i],
-                           offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
-                           destDesc->descriptor->size[i],
-                           hipMemcpyHostToDevice)
-                       != hipSuccess)
-                        return HIPFFT_INTERNAL_ERROR;
-                }
-                else
-                {
-                    if(hipMemcpy2D(
-                           destDesc->descriptor->data[i],
-                           hipDataType_bytes(plan->type.inputType, brick_stride[1]),
-                           offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
-                           hipDataType_bytes(plan->type.inputType, field_stride[1]),
-                           hipDataType_bytes(plan->type.inputType, brick_length[0]),
-                           brick_length[1],
-                           hipMemcpyHostToDevice)
-                       != hipSuccess)
-                        return HIPFFT_INTERNAL_ERROR;
-                }
-            }
-            return HIPFFT_SUCCESS;
-        }
-        case HIPFFT_COPY_DEVICE_TO_HOST:
-        {
-            // src is a hipLibXtDesc
-            auto srcDesc = static_cast<const hipLibXtDesc*>(src);
-            if(!srcDesc->descriptor)
-                return HIPFFT_INVALID_VALUE;
-
-            std::vector<size_t> destStride = plan->outStrides;
-            destStride.push_back(plan->oDist);
-            for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
-            {
-                rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
-
-                const auto& brick = brick_layout(srcDesc->subFormat)[i];
-
-                auto brick_length = brick.length();
-                auto brick_stride = brick.brick_stride;
-                auto field_stride = destStride;
-                collapse_contiguous_dims(brick_length, brick_stride, field_stride);
-
-                // if we can do a 1D memcpy, just do that
-                if(brick_length.size() == 1)
-                {
-                    if(hipMemcpy(offset_buffer(
-                                     dest, plan->type.outputType, brick.field_lower, destStride),
-                                 srcDesc->descriptor->data[i],
-                                 srcDesc->descriptor->size[i],
-                                 hipMemcpyDeviceToHost)
-                       != hipSuccess)
-                        return HIPFFT_INTERNAL_ERROR;
-                }
-                else
-                {
-                    if(hipMemcpy2D(offset_buffer(
-                                       dest, plan->type.outputType, brick.field_lower, destStride),
-                                   hipDataType_bytes(plan->type.outputType, field_stride[1]),
-                                   srcDesc->descriptor->data[i],
-                                   hipDataType_bytes(plan->type.outputType, brick_stride[1]),
-                                   hipDataType_bytes(plan->type.outputType, brick_length[0]),
-                                   brick_length[1],
-                                   hipMemcpyDeviceToHost)
-                       != hipSuccess)
-                        return HIPFFT_INTERNAL_ERROR;
-                }
-            }
-            return HIPFFT_SUCCESS;
-        }
-        case HIPFFT_COPY_DEVICE_TO_DEVICE:
-        {
-            // src and dest are both hipLibXtDescs
-            auto srcDesc  = static_cast<const hipLibXtDesc*>(src);
-            auto destDesc = static_cast<hipLibXtDesc*>(dest);
-            if(!srcDesc->descriptor || !destDesc->descriptor
-               || srcDesc->descriptor->nGPUs != destDesc->descriptor->nGPUs)
-                return HIPFFT_INVALID_VALUE;
-
-            for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
-            {
-                rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
                 if(hipMemcpy(destDesc->descriptor->data[i],
-                             srcDesc->descriptor->data[i],
-                             srcDesc->descriptor->size[i],
-                             hipMemcpyDeviceToDevice)
+                             offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
+                             destDesc->descriptor->size[i],
+                             hipMemcpyHostToDevice)
                    != hipSuccess)
                     return HIPFFT_INTERNAL_ERROR;
             }
-            return HIPFFT_SUCCESS;
+            else
+            {
+                if(hipMemcpy2D(
+                       destDesc->descriptor->data[i],
+                       hipDataType_bytes(plan->type.inputType, brick_stride[1]),
+                       offset_buffer(src, plan->type.inputType, brick.field_lower, srcStride),
+                       hipDataType_bytes(plan->type.inputType, field_stride[1]),
+                       hipDataType_bytes(plan->type.inputType, brick_length[0]),
+                       brick_length[1],
+                       hipMemcpyHostToDevice)
+                   != hipSuccess)
+                    return HIPFFT_INTERNAL_ERROR;
+            }
         }
-        case HIPFFT_COPY_UNDEFINED:
-            return HIPFFT_NOT_IMPLEMENTED;
-        }
+        return HIPFFT_SUCCESS;
     }
-    catch(hipfftResult err)
+    case HIPFFT_COPY_DEVICE_TO_HOST:
     {
-        return err;
+        // src is a hipLibXtDesc
+        auto srcDesc = static_cast<const hipLibXtDesc*>(src);
+        if(!srcDesc->descriptor)
+            return HIPFFT_INVALID_VALUE;
+
+        std::vector<size_t> destStride = plan->outStrides;
+        destStride.push_back(plan->oDist);
+        for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
+        {
+            rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
+
+            const auto& brick = brick_layout(srcDesc->subFormat)[i];
+
+            auto brick_length = brick.length();
+            auto brick_stride = brick.brick_stride;
+            auto field_stride = destStride;
+            collapse_contiguous_dims(brick_length, brick_stride, field_stride);
+
+            // if we can do a 1D memcpy, just do that
+            if(brick_length.size() == 1)
+            {
+                if(hipMemcpy(
+                       offset_buffer(dest, plan->type.outputType, brick.field_lower, destStride),
+                       srcDesc->descriptor->data[i],
+                       srcDesc->descriptor->size[i],
+                       hipMemcpyDeviceToHost)
+                   != hipSuccess)
+                    return HIPFFT_INTERNAL_ERROR;
+            }
+            else
+            {
+                if(hipMemcpy2D(
+                       offset_buffer(dest, plan->type.outputType, brick.field_lower, destStride),
+                       hipDataType_bytes(plan->type.outputType, field_stride[1]),
+                       srcDesc->descriptor->data[i],
+                       hipDataType_bytes(plan->type.outputType, brick_stride[1]),
+                       hipDataType_bytes(plan->type.outputType, brick_length[0]),
+                       brick_length[1],
+                       hipMemcpyDeviceToHost)
+                   != hipSuccess)
+                    return HIPFFT_INTERNAL_ERROR;
+            }
+        }
+        return HIPFFT_SUCCESS;
     }
+    case HIPFFT_COPY_DEVICE_TO_DEVICE:
+    {
+        // src and dest are both hipLibXtDescs
+        auto srcDesc  = static_cast<const hipLibXtDesc*>(src);
+        auto destDesc = static_cast<hipLibXtDesc*>(dest);
+        if(!srcDesc->descriptor || !destDesc->descriptor
+           || srcDesc->descriptor->nGPUs != destDesc->descriptor->nGPUs)
+            return HIPFFT_INVALID_VALUE;
+
+        for(size_t i = 0; i < static_cast<size_t>(srcDesc->descriptor->nGPUs); ++i)
+        {
+            rocfft_scoped_device dev(srcDesc->descriptor->GPUs[i]);
+            if(hipMemcpy(destDesc->descriptor->data[i],
+                         srcDesc->descriptor->data[i],
+                         srcDesc->descriptor->size[i],
+                         hipMemcpyDeviceToDevice)
+               != hipSuccess)
+                return HIPFFT_INTERNAL_ERROR;
+        }
+        return HIPFFT_SUCCESS;
+    }
+    case HIPFFT_COPY_UNDEFINED:
+        return HIPFFT_NOT_IMPLEMENTED;
+    }
+}
+catch(hipfftResult err)
+{
+    return err;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftXtFree(hipLibXtDesc* desc)
+try
 {
     if(desc && desc->descriptor)
     {
@@ -1942,6 +2312,14 @@ hipfftResult hipfftXtFree(hipLibXtDesc* desc)
     }
     delete desc;
     return HIPFFT_SUCCESS;
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 static hipfftResult hipfftXtExecDescriptorBase(const rocfft_plan&           rplan,
@@ -1963,6 +2341,7 @@ hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
                                        hipLibXtDesc* input,
                                        hipLibXtDesc* output,
                                        int           direction)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -1972,8 +2351,17 @@ hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -1983,8 +2371,17 @@ hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle plan, hipLibXtDesc* input, h
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -1993,12 +2390,21 @@ hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle plan, hipLibXtDesc* input, h
     const auto rplan   = get_exec_plan(plan, inplace, HIPFFT_BACKWARD);
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
 
 hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
                                        hipLibXtDesc* input,
                                        hipLibXtDesc* output,
                                        int           direction)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -2008,8 +2414,17 @@ hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -2019,8 +2434,17 @@ hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle plan, hipLibXtDesc* input, h
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle plan, hipLibXtDesc* input, hipLibXtDesc* output)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -2030,11 +2454,20 @@ hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle plan, hipLibXtDesc* input, h
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
 }
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
+}
 
 hipfftResult hipfftXtExecDescriptor(hipfftHandle  plan,
                                     hipLibXtDesc* input,
                                     hipLibXtDesc* output,
                                     int           direction)
+try
 {
     if(!plan)
         return HIPFFT_INVALID_PLAN;
@@ -2043,4 +2476,12 @@ hipfftResult hipfftXtExecDescriptor(hipfftHandle  plan,
     const auto rplan   = get_exec_plan(plan, inplace, direction);
 
     return hipfftXtExecDescriptorBase(rplan, plan->info, input, output);
+}
+catch(hipfftResult e)
+{
+    return e;
+}
+catch(...)
+{
+    return HIPFFT_INTERNAL_ERROR;
 }
