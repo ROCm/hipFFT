@@ -233,6 +233,7 @@ int main(int argc, char* argv[])
     // Check free and total available memory:
     size_t free  = 0;
     size_t total = 0;
+
     if(hipMemGetInfo(&free, &total) != hipSuccess)
         throw std::runtime_error("hipMemGetInfo failed");
 

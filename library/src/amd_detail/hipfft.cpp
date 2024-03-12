@@ -192,7 +192,7 @@ struct hipfftIOType
         case HIP_C_64F:
             return false;
         default:
-            return HIPFFT_NOT_IMPLEMENTED;
+            throw HIPFFT_NOT_IMPLEMENTED;
         }
     }
 
@@ -209,7 +209,7 @@ struct hipfftIOType
         case HIP_C_64F:
             return false;
         default:
-            return HIPFFT_NOT_IMPLEMENTED;
+            throw HIPFFT_NOT_IMPLEMENTED;
         }
     }
 
@@ -228,6 +228,8 @@ struct hipfftIOType
         case rocfft_transform_type_complex_inverse:
         case rocfft_transform_type_real_inverse:
             return false;
+        default:
+            throw HIPFFT_INVALID_VALUE;
         }
     }
 
@@ -2287,6 +2289,8 @@ try
     }
     case HIPFFT_COPY_UNDEFINED:
         return HIPFFT_NOT_IMPLEMENTED;
+    default:
+        throw HIPFFT_INVALID_VALUE;
     }
 }
 catch(hipfftResult err)
