@@ -26,6 +26,8 @@
 #include <hipfft/hipfft.h>
 #include <hipfft/hipfftXt.h>
 
+#include "../hipfft_params.h"
+
 struct load_cbdata
 {
     hipfftDoubleComplex* filter;
@@ -90,7 +92,7 @@ int main()
     std::cout << std::endl;
 
     // Create the plan
-    hipfftHandle plan      = NULL;
+    hipfftHandle plan      = hipfft_params::INVALID_PLAN_HANDLE;
     hipfftResult hipfft_rt = hipfftCreate(&plan);
     if(hipfft_rt != HIPFFT_SUCCESS)
         throw std::runtime_error("failed to create plan");

@@ -14,6 +14,7 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
     }
 
     String cmake = platform.jenkinsLabel.contains('centos') ? "cmake3" : "cmake" 
+    String warningArgs = platform.jenkinsLabel.contains('cuda') ? '':'-DWERROR=ON'
     String hipClang = platform.jenkinsLabel.contains('hipClang') ? "HIP_COMPILER=clang" : ""
     String path = platform.jenkinsLabel.contains('centos7') ? "export PATH=/opt/rh/devtoolset-7/root/usr/bin:$PATH" : ":"
     String dir = jobName.contains('Debug') ? "debug" : "release"
@@ -41,7 +42,7 @@ def runCompileCommand(platform, project, jobName, boolean sameOrg = false)
                 mkdir -p build/${dir} && cd build/${dir}
                 ${getDependenciesCommand}
                 ${path}
-                ${hipClang} ${cmake} ${project.paths.build_command}
+                ${hipClang} ${cmake} ${warningArgs} ${project.paths.build_command}
                 make -j\$(nproc)
             """
 
