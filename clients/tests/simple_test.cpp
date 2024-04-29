@@ -570,9 +570,12 @@ TEST(hipfftTest, RunR2C)
 // the out-place plan from working.
 TEST(hipfftTest, OutplaceOnly)
 {
-    int   N_in  = 4;
-    int   N_out = N_in / 2 + 1;
-    float in[N_in];
+    static const int N_in_const  = 4;
+    static const int N_out_const = N_in_const / 2 + 1;
+    // mutable sizes for passing to hipFFT
+    int   N_in  = N_in_const;
+    int   N_out = N_out_const;
+    float in[N_in_const];
     for(int i = 0; i < N_in; i++)
         in[i] = i + (i % 3) - (i % 7);
 
@@ -606,8 +609,8 @@ TEST(hipfftTest, OutplaceOnly)
     ASSERT_EQ(hipFree(d_in), hipSuccess);
     ASSERT_EQ(hipFree(d_out), hipSuccess);
 
-    double ref_in[N_in];
-    for(int i = 0; i < N_in; i++)
+    double ref_in[N_in_const];
+    for(int i = 0; i < N_in_const; i++)
         ref_in[i] = in[i];
 
     fftw_complex* ref_out;
