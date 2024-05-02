@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "../../shared/accuracy_test.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <hip/hip_runtime_api.h>
 
@@ -68,7 +69,7 @@ std::vector<fft_params> param_generator_multi_gpu()
             if(param.nbatch == 1 && param.placement == fft_placement_notinplace)
                 continue;
 
-            param_multi.multiGPU = deviceCount;
+            param_multi.multiGPU = std::min(static_cast<int>(param.nbatch), deviceCount);
             all_params.emplace_back(std::move(param_multi));
         }
     };
