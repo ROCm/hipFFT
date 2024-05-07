@@ -56,7 +56,7 @@ typedef enum hiplibFormat_t
 
 /*! @brief Struct for single-process multi-GPU transform
  *
- * This struct holds \ref hipXtDesc_t structures that define blocks
+ * This struct holds hipXtDesc_t structures that define blocks
  * of memory for use in a transform.
  *
  * @warning Experimental
