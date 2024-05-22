@@ -98,3 +98,12 @@ If you have existing CUDA code and want to transition to HIP, follow these steps
 
 More information about porting to HIP is available in the
 [HIP porting guide](https://rocm.docs.amd.com/projects/HIP/en/develop/user_guide/hip_porting_guide.html).
+
+## Support
+
+You can report bugs and feature requests through the GitHub
+[issue tracker](https://github.com/ROCm/hipFFT/issues).
+
+## Contribute
+
+If you want to contribute to hipFFT, you must follow our [contribution guidelines](https://github.com/ROCm/hipFFT/blob/develop/.github/CONTRIBUTING.md).
