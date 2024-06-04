@@ -159,8 +159,21 @@ inline Tsize var_size(const fft_precision precision, const fft_array_type type)
     }
     return var_size;
 }
-// Given an array type and transform length, strides, etc, load random floats in [0,1]
-// into the input array of floats/doubles or complex floats/doubles gpu buffers.
+
+// Given an array type and transform length, strides, etc, initialize
+// values into the input device buffer.
+//
+// length/istride/batch/dist describe the physical layout of the
+// input buffer.  The buffer is treated as a sub-brick of a field,
+// though the brick may cover the entire field.
+//
+// Lower coordinate of the brick in the field is provided by
+// field_lower (FFT dimension coordinate) and field_lower_batch
+// (batch dimension coordinate).  For a brick that covers the whole
+// field, these are all zeroes.
+//
+// field_contig_stride + dist are the field's stride and dist if the
+// field were contiguous.
 template <typename Tfloat, typename Tint1>
 inline void set_input(std::vector<gpubuf>&       input,
                       const fft_input_generator  igen,
@@ -172,7 +185,11 @@ inline void set_input(std::vector<gpubuf>&       input,
                       const Tint1&               whole_stride,
                       const size_t               idist,
                       const size_t               nbatch,
-                      const hipDeviceProp_t&     deviceProp)
+                      const hipDeviceProp_t&     deviceProp,
+                      const Tint1&               field_lower,
+                      const size_t               field_lower_batch,
+                      const Tint1&               field_contig_stride,
+                      const size_t               field_contig_dist)
 {
     auto isize = count_iters(whole_length) * nbatch;
 
@@ -187,8 +204,16 @@ inline void set_input(std::vector<gpubuf>&       input,
             generate_interleaved_data(
                 whole_length, idist, isize, whole_stride, nbatch, ibuffer, deviceProp);
         else if(igen == fft_input_random_generator_device)
-            generate_random_interleaved_data(
-                whole_length, idist, isize, whole_stride, ibuffer, deviceProp);
+            generate_random_interleaved_data(whole_length,
+                                             idist,
+                                             isize,
+                                             whole_stride,
+                                             ibuffer,
+                                             deviceProp,
+                                             field_lower,
+                                             field_lower_batch,
+                                             field_contig_stride,
+                                             field_contig_dist);
 
         if(itype == fft_array_type_hermitian_interleaved)
         {
@@ -215,8 +240,17 @@ inline void set_input(std::vector<gpubuf>&       input,
                                  ibuffer_imag,
                                  deviceProp);
         else if(igen == fft_input_random_generator_device)
-            generate_random_planar_data(
-                whole_length, idist, isize, whole_stride, ibuffer_real, ibuffer_imag, deviceProp);
+            generate_random_planar_data(whole_length,
+                                        idist,
+                                        isize,
+                                        whole_stride,
+                                        ibuffer_real,
+                                        ibuffer_imag,
+                                        deviceProp,
+                                        field_lower,
+                                        field_lower_batch,
+                                        field_contig_stride,
+                                        field_contig_dist);
 
         if(itype == fft_array_type_hermitian_planar)
             impose_hermitian_symmetry_planar(
@@ -232,8 +266,16 @@ inline void set_input(std::vector<gpubuf>&       input,
             generate_real_data(
                 whole_length, idist, isize, whole_stride, nbatch, ibuffer, deviceProp);
         else if(igen == fft_input_random_generator_device)
-            generate_random_real_data(
-                whole_length, idist, isize, whole_stride, ibuffer, deviceProp);
+            generate_random_real_data(whole_length,
+                                      idist,
+                                      isize,
+                                      whole_stride,
+                                      ibuffer,
+                                      deviceProp,
+                                      field_lower,
+                                      field_lower_batch,
+                                      field_contig_stride,
+                                      field_contig_dist);
 
         break;
     }
@@ -242,6 +284,20 @@ inline void set_input(std::vector<gpubuf>&       input,
     }
 }
 
+// Given an array type and transform length, strides, etc, initialize
+// values into the input host buffer.
+//
+// length/istride/batch/dist describe the physical layout of the
+// input buffer.  The buffer is treated as a sub-brick of a field,
+// though the brick may cover the entire field.
+//
+// Lower coordinate of the brick in the field is provided by
+// field_lower (FFT dimension coordinate) and field_lower_batch
+// (batch dimension coordinate).  For a brick that covers the whole
+// field, these are all zeroes.
+//
+// field_contig_stride + dist are the field's stride and dist if the
+// field were contiguous.
 template <typename Tfloat, typename Tint1>
 inline void set_input(std::vector<hostbuf>&      input,
                       const fft_input_generator  igen,
@@ -253,7 +309,11 @@ inline void set_input(std::vector<hostbuf>&      input,
                       const Tint1&               whole_stride,
                       const size_t               idist,
                       const size_t               nbatch,
-                      const hipDeviceProp_t&     deviceProp)
+                      const hipDeviceProp_t&     deviceProp,
+                      const Tint1                field_lower,
+                      const size_t               field_lower_batch,
+                      const Tint1                field_contig_stride,
+                      const size_t               field_contig_dist)
 {
     switch(itype)
     {
@@ -263,8 +323,15 @@ inline void set_input(std::vector<hostbuf>&      input,
         if(igen == fft_input_generator_host)
             generate_interleaved_data<Tfloat>(input, whole_length, whole_stride, idist, nbatch);
         else if(igen == fft_input_random_generator_host)
-            generate_random_interleaved_data<Tfloat>(
-                input, whole_length, whole_stride, idist, nbatch);
+            generate_random_interleaved_data<Tfloat>(input,
+                                                     whole_length,
+                                                     whole_stride,
+                                                     idist,
+                                                     nbatch,
+                                                     field_lower,
+                                                     field_lower_batch,
+                                                     field_contig_stride,
+                                                     field_contig_dist);
 
         if(itype == fft_array_type_hermitian_interleaved)
             impose_hermitian_symmetry_interleaved<Tfloat>(input, length, istride, idist, nbatch);
@@ -277,7 +344,15 @@ inline void set_input(std::vector<hostbuf>&      input,
         if(igen == fft_input_generator_host)
             generate_planar_data<Tfloat>(input, whole_length, whole_stride, idist, nbatch);
         else if(igen == fft_input_random_generator_host)
-            generate_random_planar_data<Tfloat>(input, whole_length, whole_stride, idist, nbatch);
+            generate_random_planar_data<Tfloat>(input,
+                                                whole_length,
+                                                whole_stride,
+                                                idist,
+                                                nbatch,
+                                                field_lower,
+                                                field_lower_batch,
+                                                field_contig_stride,
+                                                field_contig_dist);
 
         if(itype == fft_array_type_hermitian_planar)
             impose_hermitian_symmetry_planar<Tfloat>(input, length, istride, idist, nbatch);
@@ -289,7 +364,15 @@ inline void set_input(std::vector<hostbuf>&      input,
         if(igen == fft_input_generator_host)
             generate_real_data<Tfloat>(input, whole_length, whole_stride, idist, nbatch);
         else if(igen == fft_input_random_generator_host)
-            generate_random_real_data<Tfloat>(input, whole_length, whole_stride, idist, nbatch);
+            generate_random_real_data<Tfloat>(input,
+                                              whole_length,
+                                              whole_stride,
+                                              idist,
+                                              nbatch,
+                                              field_lower,
+                                              field_lower_batch,
+                                              field_contig_stride,
+                                              field_contig_dist);
 
         break;
     }
@@ -313,43 +396,56 @@ inline void set_input(std::vector<Tbuff>&        input,
     switch(length.size())
     {
     case 1:
-        set_input<Tfloat>(input,
-                          igen,
-                          itype,
-                          length,
-                          ilength,
-                          istride,
-                          ilength[0],
-                          istride[0],
-                          idist,
-                          nbatch,
-                          deviceProp);
+        set_input<Tfloat, size_t>(input,
+                                  igen,
+                                  itype,
+                                  length,
+                                  ilength,
+                                  istride,
+                                  ilength[0],
+                                  istride[0],
+                                  idist,
+                                  nbatch,
+                                  deviceProp,
+                                  {},
+                                  0UL,
+                                  1UL,
+                                  ilength[0]);
         break;
     case 2:
-        set_input<Tfloat>(input,
-                          igen,
-                          itype,
-                          length,
-                          ilength,
-                          istride,
-                          std::make_tuple(ilength[0], ilength[1]),
-                          std::make_tuple(istride[0], istride[1]),
-                          idist,
-                          nbatch,
-                          deviceProp);
+        set_input<Tfloat, std::tuple<size_t, size_t>>(input,
+                                                      igen,
+                                                      itype,
+                                                      length,
+                                                      ilength,
+                                                      istride,
+                                                      std::make_tuple(ilength[0], ilength[1]),
+                                                      std::make_tuple(istride[0], istride[1]),
+                                                      idist,
+                                                      nbatch,
+                                                      deviceProp,
+                                                      {},
+                                                      0UL,
+                                                      {1UL, ilength[0]},
+                                                      ilength[0] * ilength[1]);
         break;
     case 3:
-        set_input<Tfloat>(input,
-                          igen,
-                          itype,
-                          length,
-                          ilength,
-                          istride,
-                          std::make_tuple(ilength[0], ilength[1], ilength[2]),
-                          std::make_tuple(istride[0], istride[1], istride[2]),
-                          idist,
-                          nbatch,
-                          deviceProp);
+        set_input<Tfloat, std::tuple<size_t, size_t, size_t>>(
+            input,
+            igen,
+            itype,
+            length,
+            ilength,
+            istride,
+            std::make_tuple(ilength[0], ilength[1], ilength[2]),
+            std::make_tuple(istride[0], istride[1], istride[2]),
+            idist,
+            nbatch,
+            deviceProp,
+            {},
+            0UL,
+            {1UL, ilength[0], ilength[0] * ilength[1]},
+            ilength[0] * ilength[1] * ilength[2]);
         break;
     default:
         abort();
@@ -1864,71 +1960,97 @@ public:
     // buffer where transform output needs to go for validation
     virtual void multi_gpu_finalize(std::vector<gpubuf>& obuffer, std::vector<void*>& pobuffer) {}
 
-    // create bricks in the specified field for the specified number
-    // of devices.  The field is split along the highest FFT
-    // dimension, and the length only includes FFT lengths, not batch
-    // dimension.
-    void distribute_field(int                        deviceCount,
-                          std::vector<fft_field>&    fields,
-                          const std::vector<size_t>& field_length)
+    // Create bricks in the specified field.  brick_grid has an
+    // integer per dimension (batch and FFT dimensions), with the
+    // number of bricks to split that dimension on.  Field length
+    // starts with batch dimension, followed by FFT dimensions
+    // slowest to fastest.
+    void distribute_field(const std::vector<unsigned int>& brick_grid,
+                          std::vector<fft_field>&          fields,
+                          const std::vector<size_t>&       field_length)
     {
-        size_t slowLen = field_length.front();
-        if(slowLen < static_cast<size_t>(deviceCount))
-            throw std::runtime_error("too many devices to distribute length "
-                                     + std::to_string(slowLen));
+        if(brick_grid.size() != field_length.size())
+            throw std::runtime_error(
+                "distribute field requires same number of dims for grid and field length");
+
+        // if nothing's actually split, don't bother making bricks
+        if(std::all_of(
+               brick_grid.begin(), brick_grid.end(), [](const unsigned int g) { return g == 1; }))
+            return;
+
+        size_t total_bricks = product(brick_grid.begin(), brick_grid.end());
 
         auto& field = fields.emplace_back();
 
-        for(int i = 0; i < deviceCount; ++i)
+        // start with empty brick in field
+        field.bricks.reserve(total_bricks);
+        field.bricks.emplace_back();
+
+        // go over the grid
+        for(size_t i = 0; i < brick_grid.size(); ++i)
         {
-            // start at origin
-            std::vector<size_t> field_lower(field_length.size());
-            std::vector<size_t> field_upper(field_length.size());
+            std::vector<fft_brick> cur_bricks;
+            cur_bricks.swap(field.bricks);
+            field.bricks.reserve(total_bricks);
 
-            // note: slowest FFT dim is index 0 in these coordinates
-            field_lower[0] = slowLen / deviceCount * i;
+            auto brick_count = brick_grid[i];
+            auto cur_length  = field_length[i];
 
-            // last brick needs to include the whole slow len
-            if(i == deviceCount - 1)
+            // split current length, apply to all current bricks and
+            // append bricks to field
+            for(size_t ibrick = 0; ibrick < brick_count; ++ibrick)
             {
-                field_upper[0] = slowLen;
+                for(const auto& b : cur_bricks)
+                {
+                    auto& new_brick = field.bricks.emplace_back(b);
+                    new_brick.lower.push_back(cur_length / brick_count * ibrick);
+                    // last brick needs to include the whole split len
+                    if(ibrick == brick_count - 1)
+                        new_brick.upper.push_back(cur_length);
+                    else
+                        new_brick.upper.push_back(std::min(
+                            cur_length, new_brick.lower.back() + cur_length / brick_count));
+                }
             }
-            else
+        }
+
+        // give all bricks contiguous strides
+        int device = 0;
+        for(auto& b : field.bricks)
+        {
+            b.stride.resize(b.upper.size());
+
+            // fill strides from fastest to slowest
+            size_t brick_dist = 1;
+            for(size_t distIdx = 0; distIdx < b.upper.size(); ++distIdx)
             {
-                field_upper[0] = std::min(slowLen, field_lower[0] + slowLen / deviceCount);
+                *(b.stride.rbegin() + distIdx) = brick_dist;
+                brick_dist *= *(b.upper.rbegin() + distIdx) - *(b.lower.rbegin() + distIdx);
             }
 
-            for(unsigned int upperDim = 1; upperDim < field_length.size(); ++upperDim)
-            {
-                field_upper[upperDim] = field_length[upperDim];
-            }
-
-            // field coordinates also need to include batch
-            field_lower.insert(field_lower.begin(), 0);
-            field_upper.insert(field_upper.begin(), nbatch);
-
-            // bricks have contiguous strides
-            size_t              brick_dist = 1;
-            std::vector<size_t> brick_stride(field_lower.size());
-            for(size_t distIdx = 0; distIdx < field_lower.size(); ++distIdx)
-            {
-                // fill strides from fastest to slowest
-                *(brick_stride.rbegin() + distIdx) = brick_dist;
-                brick_dist *= *(field_upper.rbegin() + distIdx) - *(field_lower.rbegin() + distIdx);
-            }
-            field.bricks.push_back(
-                fft_params::fft_brick{field_lower, field_upper, brick_stride, i});
+            // assume there's one device per brick
+            b.device = device++;
         }
     }
 
-    void distribute_input(int deviceCount)
+    // Distribute problem input among specified grid of devices.  Grid
+    // specifies number of bricks per dimension, starting with batch
+    // and ending with fastest FFT dimension.
+    void distribute_input(const std::vector<unsigned int>& brick_grid)
     {
-        distribute_field(deviceCount, ifields, length);
+        auto len = length;
+        len.insert(len.begin(), nbatch);
+        distribute_field(brick_grid, ifields, len);
     }
 
-    void distribute_output(int deviceCount)
+    // Distribute problem output among specified grid of devices.  Grid
+    // specifies number of bricks per dimension, starting with batch
+    // and ending with fastest FFT dimension.
+    void distribute_output(const std::vector<unsigned int>& brick_grid)
     {
-        distribute_field(deviceCount, ofields, olength());
+        auto len = olength();
+        len.insert(len.begin(), nbatch);
+        distribute_field(brick_grid, ofields, len);
     }
 };
 

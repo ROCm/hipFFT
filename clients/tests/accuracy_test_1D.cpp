@@ -27,6 +27,7 @@
 
 #include "../../shared/accuracy_test.h"
 #include "../../shared/fftw_transform.h"
+#include "../../shared/params_gen.h"
 #include "../../shared/rocfft_against_fftw.h"
 
 using ::testing::ValuesIn;

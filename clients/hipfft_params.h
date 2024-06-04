@@ -374,6 +374,14 @@ public:
         }
         }
 
+        // hipFFT can fail plan creation due to allocation failure -
+        // tests are expecting a specific exception in that case,
+        // because the test was unable to run.  Doesn't mean the test
+        // case failed.
+        if(ret == HIPFFT_ALLOC_FAILED)
+            throw fft_params::work_buffer_alloc_failure(
+                "plan create failed due to allocation failure");
+
         return fft_status_from_hipfftparams(ret);
     }
 

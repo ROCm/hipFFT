@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "../../shared/accuracy_test.h"
+#include "../../shared/params_gen.h"
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <hip/hip_runtime_api.h>

@@ -72,7 +72,20 @@ TEST_P(accuracy_test, vs_fftw)
     bool round_trip = params.multiGPU <= 1;
 
     if(!params.run_callbacks)
-        fft_vs_reference(params, round_trip);
+    {
+        try
+        {
+            fft_vs_reference(params, round_trip);
+        }
+        catch(ROCFFT_GTEST_SKIP& e)
+        {
+            GTEST_SKIP() << e.msg.str();
+        }
+        catch(ROCFFT_GTEST_FAIL& e)
+        {
+            GTEST_FAIL() << e.msg.str();
+        }
+    }
 
     SUCCEED();
 }

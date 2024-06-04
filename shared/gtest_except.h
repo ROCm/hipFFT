@@ -1,4 +1,4 @@
-// Copyright (C) 2016 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (C) 2024 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,35 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
-#ifndef TESTCONSTANTS_H
-#define TESTCONSTANTS_H
+#ifndef ROCFFT_GTEST_EXCEPT_H
+#define ROCFFT_GTEST_EXCEPT_H
 
-#include <stdexcept>
+#include <sstream>
 
-extern int    verbose;
-extern size_t ramgb;
-extern size_t vramgb;
+// exception type to throw when we want gtest to skip this test case
+struct ROCFFT_GTEST_SKIP
+{
+    std::stringstream msg;
+};
 
-extern size_t n_random_tests;
-
-extern size_t random_seed;
-extern double test_prob;
-extern double planar_prob;
-extern double callback_prob;
-
-extern double half_epsilon;
-extern double single_epsilon;
-extern double double_epsilon;
-extern bool   skip_runtime_fails;
-
-extern double max_linf_eps_double;
-extern double max_l2_eps_double;
-extern double max_linf_eps_single;
-extern double max_l2_eps_single;
-extern double max_linf_eps_half;
-extern double max_l2_eps_half;
-
-extern int n_hip_failures;
+// exception type to throw when we want gtest to fail this test case
+struct ROCFFT_GTEST_FAIL
+{
+    std::stringstream msg;
+};
 
 #endif
