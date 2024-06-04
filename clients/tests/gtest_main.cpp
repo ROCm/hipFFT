@@ -53,6 +53,9 @@ int verbose;
 // User-defined random seed
 size_t random_seed;
 
+// Overall probability of running any given test
+double test_prob;
+
 // Probability of running individual planar FFTs
 double planar_prob;
 
@@ -238,6 +241,8 @@ int main(int argc, char* argv[])
          "print out detailed information for the tests.")
         ("seed", po::value<size_t>(&random_seed),
          "Random seed; if unset, use an actual random seed.")
+        ("test_prob", po::value<double>(&test_prob)->default_value(1.0),
+         "Probability of running individual tests.")
         ("callback_prob", po::value<double>(&callback_prob)->default_value(0.1),
          "Probability of running individual callback transforms")
         ("fftw_compare",
@@ -489,5 +494,17 @@ TEST(manual, vs_fftw)
     std::cout << "Token: " << manual_params.token() << std::endl;
 
     hipfft_params params(manual_params);
-    fft_vs_reference(params, false);
+
+    try
+    {
+        fft_vs_reference(params, false);
+    }
+    catch(ROCFFT_GTEST_SKIP& e)
+    {
+        GTEST_SKIP() << e.msg.str();
+    }
+    catch(ROCFFT_GTEST_FAIL& e)
+    {
+        GTEST_FAIL() << e.msg.str();
+    }
 }
