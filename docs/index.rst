@@ -15,13 +15,16 @@ Welcome to the hipFFT documentation home page. hipFFT is an FFT marshalling libr
 
 The hipFFT documentation is structured as follows:
 
-.. card:: `Reference`
+.. grid:: 2
+  :gutter: 3
 
-  * :ref:`hipfft-overview`
-  * :ref:`hipfft-api-usage`
-  * :ref:`genindex`
+  .. grid-item-card:: Reference
+
+    * :ref:`hipfft-overview`
+    * :ref:`hipfft-api-usage`
+    * :ref:`genindex`
 
 
-To contribute to the documentation refer to `Contributing to ROCm  <https://rocm.docs.amd.com/en/latest/contribute/index.html>`_.
+To contribute to the documentation refer to `Contributing to ROCm  <https://rocm.docs.amd.com/en/latest/contribute/contributing.html>`_.
 
 You can find licensing information on the `Licensing <https://rocm.docs.amd.com/en/latest/about/license.html>`_ page.
