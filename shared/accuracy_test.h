@@ -401,11 +401,11 @@ inline void execute_gpu_fft(Tparams&              params,
             ++n_hip_failures;
             if(skip_runtime_fails)
             {
-                throw ROCFFT_GTEST_SKIP{};
+                throw ROCFFT_GTEST_SKIP();
             }
             else
             {
-                throw ROCFFT_GTEST_FAIL{};
+                throw ROCFFT_GTEST_FAIL();
             }
         }
         hip_status = hipMemcpy(load_cb_data_dev.data(),
@@ -417,11 +417,11 @@ inline void execute_gpu_fft(Tparams&              params,
             ++n_hip_failures;
             if(skip_runtime_fails)
             {
-                throw ROCFFT_GTEST_SKIP{};
+                throw ROCFFT_GTEST_SKIP();
             }
             else
             {
-                throw ROCFFT_GTEST_FAIL{};
+                throw ROCFFT_GTEST_FAIL();
             }
         }
 
@@ -447,11 +447,11 @@ inline void execute_gpu_fft(Tparams&              params,
             ++n_hip_failures;
             if(skip_runtime_fails)
             {
-                throw ROCFFT_GTEST_SKIP{};
+                throw ROCFFT_GTEST_SKIP();
             }
             else
             {
-                throw ROCFFT_GTEST_FAIL{};
+                throw ROCFFT_GTEST_FAIL();
             }
         }
 
@@ -464,11 +464,11 @@ inline void execute_gpu_fft(Tparams&              params,
             ++n_hip_failures;
             if(skip_runtime_fails)
             {
-                throw ROCFFT_GTEST_SKIP{};
+                throw ROCFFT_GTEST_SKIP();
             }
             else
             {
-                throw ROCFFT_GTEST_FAIL{};
+                throw ROCFFT_GTEST_FAIL();
             }
         }
 
@@ -1092,7 +1092,7 @@ inline void fft_vs_reference_impl(Tparams& params, bool round_trip)
                 std::cout << "Problem exceeds memory limit; skipped [rocfft_transform]."
                           << std::endl;
             }
-            throw ROCFFT_GTEST_SKIP{};
+            throw ROCFFT_GTEST_SKIP();
         }
     }
 
