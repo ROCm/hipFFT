@@ -26,9 +26,8 @@
 #include <random>
 
 #include "bench.h"
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
 
+#include "../../shared/CLI11.hpp"
 #include "../../shared/gpubuf.h"
 
 int main(int argc, char* argv[])
@@ -52,80 +51,91 @@ int main(int argc, char* argv[])
     std::string token;
 
     // Declare the supported options.
+    CLI::App app{"hipfft-bench command line options"};
 
-    // clang-format doesn't handle boost program options very well:
-    // clang-format off
-    po::options_description opdesc("hipfft bench command line options");
-    opdesc.add_options()("help,h", "produces this help message")
-        ("version,v", "Print queryable version information from the hipfft library")
-        ("device", po::value<int>(&deviceId)->default_value(0), "Select a specific device id")
-        ("verbose", po::value<int>(&verbose)->default_value(0), "Control output verbosity")
-        ("ntrial,N", po::value<int>(&ntrial)->default_value(1), "Trial size for the problem")
-        ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
-        ("double", "Double precision transform (deprecated: use --precision double)")
-        ("precision", po::value<fft_precision>(&params.precision), "Transform precision: single (default), double, half")
-        ("transformType,t", po::value<fft_transform_type>(&params.transform_type)
-         ->default_value(fft_transform_type_complex_forward),
-         "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
-         "forward\n3) real inverse")
-        ( "batchSize,b", po::value<size_t>(&params.nbatch)->default_value(1),
-          "If this value is greater than one, arrays will be used ")
-        ( "itype", po::value<fft_array_type>(&params.itype)
-          ->default_value(fft_array_type_unset),
-          "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
-        ( "otype", po::value<fft_array_type>(&params.otype)
-          ->default_value(fft_array_type_unset),
-          "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
-        ("length",  po::value<std::vector<size_t>>(&params.length)->multitoken(), "Lengths.")
-        ("istride", po::value<std::vector<size_t>>(&params.istride)->multitoken(), "Input strides.")
-        ("ostride", po::value<std::vector<size_t>>(&params.ostride)->multitoken(), "Output strides.")
-        ("idist", po::value<size_t>(&params.idist)->default_value(0),
-         "Logical distance between input batches.")
-        ("odist", po::value<size_t>(&params.odist)->default_value(0),
-         "Logical distance between output batches.")
-        ("isize", po::value<std::vector<size_t>>(&params.isize)->multitoken(),
-         "Logical size of input buffer.")
-        ("osize", po::value<std::vector<size_t>>(&params.osize)->multitoken(),
-         "Logical size of output buffer.")
-        ("ioffset", po::value<std::vector<size_t>>(&params.ioffset)->multitoken(), "Input offsets.")
-        ("ooffset", po::value<std::vector<size_t>>(&params.ooffset)->multitoken(), "Output offsets.")
-        ("scalefactor", po::value<double>(&params.scale_factor), "Scale factor to apply to output.")
-        ("token", po::value<std::string>(&token));
-    // clang-format on
+    // Declare the supported options. Some option pointers are declared to track passed opts.
+    app.add_flag("-v, --version", "Print queryable version information from the rocfft library")
+        // ->each([](const std::string&) {
+        //     char v[256];
+        //     rocfft_get_version_string(v, 256);
+        //     std::cout << "version " << v << std::endl;
+        //     std::exit(EXIT_SUCCESS);
+        // })
+        ;
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, opdesc), vm);
-    po::notify(vm);
+    CLI::Option* opt_token
+        = app.add_option("--token", token, "Token to read FFT params from")->default_val("");
+    // Group together options that conflict with --token
+    auto* non_token = app.add_option_group("Token Conflict", "Options excluded by --token");
+    non_token
+        ->add_flag("--double", "Double precision transform (deprecated: use --precision double)")
+        ->each([&](const std::string&) { params.precision = fft_precision_double; });
+    non_token->excludes(opt_token);
+    non_token
+        ->add_option("-t, --transformType",
+                     params.transform_type,
+                     "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
+                     "forward\n3) real inverse")
+        ->default_val(fft_transform_type_complex_forward);
+    non_token
+        ->add_option(
+            "--precision", params.precision, "Transform precision: single (default), double, half")
+        ->excludes("--double");
+    CLI::Option* opt_not_in_place
+        = non_token->add_flag("-o, --notInPlace", "Not in-place FFT transform (default: in-place)")
+              ->each([&](const std::string&) { params.placement = fft_placement_notinplace; });
+    non_token
+        ->add_option("--itype",
+                     params.itype,
+                     "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
+                     "hermitian interleaved\n4) hermitian planar")
+        ->default_val(fft_array_type_unset);
+    non_token
+        ->add_option("--otype",
+                     params.otype,
+                     "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) "
+                     "hermitian interleaved\n4) hermitian planar")
+        ->default_val(fft_array_type_unset);
+    CLI::Option* opt_length
+        = non_token->add_option("--length", params.length, "Lengths")->required()->expected(1, 3);
+    non_token
+        ->add_option("-b, --batchSize",
+                     params.nbatch,
+                     "If this value is greater than one, arrays will be used")
+        ->default_val(1);
+    CLI::Option* opt_istride = non_token->add_option("--istride", params.istride, "Input strides");
+    CLI::Option* opt_ostride = non_token->add_option("--ostride", params.ostride, "Output strides");
+    non_token->add_option("--idist", params.idist, "Logical distance between input batches")
+        ->default_val(0)
+        ->each([&](const std::string& val) { std::cout << "idist: " << val << "\n"; });
+    non_token->add_option("--odist", params.odist, "Logical distance between output batches")
+        ->default_val(0)
+        ->each([&](const std::string& val) { std::cout << "odist: " << val << "\n"; });
+    CLI::Option* opt_ioffset = non_token->add_option("--ioffset", params.ioffset, "Input offset");
+    CLI::Option* opt_ooffset = non_token->add_option("--ooffset", params.ooffset, "Output offset");
 
-    if(vm.count("help"))
+    app.add_option("--device", deviceId, "Select a specific device id")->default_val(0);
+    app.add_option("--verbose", verbose, "Control output verbosity")->default_val(0);
+    app.add_option("-N, --ntrial", ntrial, "Trial size for the problem")
+        ->default_val(1)
+        ->each([&](const std::string& val) {
+            std::cout << "Running profile with " << val << " samples\n";
+        });
+    app.add_option("--isize", params.isize, "Logical size of input buffer");
+    app.add_option("--osize", params.osize, "Logical size of output buffer");
+    app.add_option("--scalefactor", params.scale_factor, "Scale factor to apply to output");
+
+    // Parse args and catch any errors here
+    try
     {
-        std::cout << opdesc << std::endl;
-        return 0;
+        app.parse(argc, argv);
+    }
+    catch(const CLI::ParseError& e)
+    {
+        return app.exit(e);
     }
 
-    // if(vm.count("version"))
-    // {
-    //     char v[256];
-    //     rocfft_get_version_string(v, 256);
-    //     std::cout << "version " << v << std::endl;
-    //     return 0;
-    // }
-
-    if(!vm.count("length"))
-    {
-        std::cout << "Please specify transform length!" << std::endl;
-        std::cout << opdesc << std::endl;
-        return 0;
-    }
-
-    if(vm.count("ntrial"))
-    {
-        std::cout << "Running profile with " << ntrial << " samples\n";
-    }
-
-    if(token != "")
+    if(!token.empty())
     {
         std::cout << "Reading fft params from token:\n" << token << std::endl;
 
@@ -136,24 +146,12 @@ int main(int argc, char* argv[])
         catch(...)
         {
             std::cout << "Unable to parse token." << std::endl;
-            return 1;
+            return EXIT_FAILURE;
         }
     }
     else
     {
-        if(!vm.count("length"))
-        {
-            std::cout << "Please specify transform length!" << std::endl;
-            std::cout << opdesc << std::endl;
-            return 0;
-        }
-
-        params.placement
-            = vm.count("notInPlace") ? fft_placement_notinplace : fft_placement_inplace;
-        if(vm.count("double"))
-            params.precision = fft_precision_double;
-
-        if(vm.count("notInPlace"))
+        if(*opt_not_in_place)
         {
             std::cout << "out-of-place\n";
         }
@@ -162,7 +160,7 @@ int main(int argc, char* argv[])
             std::cout << "in-place\n";
         }
 
-        if(vm.count("length"))
+        if(*opt_length)
         {
             std::cout << "length:";
             for(auto& i : params.length)
@@ -170,38 +168,28 @@ int main(int argc, char* argv[])
             std::cout << "\n";
         }
 
-        if(vm.count("istride"))
+        if(*opt_istride)
         {
             std::cout << "istride:";
             for(auto& i : params.istride)
                 std::cout << " " << i;
             std::cout << "\n";
         }
-        if(vm.count("ostride"))
+        if(*opt_ostride)
         {
             std::cout << "ostride:";
             for(auto& i : params.ostride)
                 std::cout << " " << i;
             std::cout << "\n";
         }
-
-        if(params.idist > 0)
-        {
-            std::cout << "idist: " << params.idist << "\n";
-        }
-        if(params.odist > 0)
-        {
-            std::cout << "odist: " << params.odist << "\n";
-        }
-
-        if(vm.count("ioffset"))
+        if(*opt_ioffset)
         {
             std::cout << "ioffset:";
             for(auto& i : params.ioffset)
                 std::cout << " " << i;
             std::cout << "\n";
         }
-        if(vm.count("ooffset"))
+        if(*opt_ooffset)
         {
             std::cout << "ooffset:";
             for(auto& i : params.ooffset)

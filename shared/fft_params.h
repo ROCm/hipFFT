@@ -71,11 +71,9 @@ enum fft_precision
     fft_precision_double,
 };
 
-static std::istream& operator>>(std::istream& str, fft_precision& precision)
+// Used for CLI11 parsing of input gen enum
+static bool lexical_cast(const std::string& word, fft_precision& precision)
 {
-    std::string word;
-    str >> word;
-
     if(word == "half")
         precision = fft_precision_half;
     else if(word == "single")
@@ -84,7 +82,7 @@ static std::istream& operator>>(std::istream& str, fft_precision& precision)
         precision = fft_precision_double;
     else
         throw std::runtime_error("Invalid precision specified");
-    return str;
+    return true;
 }
 
 // fft_input_generator: linearly spaced sequence in [-0.5,0.5]
@@ -97,11 +95,9 @@ enum fft_input_generator
     fft_input_generator_host,
 };
 
-static std::istream& operator>>(std::istream& str, fft_input_generator& gen)
+// Used for CLI11 parsing of input gen enum
+static bool lexical_cast(const std::string& word, fft_input_generator& gen)
 {
-    std::string word;
-    str >> word;
-
     if(word == "0")
         gen = fft_input_random_generator_device;
     else if(word == "1")
@@ -112,7 +108,7 @@ static std::istream& operator>>(std::istream& str, fft_input_generator& gen)
         gen = fft_input_generator_host;
     else
         throw std::runtime_error("Invalid input generator specified");
-    return str;
+    return true;
 }
 
 enum fft_array_type
@@ -2054,7 +2050,7 @@ public:
     }
 };
 
-// This is used with the program_options class so that the user can type an integer on the
+// This is used with CLI11 so that the user can type an integer on the
 // command line and we store into an enum varaible
 template <typename _Elem, typename _Traits>
 std::basic_istream<_Elem, _Traits>& operator>>(std::basic_istream<_Elem, _Traits>& stream,
@@ -2066,7 +2062,7 @@ std::basic_istream<_Elem, _Traits>& operator>>(std::basic_istream<_Elem, _Traits
     return stream;
 }
 
-// similarly for transform type
+// Similarly for transform type
 template <typename _Elem, typename _Traits>
 std::basic_istream<_Elem, _Traits>& operator>>(std::basic_istream<_Elem, _Traits>& stream,
                                                fft_transform_type&                 ttype)

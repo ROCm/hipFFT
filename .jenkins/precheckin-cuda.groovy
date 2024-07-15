@@ -93,7 +93,6 @@ ci: {
                             -DBUILD_WITH_LIB=CUDA -DHIP_INCLUDE_DIRS=/opt/rocm/hip/include \
                             -DCMAKE_MODULE_PATH="/opt/rocm/lib/cmake/hip;/opt/rocm/hip/cmake;/opt/rocm/share/rocm/cmake" \
                             -L ../..'
-    String boostLibraryDir = ' -DBOOST_LIBRARYDIR=/usr/lib/x86_64-linux-gnu'
 
     // Run tests on normal g++ build
     setupCI(urlJobName, jobNameList, compilerVar + 'g++' + gBuildCommand, runCI, 'g++', false)
@@ -107,6 +106,6 @@ ci: {
                             -DCMAKE_CXX_FLAGS="-gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86" \
                             -DBUILD_CLIENTS=ON -L ../..'
 
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir, runCI, 'hipcc', true)
-    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + boostLibraryDir + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + runCI, 'hipcc', true)
+    setupCI(urlJobName, jobNameList, compilerVar + 'hipcc' + hBuildCommand + ' -DBUILD_SHARED_LIBS=OFF', runCI, 'hipcc-static', false)
 }

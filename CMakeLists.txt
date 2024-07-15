@@ -178,11 +178,6 @@ endif()
 if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   include( clients/cmake/build-options.cmake )
   rocm_package_setup_component(clients)
-  if(BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_BENCH)
-    find_package( Boost COMPONENTS program_options REQUIRED)
-    set(BOOST_DEB "libboost-program-options${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}.${Boost_VERSION_PATCH}")
-    set(BOOST_RPM "boost-program-options = ${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}.${Boost_VERSION_PATCH}")
-  endif()
   if(NOT CLIENTS_OS)
     rocm_set_os_id(CLIENTS_OS)
     string(TOLOWER "${CLIENTS_OS}" CLIENTS_OS)
@@ -191,7 +186,6 @@ if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   message(STATUS "OS: ${CLIENTS_OS} ${CLIENTS_OS_VERSION}")
   set(FFTW_DEB "libfftw3-bin")
   if(CLIENTS_OS STREQUAL "sles")
-    set(BOOST_RPM RPM "libboost_program_options${Boost_VERSION_MAJOR}_${Boost_VERSION_MINOR}_${Boost_VERSION_PATCH}")
     set(FFTW_RPM "libfftw3-3")
   elseif(CLIENTS_OS STREQUAL "mariner")
     set(BOOST_RPM RPM "boost = ${Boost_VERSION_MAJOR}_${Boost_VERSION_MINOR}_${Boost_VERSION_PATCH}")
@@ -203,16 +197,16 @@ if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
     rocm_package_setup_client_component(
       tests
       DEPENDS
-        DEB ${BOOST_DEB} ${FFTW_DEB} rocrand
-        RPM ${BOOST_RPM} ${FFTW_RPM} rocrand
+        DEB ${FFTW_DEB} rocrand
+        RPM ${FFTW_RPM} rocrand
     )
   endif()
   if(BUILD_CLIENTS_BENCH)
     rocm_package_setup_client_component(
       benchmarks
       DEPENDS
-        DEB ${BOOST_DEB} rocrand
-        RPM ${BOOST_RPM} rocrand
+        DEB rocrand
+        RPM rocrand
     )
   endif()
   add_subdirectory( clients )

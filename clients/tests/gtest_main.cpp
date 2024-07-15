@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 /// @file
-/// @brief googletest based unit tester for rocfft
+/// @brief googletest based unit tester for hipfft
 ///
 
 #include <chrono>
@@ -30,6 +30,7 @@
 #include <streambuf>
 #include <string>
 
+#include "../../shared/CLI11.hpp"
 #include "../../shared/concurrency.h"
 #include "../../shared/environment.h"
 #include "../../shared/work_queue.h"
@@ -43,9 +44,6 @@
 #else
 #include <sys/sysinfo.h>
 #endif
-
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
 
 // Control output verbosity:
 int verbose;
@@ -212,8 +210,7 @@ void precompile_test_kernels(const std::string& precompile_file)
 
 int main(int argc, char* argv[])
 {
-    // Parse arguments before initiating gtest.
-    po::options_description opdesc(
+    CLI::App app{
         "\n"
         "hipFFT Runtime Test command line options\n"
         "NB: input parameters are row-major.\n"
@@ -231,33 +228,41 @@ int main(int argc, char* argv[])
         "      HI - hermitian interleaved\n"
         "      HP - hermitian planar\n"
         "\n"
-        "Usage");
+        "Usage"};
 
-    // clang-format does not handle boost program options very well:
-    // clang-format off
-   opdesc.add_options()
-        ("verbose,v",
-         po::value<int>()->default_value(0),
-         "print out detailed information for the tests.")
-        ("seed", po::value<size_t>(&random_seed),
-         "Random seed; if unset, use an actual random seed.")
-        ("test_prob", po::value<double>(&test_prob)->default_value(1.0),
-         "Probability of running individual tests.")
-        ("callback_prob", po::value<double>(&callback_prob)->default_value(0.1),
-         "Probability of running individual callback transforms")
-        ("fftw_compare",
-         po::value<bool>(&fftw_compare)->default_value(true), "Compare to FFTW in accuracy tests");
-    // clang-format on
+    // Override CLI11 help to print after later CLI11 options that are defined, and allow gtest's help
+    app.set_help_flag("");
+    CLI::Option* opt_help = app.add_flag("-h, --help", "Produces this help message");
+    app.add_option("-v, --verbose", verbose, "Print out detailed information for the tests")
+        ->default_val(0);
+    app.add_option("--test_prob", test_prob, "Probability of running individual tests")
+        ->default_val(1.0)
+        ->check(CLI::Range(0.0, 1.0));
+    app.add_option("--callback_prob",
+                   callback_prob,
+                   "Probability of running individual callback transforms")
+        ->default_val(0.1)
+        ->check(CLI::Range(0.0, 1.0));
+    app.add_option("--fftw_compare", fftw_compare, "Compare to FFTW in accuracy tests")
+        ->default_val(true);
+    // FIXME: Seed has no use currently
+    // CLI::Option* opt_seed =
+    app.add_option("--seed", random_seed, "Random seed; if unset, use an actual random seed");
 
-    po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(opdesc).allow_unregistered().run(), vm);
-    po::notify(vm);
-
-    verbose = vm["verbose"].as<int>();
+    // Try parsing initial args that will be used to configure tests
+    // Allow extras to pass on gtest and hipFFT arguments without error
+    app.allow_extras();
+    try
+    {
+        app.parse(argc, argv);
+    }
+    catch(const CLI::ParseError& e)
+    {
+        return app.exit(e);
+    }
 
     // NB: If we initialize gtest first, then it removes all of its own command-line
-    // arguments and sets argc and argv correctly; no need to jump through hoops for
-    // boost::program_options.
+    // arguments and sets argc and argv correctly;
     ::testing::InitGoogleTest(&argc, argv);
 
     // Filename for fftw and fftwf wisdom.
@@ -269,89 +274,115 @@ int main(int argc, char* argv[])
     // Filename for precompiled kernels to be written to
     std::string precompile_file;
 
-    // Declare the supported options.
-    // clang-format does not handle boost program options very well:
-    // clang-format off
-    opdesc.add_options()
-        ("help,h", "produces this help message")
-        ("skip_runtime_fails",  po::value<bool>(&skip_runtime_fails)->default_value(true),
-        "Skip the test if there is a runtime failure.")
-        ("transformType,t", po::value<fft_transform_type>(&manual_params.transform_type)
-         ->default_value(fft_transform_type_complex_forward),
-         "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
-         "forward\n3) real inverse")
-        ("notInPlace,o", "Not in-place FFT transform (default: in-place)")
-        ("callback", "Inject load/store callbacks")
-        ("double", "Double precision transform (deprecated: use --precision double)")
-        ("precision", po::value<fft_precision>(&manual_params.precision),
-         "Transform precision: single (default), double, half")
-        ( "itype", po::value<fft_array_type>(&manual_params.itype)
-          ->default_value(fft_array_type_unset),
-          "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
-        ( "otype", po::value<fft_array_type>(&manual_params.otype)
-          ->default_value(fft_array_type_unset),
-          "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) "
-          "hermitian interleaved\n4) hermitian planar")
-        ("length",  po::value<std::vector<size_t>>(&manual_params.length)->multitoken(), "Lengths.")
-        ( "batchSize,b", po::value<size_t>(&manual_params.nbatch)->default_value(1),
-          "If this value is greater than one, arrays will be used ")
-        ("istride",  po::value<std::vector<size_t>>(&manual_params.istride)->multitoken(),
-         "Input stride.")
-        ("ostride",  po::value<std::vector<size_t>>(&manual_params.ostride)->multitoken(),
-         "Output stride.")
-        ("idist", po::value<size_t>(&manual_params.idist)->default_value(0),
-         "Logical distance between input batches.")
-        ("odist", po::value<size_t>(&manual_params.odist)->default_value(0),
-         "Logical distance between output batches.")
-        ("ioffset", po::value<std::vector<size_t>>(&manual_params.ioffset)->multitoken(),
-         "Input offset.")
-        ("ooffset", po::value<std::vector<size_t>>(&manual_params.ooffset)->multitoken(),
-         "Output offset.")
-        ("isize", po::value<std::vector<size_t>>(&manual_params.isize)->multitoken(),
-         "Logical size of input buffer.")
-        ("osize", po::value<std::vector<size_t>>(&manual_params.osize)->multitoken(),
-         "Logical size of output.")
-        ("R", po::value<size_t>(&ramgb)->default_value((start_memory.total_bytes + ONE_GiB - 1) / ONE_GiB), "Ram limit in GiB for tests.")
-        ("V", po::value<size_t>(&vramgb)->default_value(0), "vram limit in GiB for tests.")
-        ("half_epsilon",  po::value<double>(&half_epsilon)->default_value(9.77e-4))
-        ("single_epsilon",  po::value<double>(&single_epsilon)->default_value(3.75e-5))
-        ("double_epsilon",  po::value<double>(&double_epsilon)->default_value(1e-15))
-        ("wise,w", "use FFTW wisdom")
-        ("wisdomfile,W",
-         po::value<std::string>(&fftw_wisdom_filename)->default_value("wisdom3.txt"),
-         "FFTW3 wisdom filename")
-        ("scalefactor", po::value<double>(&manual_params.scale_factor), "Scale factor to apply to output.")
-        ("token", po::value<std::string>(&test_token)->default_value(""), "Test token name for manual test")
-        ("precompile",  po::value<std::string>(&precompile_file), "Precompile kernels to a file for all test cases before running tests");
-    // clang-format on
+    // Declare the supported options. Some option pointers are declared to track passed opts.
+    app.add_flag("--callback", "Inject load/store callbacks")->each([&](const std::string&) {
+        manual_params.run_callbacks = true;
+    });
+    // app.add_flag("--version", "Print queryable version information from the rocfft library")
+    //     ->each([](const std::string&) {
+    //         rocfft_setup();
+    //         char v[256];
+    //         rocfft_get_version_string(v, 256);
+    //         std::cout << "rocFFT version: " << v << std::endl;
+    //         return EXIT_SUCCESS;
+    //     });
+    CLI::Option* opt_token
+        = app.add_option("--token", test_token, "Test token name for manual test")->default_val("");
+    // Group together options that conflict with --token
+    auto* non_token = app.add_option_group("Token Conflict", "Options excluded by --token");
+    non_token
+        ->add_flag("--double", "Double precision transform (deprecated: use --precision double)")
+        ->each([&](const std::string&) { manual_params.precision = fft_precision_double; });
+    non_token->excludes(opt_token);
+    non_token
+        ->add_option("-t, --transformType",
+                     manual_params.transform_type,
+                     "Type of transform:\n0) complex forward\n1) complex inverse\n2) real "
+                     "forward\n3) real inverse")
+        ->default_val(fft_transform_type_complex_forward);
+    non_token
+        ->add_option("--precision",
+                     manual_params.precision,
+                     "Transform precision: single (default), double, half")
+        ->excludes("--double");
+    non_token->add_flag("-o, --notInPlace", "Not in-place FFT transform (default: in-place)")
+        ->each([&](const std::string&) { manual_params.placement = fft_placement_notinplace; });
+    non_token
+        ->add_option("--itype",
+                     manual_params.itype,
+                     "Array type of input data:\n0) interleaved\n1) planar\n2) real\n3) "
+                     "hermitian interleaved\n4) hermitian planar")
+        ->default_val(fft_array_type_unset);
+    non_token
+        ->add_option("--otype",
+                     manual_params.otype,
+                     "Array type of output data:\n0) interleaved\n1) planar\n2) real\n3) "
+                     "hermitian interleaved\n4) hermitian planar")
+        ->default_val(fft_array_type_unset);
+    non_token->add_option("--length", manual_params.length, "Lengths")->expected(1, 3);
+    non_token
+        ->add_option("-b, --batchSize",
+                     manual_params.nbatch,
+                     "If this value is greater than one, arrays will be used")
+        ->default_val(1);
+    non_token->add_option("--istride", manual_params.istride, "Input stride");
+    non_token->add_option("--ostride", manual_params.ostride, "Output stride");
+    non_token->add_option("--idist", manual_params.idist, "Logical distance between input batches")
+        ->default_val(0);
+    non_token->add_option("--odist", manual_params.odist, "Logical distance between output batches")
+        ->default_val(0);
+    non_token->add_option("--ioffset", manual_params.ioffset, "Input offset");
+    non_token->add_option("--ooffset", manual_params.ooffset, "Output offset");
+    app.add_option("--isize", manual_params.isize, "Logical size of input buffer");
+    app.add_option("--osize", manual_params.osize, "Logical size of output buffer");
+    app.add_option("--R", ramgb, "RAM limit in GiB for tests")
+        ->default_val((start_memory.total_bytes + ONE_GiB - 1) / ONE_GiB);
+    app.add_option("--V", vramgb, "VRAM limit in GiB for tests")->default_val(0);
+    app.add_option("--half_epsilon", half_epsilon)->default_val(9.77e-4);
+    app.add_option("--single_epsilon", single_epsilon)->default_val(3.75e-5);
+    app.add_option("--double_epsilon", double_epsilon)->default_val(1e-15);
+    app.add_option("--skip_runtime_fails",
+                   skip_runtime_fails,
+                   "Skip the test if there is a runtime failure")
+        ->default_val(true);
+    app.add_option("-w, --wise", use_fftw_wisdom, "Use FFTW wisdom");
+    app.add_option("-W, --wisdomfile", fftw_wisdom_filename, "FFTW3 wisdom filename")
+        ->default_val("wisdom3.txt");
+    app.add_option("--scalefactor", manual_params.scale_factor, "Scale factor to apply to output");
+    app.add_option("--precompile",
+                   precompile_file,
+                   "Precompile kernels to a file for all test cases before running tests")
+        ->default_val("");
 
-    po::store(po::parse_command_line(argc, argv, opdesc), vm);
-    po::notify(vm);
-
-    if(vm.count("help"))
+    // Parse rest of args and catch any errors here
+    try
     {
-        std::cout << opdesc << std::endl;
-        return 0;
+        app.parse(argc, argv);
+    }
+    catch(const CLI::ParseError& e)
+    {
+        return app.exit(e);
+    }
+
+    if(*opt_help)
+    {
+        std::cout << app.help() << "\n";
+        return EXIT_SUCCESS;
+    }
+
+    // Ensure there are no leftover options used by neither gtest nor CLI11
+    std::vector<std::string> remaining_args = app.remaining();
+    if(!remaining_args.empty())
+    {
+        std::cout << "Unrecognised option(s) found:\n  ";
+        for(auto i : app.remaining())
+            std::cout << i << " ";
+        std::cout << "\nRun with --help for more information.\n";
+        return EXIT_FAILURE;
     }
 
     std::cout << "half epsilon: " << half_epsilon << "\tsingle epsilon: " << single_epsilon
               << "\tdouble epsilon: " << double_epsilon << std::endl;
-
-    manual_params.placement
-        = vm.count("notInPlace") ? fft_placement_notinplace : fft_placement_inplace;
-    if(vm.count("double"))
-        manual_params.precision = fft_precision_double;
-
-    if(vm.count("wise"))
-    {
-        use_fftw_wisdom = true;
-    }
-
-    if(vm.count("callback"))
-    {
-        manual_params.run_callbacks = true;
-    }
 
     if(manual_params.length.empty())
     {
@@ -441,7 +472,7 @@ int main(int argc, char* argv[])
         fftwf_import_wisdom_from_string(fftwf_wisdom.c_str());
     }
 
-    if(test_token != "")
+    if(!test_token.empty())
     {
         std::cout << "Reading fft params from token:\n" << test_token << std::endl;
 
@@ -456,7 +487,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(vm.count("precompile"))
+    if(!precompile_file.empty())
         precompile_test_kernels(precompile_file);
 
     auto retval = RUN_ALL_TESTS();
