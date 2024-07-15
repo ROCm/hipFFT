@@ -20,7 +20,7 @@
 # THE SOFTWARE.
 # #############################################################################
 
-find_package( Boost COMPONENTS program_options REQUIRED)
+find_package( Boost REQUIRED)
 set( Boost_USE_STATIC_LIBS OFF )
 
 find_package( FFTW 3.0 REQUIRED MODULE COMPONENTS FLOAT DOUBLE )
@@ -76,14 +76,6 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     target_include_directories( hipfft-test PRIVATE ${HIP_INCLUDE_DIRS})
   endif()
 else()
-  if( BUILD_WITH_LIB STREQUAL "CUDA" AND DEFINED boost_program_options_VERSION )
-    # NVCC doesn't like linking with files that don't end in .so, so
-    # we add a hack to remove the version number as the suffix.
-    string(REGEX REPLACE
-      \.${boost_program_options_VERSION} ""
-      Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE
-      ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE})
-  endif()
   foreach( target ${AMDGPU_TARGETS} )
     target_compile_options( hipfft-test PRIVATE --offload-arch=${target} )
   endforeach( )
@@ -132,7 +124,6 @@ set_target_properties( hipfft-test PROPERTIES
 target_link_libraries( hipfft-test
   PRIVATE
   ${FFTW_LIBRARIES}
-   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} 
   Threads::Threads
   )
 

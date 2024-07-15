@@ -22,10 +22,6 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 
-find_package( Boost COMPONENTS program_options REQUIRED)
-set( Boost_USE_STATIC_LIBS OFF )
-
-
 set( hipfft_bench_source bench.cpp ../../shared/array_validator.cpp )
 set( hipfft_bench_includes bench.h ../../shared/array_validator.h )
 
@@ -37,7 +33,6 @@ set_target_properties( hipfft-bench PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQU
 
 target_include_directories( hipfft-bench
   PRIVATE
-  $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${hip_INCLUDE_DIRS}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../library/include>
@@ -57,15 +52,6 @@ if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     target_compile_definitions( hipfft-bench PRIVATE __HIP_PLATFORM_NVIDIA__)
     target_include_directories( hipfft-bench PRIVATE ${HIP_INCLUDE_DIRS})
   endif()
-else()
-  if( BUILD_WITH_LIB STREQUAL "CUDA" AND DEFINED boost_program_options_VERSION )
-    # NVCC doesn't like linking with files that don't end in .so, so
-    # we add a hack to remove the version number as the suffix.
-    string(REGEX REPLACE
-      \.${boost_program_options_VERSION} ""
-      Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE
-      ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE})
-  endif()
 endif()
 
 if ( BUILD_WITH_LIB STREQUAL "CUDA" )
@@ -78,7 +64,7 @@ else()
   target_link_libraries( hipfft-bench PRIVATE hip::hiprand )
 endif()
 
-target_link_libraries( hipfft-bench PRIVATE hip::hipfft ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE} )
+target_link_libraries( hipfft-bench PRIVATE hip::hipfft )
 
 set_target_properties( hipfft-bench PROPERTIES CXX_EXTENSIONS NO )
 set_target_properties( hipfft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
