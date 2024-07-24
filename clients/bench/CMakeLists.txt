@@ -22,6 +22,8 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
 
+project( hipfft-clients-bench LANGUAGES CXX )
+
 set( hipfft_bench_source bench.cpp ../../shared/array_validator.cpp )
 set( hipfft_bench_includes bench.h ../../shared/array_validator.h )
 
@@ -39,7 +41,7 @@ target_include_directories( hipfft-bench
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../rocFFT/library/include>
   )
   
-if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+if((NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$") OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     if( WIN32 )
       find_package( HIP CONFIG REQUIRED )

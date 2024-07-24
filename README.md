@@ -30,23 +30,6 @@ You can download pre-built packages from the
 
 If you're using Ubuntu, you can run: `sudo apt update && sudo apt install hipfft`.
 
-### Transitioning from rocFFT
-
-If you're transitioning from the hipFFT version included in rocFFT to the standalone hipFFT version,
-modify your build as shown in the following code:
-
-* Previous method:
-
-  ```bash
-  `hipcc hipfft_1d_z2z.cpp -L/opt/rocm/lib -lrocfft`
-  ```
-
-* New method:
-
-  ```bash
-  `hipcc -I/opt/rocm/hipfft/include hipfft_1d_z2z.cpp -L/opt/rocm/lib -lhipfft -lrocfft`
-  ```
-
 ### Building from source
 
 To build hipFFT from source, follow these steps:
@@ -75,7 +58,7 @@ Here are some CMake build examples:
   * Case: Build a project using HIP language APIs + hipFFT with standard host compiler
     * Code: `cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -L ..`
   * Case: Build a project using HIP language APIs + hipFFT + device kernels with HIP-Clang
-    * Code: `cmake -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L ..`
+    * Code: `cmake -DCMAKE_CXX_COMPILER=amdclang++ -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L ..`
 * NVIDIA GPU
   * Case: Build a project using HIP language APIs + hipFFT with standard host compiler
     * Code: `cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LIB=CUDA -L ..`
@@ -83,7 +66,7 @@ Here are some CMake build examples:
     * Code: `HIP_PLATFORM=nvidia cmake -DCMAKE_CXX_COMPILER=hipcc -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENTS=ON -L ..`
 
 ```note
-The `-DBUILD_CLIENTS=ON` option is only allowed with the HIPCC compiler.
+The `-DBUILD_CLIENTS=ON` option is only allowed with the amdclang++ or HIPCC compilers.
 ```
 
 ## Porting from CUDA

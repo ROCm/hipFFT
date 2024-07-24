@@ -58,7 +58,7 @@ list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake )
 
 include( build-options )
 
-if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
+if(NOT (CMAKE_CXX_COMPILER MATCHES ".*hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+"))
   if(BUILD_CLIENTS)
     message( FATAL_ERROR "Using BUILD_CLIENTS=ON requires hipcc or Clang++, as client programs require device code to be built." )
   endif()
