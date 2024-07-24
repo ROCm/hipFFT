@@ -68,7 +68,7 @@ option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 option( WERROR "Treat warnings as errors" OFF )
 
 # Set internal BUILD_WITH_COMPILER.
-if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+if(NOT (CMAKE_CXX_COMPILER MATCHES ".*hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+"))
   set( BUILD_WITH_COMPILER "HOST-default" )
 else()
   if( $ENV{HIP_PLATFORM} MATCHES "nvidia" )

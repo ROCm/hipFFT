@@ -91,7 +91,7 @@ ci: {
     }
     
     String hostBuildCommand = '-DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -L ../..'
-    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/hipcc -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
+    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
 
     setupCI(urlJobName, jobNameList, hostBuildCommand, runCI, 'g++', false)
     setupCI(urlJobName, jobNameList, hipClangBuildCommand, runCI, 'hip-clang', true)

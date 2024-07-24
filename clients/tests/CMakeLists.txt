@@ -20,7 +20,12 @@
 # THE SOFTWARE.
 # #############################################################################
 
+
+project( hipfft-clients-tests LANGUAGES CXX )
+
+
 find_package( Boost REQUIRED)
+
 set( Boost_USE_STATIC_LIBS OFF )
 
 find_package( FFTW 3.0 REQUIRED MODULE COMPONENTS FLOAT DOUBLE )
@@ -63,7 +68,7 @@ endif()
 
 target_compile_options( hipfft-test PRIVATE ${WARNING_FLAGS} )
 
-if( NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+if((NOT CMAKE_CXX_COMPILER MATCHES ".*/hipcc$") OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
     if( WIN32 )
       find_package( HIP CONFIG REQUIRED )
@@ -99,7 +104,7 @@ if( BUILD_CLIENTS_TESTS_OPENMP )
     message( STATUS "OpenMP is not supported on CUDA, building tests without it" )
   else()
     target_compile_options( hipfft-test PRIVATE -DBUILD_CLIENTS_TESTS_OPENMP )
-    if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )  
+    if(NOT (CMAKE_CXX_COMPILER MATCHES ".*hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+"))
       target_compile_options( hipfft-test PRIVATE -fopenmp )
       target_link_libraries( hipfft-test PRIVATE -fopenmp -L${HIP_CLANG_ROOT}/lib -Wl,-rpath=${HIP_CLANG_ROOT}/lib )
       target_include_directories( hipfft-test PRIVATE ${HIP_CLANG_ROOT}/include )

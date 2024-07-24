@@ -22,6 +22,8 @@
 
 CMAKE_MINIMUM_REQUIRED( VERSION 3.16 )
 
+project( hipfft-clients-samples-rocfft LANGUAGES CXX )
+
 # We use C++17 features, this will add compile option: -std=c++17
 set( CMAKE_CXX_STANDARD 17 )
 
