@@ -7,7 +7,7 @@ import java.nio.file.Path
 
 def runCI =
 {
-    nodeDetails, jobName, buildCommand, label ->
+    nodeDetails, jobName, buildCommand ->
 
     def prj = new rocProject('hipFFT-internal', 'PreCheckin')
     // customize for project
@@ -25,9 +25,10 @@ def runCI =
 
 ci: { 
     String urlJobName = auxiliary.getTopJobName(env.BUILD_URL)
+    String hipClangBuildCommand = '-DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_CLIENTS_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON -L ../..'
 
     properties(auxiliary.addCommonProperties([pipelineTriggers([cron('0 1 * * 7')])]))
     stage(urlJobName) {
-        runCI([ubuntu20:['any']], urlJobName)
+        runCI([ubuntu22:['any']], urlJobName, hipClangBuildCommand)
     }
 }
