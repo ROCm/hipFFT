@@ -7,11 +7,10 @@ import java.nio.file.Path
 
 def runCI =
 {
-    nodeDetails, jobName, buildCommand, label ->
+    nodeDetails, jobName ->
 
     def prj = new rocProject('hipFFT-internal', 'PreCheckin')
     // customize for project
-    prj.paths.build_command = buildCommand
     prj.libraryDependencies = ['rocRAND','rocFFT']
 
     // Define test architectures, optional rocm version argument is available
@@ -28,6 +27,6 @@ ci: {
 
     properties(auxiliary.addCommonProperties([pipelineTriggers([cron('0 1 * * 7')])]))
     stage(urlJobName) {
-        runCI([ubuntu20:['any']], urlJobName)
+        runCI([ubuntu22:['any']], urlJobName)
     }
 }
