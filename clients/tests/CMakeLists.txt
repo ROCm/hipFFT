@@ -20,6 +20,25 @@
 # THE SOFTWARE.
 # #############################################################################
 
+cmake_minimum_required( VERSION 3.16 )
+
+# This should appear before the project command, because it does not
+# use FORCE
+if( WIN32 )
+  set( CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/package" CACHE PATH
+    "Install path prefix, prepended onto install directories" )
+else( )
+  set( CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH
+    "Install path prefix, prepended onto install directories" )
+endif( )
+
+# This has to be initialized before the project() command appears
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user
+# specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
+if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
+  set( CMAKE_BUILD_TYPE Release CACHE STRING
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
+endif()
 
 project( hipfft-clients-tests LANGUAGES CXX )
 
@@ -134,8 +153,20 @@ target_link_libraries( hipfft-test
 
 target_link_libraries( hipfft-test  PRIVATE hip::hipfft )
 
-set_target_properties( hipfft-test
-  PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
+if( HIPFFT_BUILD_SCOPE )
+  set( TESTS_OUT_DIR "/../staging" )
+elseif( HIPFFT_CLIENTS_BUILD_SCOPE )
+  set( TESTS_OUT_DIR "/../bin" )
+else()
+  set( TESTS_OUT_DIR "/bin" )
+endif()
+string( CONCAT TESTS_OUT_DIR "${PROJECT_BINARY_DIR}" ${TESTS_OUT_DIR} )
+
+set_target_properties(hipfft-test
+                      PROPERTIES 
+                      RUNTIME_OUTPUT_DIRECTORY 
+                      ${TESTS_OUT_DIR})
+
 
 rocm_install(TARGETS hipfft-test COMPONENT tests)
 

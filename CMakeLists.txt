@@ -49,6 +49,8 @@ if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
   set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
 
+set( HIPFFT_BUILD_SCOPE ON )
+
 project( hipfft LANGUAGES CXX )
 
 # Build options

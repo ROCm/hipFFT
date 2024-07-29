@@ -51,6 +51,8 @@ if( NOT DEFINED CMAKE_CONFIGURATION_TYPES AND NOT DEFINED CMAKE_BUILD_TYPE )
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
 endif()
 
+set( HIPFFT_CLIENTS_BUILD_SCOPE ON )
+
 # This project may compile dependencies for clients
 project( hipfft-clients LANGUAGES CXX )
 
