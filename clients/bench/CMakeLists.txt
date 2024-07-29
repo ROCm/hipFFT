@@ -71,6 +71,20 @@ target_link_libraries( hipfft-bench PRIVATE hip::hipfft )
 set_target_properties( hipfft-bench PROPERTIES CXX_EXTENSIONS NO )
 set_target_properties( hipfft-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
 
+if( HIPFFT_BUILD_SCOPE )
+  set( BENCH_OUT_DIR "/../staging" )
+elseif( HIPFFT_CLIENTS_BUILD_SCOPE )
+  set( BENCH_OUT_DIR "/../bin" )
+else()
+  set( BENCH_OUT_DIR "/bin")
+endif()
+string( CONCAT BENCH_OUT_DIR "${PROJECT_BINARY_DIR}" ${BENCH_OUT_DIR} )
+
+set_target_properties( hipfft-bench
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY
+  ${BENCH_OUT_DIR} )
+
 rocm_install(TARGETS hipfft-bench COMPONENT benchmarks)
 
 # install compatibility for old name of bench program - symlink on

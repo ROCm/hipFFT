@@ -100,7 +100,20 @@ foreach( sample ${sample_list} )
     )
   
   set_target_properties( ${sample} PROPERTIES CXX_EXTENSIONS NO )
-  set_target_properties( ${sample} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging" )
+  
+  if( HIPFFT_BUILD_SCOPE )
+    set( SAMPLES_OUT_DIR "/../staging" )
+  elseif( HIPFFT_CLIENTS_BUILD_SCOPE )
+    set( SAMPLES_OUT_DIR "/../bin" )
+  else()
+    set( SAMPLES_OUT_DIR "/bin" )
+  endif()
+  string( CONCAT SAMPLES_OUT_DIR "${PROJECT_BINARY_DIR}" ${SAMPLES_OUT_DIR} )
+
+  set_target_properties( ${sample}
+                         PROPERTIES 
+                         RUNTIME_OUTPUT_DIRECTORY 
+                         ${SAMPLES_OUT_DIR} )
   
 endforeach()
 
