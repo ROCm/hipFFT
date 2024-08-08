@@ -3,12 +3,20 @@
 Documentation for hipFFT is available at
 [https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
 
-## hipFFT 1.0.15 (unreleased)
+## hipFFT 1.0.16 for ROCm 6.3.0
 
 ### Changes
 
 * Compile with amdclang++ instead of hipcc for AMD backend; CUDA back-end still uses hipcc-nvcc.
 * Replace Boost Program Options with CLI11 as the command line parser for clients.
+
+## hipFFT 1.0.15 for ROCm 6.2.0
+
+### Fixes
+
+* Added hip::host as a public link library, as hipfft.h includes HIP runtime headers.
+* Prevent C++ exceptions leaking from public API functions.
+* Make output of hipfftXt match cufftXt in geometry and alignment for 2D and 3D FFTs.
 
 ## hipFFT 1.0.14 for ROCm 6.1.0
 
