@@ -48,6 +48,9 @@
 // Control output verbosity:
 int verbose;
 
+// Run a short (~5 min) test suite by setting test_prob to an appropriate value
+bool smoketest = false;
+
 // User-defined random seed
 size_t random_seed;
 
@@ -248,6 +251,12 @@ int main(int argc, char* argv[])
     // FIXME: Seed has no use currently
     // CLI::Option* opt_seed =
     app.add_option("--seed", random_seed, "Random seed; if unset, use an actual random seed");
+    app.add_flag("--smoketest", "Run a short (approx 5 minute) randomized selection of tests")
+        ->each([&](const std::string&) {
+            // The objective is to have an test that takes about 5 minutes, so just set the probability
+            // per test to a small value to achieve this result.
+            test_prob = 0.002;
+        });
 
     // Try parsing initial args that will be used to configure tests
     // Allow extras to pass on gtest and hipFFT arguments without error
