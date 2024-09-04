@@ -123,7 +123,7 @@ if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
 
   else()
   # Define GPU targets
-  set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1200;gfx1201 CACHE STRING
+  set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201 CACHE STRING
   "List of specific machine types for library to target" )
 
   if( BUILD_WITH_COMPILER STREQUAL "HIP-CLANG" )
