@@ -33,6 +33,7 @@ tags
 .*.swp
 
 # Visual Studio Code
+.venv
 .vscode
 
 # documentation artifacts

@@ -93,3 +93,6 @@ if( ROCM_FOUND )
 else()
   message(WARNING "Could not find rocm-cmake, packaging will fail.")
 endif( )
+
+# Documenation dependencies
+include(FetchContent)

@@ -1,5 +1,5 @@
 # #############################################################################
-# Copyright (C) 2020 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2020 - 2023 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,10 @@ option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 
 option( WERROR "Treat warnings as errors" OFF )
+
+option(BUILD_DOCS "Build documentation" OFF)
+
+include(GNUInstallDirs)
 
 # Set internal BUILD_WITH_COMPILER.
 if(NOT (CMAKE_CXX_COMPILER MATCHES ".*hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+"))
@@ -212,6 +216,11 @@ if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
     )
   endif()
   add_subdirectory( clients )
+endif()
+
+# Build docs
+if(BUILD_DOCS)
+  add_subdirectory(docs)
 endif()
 
 # Packaging...
