@@ -5,6 +5,11 @@ Documentation for hipFFT is available at
 
 ## hipFFT 1.0.17 (unreleased)
 
+### Changes
+
+* Building with the address sanitizer option sets xnack+ on relevant GPU
+  architectures.
+
 ## hipFFT 1.0.16 for ROCm 6.3.0
 
 ### Changes
