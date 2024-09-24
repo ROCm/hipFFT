@@ -181,7 +181,6 @@ TEST(hipfftTest, CreatePlanMany64)
     long long int const nY                 = 128;
     long long int const nZ                 = 23;
     long long int       n[3]               = {nX, nY, nZ};
-    long long int       n_invalid[3]       = {nX, -nY, nZ};
     long long int       inembed[3]         = {nX, nY, nZ};
     long long int const istride            = 1;
     long long int const idist              = nX * nY * nZ;
@@ -218,7 +217,10 @@ TEST(hipfftTest, CreatePlanMany64)
         ASSERT_EQ(hipfftDestroy(plan_valid), HIPFFT_SUCCESS);
     }
 
-    // invalid data layout (n array has a negative entry)
+    // invalid data layout (n array has a negative entry). only test rocFFT
+    // backend, since it's more strict
+#ifdef __HIP_PLATFORM_AMD__
+    long long int n_invalid[3] = {nX, -nY, nZ};
     {
         hipfftHandle plan_invalid_1 = hipfft_params::INVALID_PLAN_HANDLE;
         ASSERT_EQ(hipfftCreate(&plan_invalid_1), HIPFFT_SUCCESS);
@@ -238,6 +240,7 @@ TEST(hipfftTest, CreatePlanMany64)
         ASSERT_EQ(hipfftSetAutoAllocation(plan_invalid_1, 0), HIPFFT_SUCCESS);
         ASSERT_EQ(hipfftDestroy(plan_invalid_1), HIPFFT_SUCCESS);
     }
+#endif
 
     // invalid data layout (onembed array has a negative entry)
     {
