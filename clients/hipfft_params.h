@@ -968,12 +968,12 @@ private:
             (void)hipGetDeviceCount(&deviceCount);
 
             // ensure that users request less than or equal to the total number of devices
-            if(multiGPU > deviceCount)
+            if(static_cast<int>(multiGPU) > deviceCount)
                 throw std::runtime_error("not enough devices for requested multi-gpu computation!");
 
-            std::vector<int> GPUs(static_cast<size_t>(multiGPU));
+            std::vector<int> GPUs(multiGPU);
             std::iota(GPUs.begin(), GPUs.end(), 0);
-            ret = hipfftXtSetGPUs(plan, multiGPU, GPUs.data());
+            ret = hipfftXtSetGPUs(plan, static_cast<int>(multiGPU), GPUs.data());
 
             xt_worksize.resize(GPUs.size());
             workbuffersize_ptr = xt_worksize.data();
