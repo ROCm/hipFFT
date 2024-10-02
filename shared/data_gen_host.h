@@ -21,6 +21,7 @@
 #ifndef DATA_GEN_HOST_H
 #define DATA_GEN_HOST_H
 
+#include "../shared/arithmetic.h"
 #include "../shared/hostbuf.h"
 #include "../shared/increment.h"
 #include <complex>
@@ -28,6 +29,27 @@
 #include <random>
 #include <tuple>
 #include <vector>
+
+// element-wise addition of two ints/tuples-of-ints
+template <typename Tint>
+Tint element_add(Tint a, Tint b)
+{
+    return a + b;
+}
+template <typename Tint>
+std::tuple<Tint, Tint> element_add(std::tuple<Tint, Tint> a, std::tuple<Tint, Tint> b)
+{
+    return std::make_tuple(std::get<0>(a) + std::get<0>(b), std::get<1>(a) + std::get<1>(b));
+}
+
+template <typename Tint>
+std::tuple<Tint, Tint, Tint> element_add(std::tuple<Tint, Tint, Tint> a,
+                                         std::tuple<Tint, Tint, Tint> b)
+{
+    return std::make_tuple(std::get<0>(a) + std::get<0>(b),
+                           std::get<1>(a) + std::get<1>(b),
+                           std::get<2>(a) + std::get<2>(b));
+}
 
 // Specialized computation of index given 1-, 2-, 3- dimension length + stride
 template <typename T1, typename T2>
@@ -55,25 +77,6 @@ size_t compute_index(const std::tuple<T1, T1, T1>& length,
     static_assert(std::is_integral<T2>::value, "Integral required.");
     return (std::get<0>(length) * std::get<0>(stride)) + (std::get<1>(length) * std::get<1>(stride))
            + (std::get<2>(length) * std::get<2>(stride)) + base;
-}
-
-// count the number of total iterations for 1-, 2-, and 3-D dimensions
-template <typename T1>
-size_t count_iters(const T1& i)
-{
-    return i;
-}
-
-template <typename T1>
-size_t count_iters(const std::tuple<T1, T1>& i)
-{
-    return std::get<0>(i) * std::get<1>(i);
-}
-
-template <typename T1>
-size_t count_iters(const std::tuple<T1, T1, T1>& i)
-{
-    return std::get<0>(i) * std::get<1>(i) * std::get<2>(i);
 }
 
 template <typename T1>
@@ -642,7 +645,11 @@ static void generate_random_interleaved_data(std::vector<hostbuf>& input,
                                              const Tint1&          whole_length,
                                              const Tint1&          whole_stride,
                                              const size_t          idist,
-                                             const size_t          nbatch)
+                                             const size_t          nbatch,
+                                             const Tint1           field_lower,
+                                             const size_t          field_lower_batch,
+                                             const Tint1           field_contig_stride,
+                                             const size_t          field_contig_dist)
 {
     auto   idata      = (std::complex<Tfloat>*)input[0].data();
     size_t i_base     = 0;
@@ -652,16 +659,21 @@ static void generate_random_interleaved_data(std::vector<hostbuf>& input,
 #pragma omp parallel for num_threads(partitions.size())
         for(size_t part = 0; part < partitions.size(); ++part)
         {
-            auto         index  = partitions[part].first;
-            const auto   length = partitions[part].second;
-            std::mt19937 gen(compute_index(index, whole_stride, i_base));
+            auto       index  = partitions[part].first;
+            const auto length = partitions[part].second;
+            // seed RNG with logical index in the field
+            std::mt19937 gen(compute_index(element_add(index, field_lower),
+                                           field_contig_stride,
+                                           (b + field_lower_batch) * field_contig_dist));
             do
             {
-                const auto                 i = compute_index(index, whole_stride, i_base);
+                // brick index to write to
+                auto write_idx = compute_index(index, whole_stride, i_base);
+
                 const Tfloat               x = (Tfloat)gen() / (Tfloat)gen.max();
                 const Tfloat               y = (Tfloat)gen() / (Tfloat)gen.max();
                 const std::complex<Tfloat> val(x, y);
-                idata[i] = val;
+                idata[write_idx] = val;
             } while(increment_rowmajor(index, length));
         }
     }
@@ -708,7 +720,11 @@ static void generate_random_planar_data(std::vector<hostbuf>& input,
                                         const Tint1&          whole_length,
                                         const Tint1&          whole_stride,
                                         const size_t          idist,
-                                        const size_t          nbatch)
+                                        const size_t          nbatch,
+                                        const Tint1           field_lower,
+                                        const size_t          field_lower_batch,
+                                        const Tint1           field_contig_stride,
+                                        const size_t          field_contig_dist)
 {
     auto   ireal      = (Tfloat*)input[0].data();
     auto   iimag      = (Tfloat*)input[1].data();
@@ -719,16 +735,21 @@ static void generate_random_planar_data(std::vector<hostbuf>& input,
 #pragma omp parallel for num_threads(partitions.size())
         for(size_t part = 0; part < partitions.size(); ++part)
         {
-            auto         index  = partitions[part].first;
-            const auto   length = partitions[part].second;
-            std::mt19937 gen(compute_index(index, whole_stride, i_base));
+            auto       index  = partitions[part].first;
+            const auto length = partitions[part].second;
+            // seed RNG with logical index in the field
+            std::mt19937 gen(compute_index(element_add(index, field_lower),
+                                           field_contig_stride,
+                                           (b + field_lower_batch) * field_contig_dist));
             do
             {
-                const auto                 i = compute_index(index, whole_stride, i_base);
+                // brick index to write to
+                auto write_idx = compute_index(index, whole_stride, i_base);
+
                 const std::complex<Tfloat> val((Tfloat)gen() / (Tfloat)gen.max(),
                                                (Tfloat)gen() / (Tfloat)gen.max());
-                ireal[i] = val.real();
-                iimag[i] = val.imag();
+                ireal[write_idx] = val.real();
+                iimag[write_idx] = val.imag();
             } while(increment_rowmajor(index, length));
         }
     }
@@ -776,7 +797,11 @@ static void generate_random_real_data(std::vector<hostbuf>& input,
                                       const Tint1&          whole_length,
                                       const Tint1&          whole_stride,
                                       const size_t          idist,
-                                      const size_t          nbatch)
+                                      const size_t          nbatch,
+                                      const Tint1           field_lower,
+                                      const size_t          field_lower_batch,
+                                      const Tint1           field_contig_stride,
+                                      const size_t          field_contig_dist)
 {
     auto   idata      = (Tfloat*)input[0].data();
     size_t i_base     = 0;
@@ -786,14 +811,20 @@ static void generate_random_real_data(std::vector<hostbuf>& input,
 #pragma omp parallel for num_threads(partitions.size())
         for(size_t part = 0; part < partitions.size(); ++part)
         {
-            auto         index  = partitions[part].first;
-            const auto   length = partitions[part].second;
-            std::mt19937 gen(compute_index(index, whole_stride, i_base));
+            auto       index  = partitions[part].first;
+            const auto length = partitions[part].second;
+
+            // seed RNG with logical index in the field
+            std::mt19937 gen(compute_index(element_add(index, field_lower),
+                                           field_contig_stride,
+                                           (b + field_lower_batch) * field_contig_dist));
             do
             {
-                const auto   i   = compute_index(index, whole_stride, i_base);
+                // brick index to write to
+                auto write_idx = compute_index(index, whole_stride, i_base);
+
                 const Tfloat val = (Tfloat)gen() / (Tfloat)gen.max();
-                idata[i]         = val;
+                idata[write_idx] = val;
             } while(increment_rowmajor(index, length));
         }
     }
