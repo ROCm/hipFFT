@@ -69,6 +69,37 @@ option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 
 option( WERROR "Treat warnings as errors" OFF )
 
+set(DEFAULT_GPUS
+  gfx803
+  gfx900
+  gfx906
+  gfx908
+  gfx90a
+  gfx940
+  gfx941
+  gfx942
+  gfx1030
+  gfx1100
+  gfx1101
+  gfx1102
+  gfx1151
+  gfx1200
+  gfx1201)
+
+if(BUILD_ADDRESS_SANITIZER)
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
+  add_link_options(-shared-libasan)
+  SET(DEFAULT_GPUS
+    gfx908:xnack+
+    gfx90a:xnack+
+    gfx940:xnack+
+    gfx941:xnack+
+    gfx942:xnack+)
+  add_link_options(-fuse-ld=lld)
+  add_compile_definitions(ADDRESS_SANITIZER)
+endif()
+
 # Set internal BUILD_WITH_COMPILER.
 if(NOT (CMAKE_CXX_COMPILER MATCHES ".*hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+"))
   set( BUILD_WITH_COMPILER "HOST-default" )
@@ -121,19 +152,13 @@ if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   endforeach()
   set( WARNING_FLAGS ${NVCC_WARNING_FLAGS} )
 
-  else()
+else()
   # Define GPU targets
-  set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1200;gfx1201 CACHE STRING
-  "List of specific machine types for library to target" )
-
+  set(AMDGPU_TARGETS "${DEFAULT_GPUS}" CACHE STRING "Target default GPUs if AMDGPU_TARGETS is not defined.")
+  #rocm_check_target_ids(AMDGPU_TARGETS TARGETS "${AMDGPU_TARGETS}")
   if( BUILD_WITH_COMPILER STREQUAL "HIP-CLANG" )
     set( HIP_PLATFORM "amd" )
     set( HIP_COMPILER "clang" )
-    if(BUILD_ADDRESS_SANITIZER)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -shared-libasan")
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -shared-libasan")
-      add_link_options(-fuse-ld=lld)
-    endif()
   endif()
 endif()
 
