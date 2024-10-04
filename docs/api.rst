@@ -137,6 +137,40 @@ For complex-to-real transforms, the output buffer XXX
 .. doxygenfunction:: hipfftXtExec
 		     
 
+HIP graph support for hipFFT
+============================
+
+hipFFT supports capturing kernels launched during FFT execution into
+HIP graph nodes.  This way, users can capture FFT execution, along
+with other work, into a HIP graph and launch the work in the graph
+multiple times.
+
+The following hipFFT APIs can be used with graph capture:
+
+* :cpp:func:`hipfftExecC2C`
+
+* :cpp:func:`hipfftExecR2C`
+
+* :cpp:func:`hipfftExecC2R`
+
+* :cpp:func:`hipfftExecZ2Z`
+
+* :cpp:func:`hipfftExecD2Z`
+
+* :cpp:func:`hipfftExecZ2D`
+
+Note that each launch of a HIP graph will provide the same arguments
+to the kernels in the graph.  In particular, this implies that all of
+the parameters to the above APIs remain valid while the HIP graph is
+in use:
+
+* The hipFFT plan
+
+* The input and output buffers
+
+hipFFT does not support capturing work performed by other API
+functions aside from those listed above.
+
 Callbacks
 =========
 
