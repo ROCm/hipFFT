@@ -3,14 +3,14 @@
 Documentation for hipFFT is available at
 [https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
 
-## hipFFT 1.0.17 (unreleased)
+## hipFFT 1.0.18 (unreleased)
 
 ### Changes
 
 * Building with the address sanitizer option sets xnack+ on relevant GPU
   architectures.
 
-## hipFFT 1.0.16 for ROCm 6.3.0
+## hipFFT 1.0.17 for ROCm 6.3.0
 
 ### Changes
 
@@ -18,6 +18,11 @@ Documentation for hipFFT is available at
 * Replace Boost Program Options with CLI11 as the command line parser for clients.
 * Add --smoketest option to hipfft-test.
 * Support gfx1151, gfx1200, and gfx1201 architectures.
+
+## hipFFT 1.0.16 for ROCm 6.2.4
+
+### Changes
+* Support gfx1151 architecture.
 
 ## hipFFT 1.0.15 for ROCm 6.2.0
 
