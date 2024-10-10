@@ -5,11 +5,14 @@ Documentation for hipFFT is available at
 
 ## hipFFT 1.0.17 for ROCm 6.3.0
 
-### Changes
+### Added
 
-* Compile with amdclang++ instead of hipcc for AMD backend; CUDA back-end still uses hipcc-nvcc.
-* Replace Boost Program Options with CLI11 as the command line parser for clients.
-* Support gfx1151, gfx1200, and gfx1201 architectures.
+* Support for the gfx1151, gfx1200, and gfx1201 architectures
+
+### Changed
+
+* The AMD backend is now compiled using amdclang++ instead of hipcc. The NVIDIA CUDA backend still uses hipcc-nvcc.
+* CLI11 replaces Boost Program Options as the command line parser for clients.
 
 ## hipFFT 1.0.16 for ROCm 6.2.4
 
