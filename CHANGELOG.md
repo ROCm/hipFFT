@@ -5,19 +5,22 @@ Documentation for hipFFT is available at
 
 ## hipFFT 1.0.17 (unreleased)
 
-### Changes
+### Changed
 
-* Building with the address sanitizer option sets xnack+ on relevant GPU
+* Building with the address sanitizer option sets xnack+ for the relevant GPU
   architectures.
 
 ## hipFFT 1.0.16 for ROCm 6.3.0
 
-### Changes
+### Added
 
-* Compile with amdclang++ instead of hipcc for AMD backend; CUDA back-end still uses hipcc-nvcc.
-* Replace Boost Program Options with CLI11 as the command line parser for clients.
-* Add --smoketest option to hipfft-test.
-* Support gfx1151, gfx1200, and gfx1201 architectures.
+* Support for the gfx1151, gfx1200, and gfx1201 architectures
+* hipfft-test now includes a --smoketest option.
+
+### Changed
+
+* The AMD backend is now compiled using amdclang++ instead of hipcc. The NVIDIA CUDA backend still uses hipcc-nvcc.
+* CLI11 replaces Boost Program Options as the command line parser for clients.
 
 ## hipFFT 1.0.15 for ROCm 6.2.0
 
