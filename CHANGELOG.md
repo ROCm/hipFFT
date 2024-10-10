@@ -13,7 +13,7 @@ Documentation for hipFFT is available at
 
 ## hipFFT 1.0.16 for ROCm 6.2.4
 
-### Changes
+### Changed
 * Support gfx1151 architecture.
 
 ## hipFFT 1.0.15 for ROCm 6.2.0
