@@ -9,7 +9,7 @@ hipFFT Overview
 ********************************************************************
 
 hipFFT is a GPU FFT marshalling library that supports
-either `rocFFT`_ or `cuFFT`_ as the backend.
+either `rocFFT`_ or NVIDIA `cuFFT`_ as the backend.
 
 hipFFT exports an interface that does not require the client to
 change, regardless of the chosen backend.  It sits between the

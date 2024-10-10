@@ -9,7 +9,7 @@ hipFFT API Usage
 ********************************************************************
 
 This section describes usage of the hipFFT library API.  The hipFFT
-API follows the `cuFFT`_ API.
+API follows the NVIDIA `cuFFT`_ API.
 
 .. _cuFFT: https://docs.nvidia.com/cuda/cufft/
 
