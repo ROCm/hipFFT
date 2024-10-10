@@ -11,7 +11,7 @@ Documentation for hipFFT is available at
 
 ### Changed
 
-* The AMD back end is now compiled using amdclang++ instead of hipcc. The NVIDIA CUDA back-end still uses hipcc-nvcc.
+* The AMD backend is now compiled using amdclang++ instead of hipcc. The NVIDIA CUDA backend still uses hipcc-nvcc.
 * CLI11 replaces Boost Program Options as the command line parser for clients.
 
 ## hipFFT 1.0.15 for ROCm 6.2.0
