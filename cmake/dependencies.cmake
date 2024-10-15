@@ -47,7 +47,7 @@ endif()
 if(NOT BUILD_WITH_LIB STREQUAL "CUDA")
   find_package(rocfft REQUIRED)
 else()
-  find_package(CUDA REQUIRED)
+  find_package(CUDAToolkit REQUIRED)
 endif()
 
 # ROCm
