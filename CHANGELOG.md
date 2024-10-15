@@ -9,6 +9,7 @@ Documentation for hipFFT is available at
 
 * Building with the address sanitizer option sets xnack+ for the relevant GPU
   architectures.
+* Use find_package CUDAToolkit instead of CUDA in cmake for modern-cmake compatibility.
 
 ## hipFFT 1.0.16 for ROCm 6.3.0
 

@@ -21,7 +21,7 @@
 # ############################################################################
 
 # CMake version according to latest ROCm platform requirements
-cmake_minimum_required( VERSION 3.16 )
+cmake_minimum_required( VERSION 3.17 )
 
 # We use C++17 features, this will add compile option: -std=c++17
 set( CMAKE_CXX_STANDARD 17 )
