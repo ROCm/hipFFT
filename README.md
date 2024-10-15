@@ -10,8 +10,8 @@ and marshals results back to your application.
 
 ## Documentation
 
-Documentation for hipFFT is available at
-[https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
+> [!NOTE]
+> The published hipFFT documentation is available at [hipFFT](https://rocm.docs.amd.com/projects/hipFFT/en/latest/index.html) in an organized, easy-to-read format, with search and a table of contents. The documentation source files reside in the hipFFT/docs folder of this repository. As with all ROCm projects, the documentation is open source. For more information, see [Contribute to ROCm documentation](https://rocm.docs.amd.com/en/latest/contribute/contributing.html).
 
 To build our documentation locally, run the following code:
 
