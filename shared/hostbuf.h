@@ -24,6 +24,7 @@
 #include "arithmetic.h"
 #include <cstdlib>
 #include <cstring>
+#include <new>
 
 #ifndef WIN32
 #include <stdlib.h>
@@ -41,16 +42,27 @@ public:
     hostbuf_t(hostbuf_t&& other)
     {
         std::swap(buf, other.buf);
+        std::swap(owned, other.owned);
         std::swap(bsize, other.bsize);
     }
     hostbuf_t& operator=(hostbuf_t&& other)
     {
         std::swap(buf, other.buf);
+        std::swap(owned, other.owned);
         std::swap(bsize, other.bsize);
         return *this;
     }
     hostbuf_t(const hostbuf_t&) = delete;
     hostbuf_t& operator=(const hostbuf_t&) = delete;
+
+    static hostbuf_t make_nonowned(T* p, size_t size_bytes = 0)
+    {
+        hostbuf_t ret;
+        ret.owned = false;
+        ret.buf   = p;
+        ret.bsize = size_bytes;
+        return ret;
+    }
 
     ~hostbuf_t()
     {
@@ -89,6 +101,8 @@ public:
         else
             buf = aligned_alloc(64, size);
 #endif
+        if(!buf)
+            throw std::bad_alloc();
     }
 
     size_t size() const
@@ -100,14 +114,18 @@ public:
     {
         if(buf != nullptr)
         {
+            if(owned)
+            {
 #ifdef WIN32
-            _aligned_free(buf);
+                _aligned_free(buf);
 #else
-            std::free(buf);
+                std::free(buf);
 #endif
+            }
             buf   = nullptr;
             bsize = 0;
         }
+        owned = true;
     }
 
     T* data() const
@@ -157,7 +175,10 @@ public:
 
 private:
     // The host buffer
-    void*  buf   = nullptr;
+    void* buf = nullptr;
+    // whether this object owns the 'buf' pointer (and hence needs to
+    // free it)
+    bool   owned = true;
     size_t bsize = 0;
 };
 
