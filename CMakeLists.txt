@@ -224,16 +224,16 @@ if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
     rocm_package_setup_client_component(
       tests
       DEPENDS
-        DEB ${FFTW_DEB} rocrand
-        RPM ${FFTW_RPM} rocrand
+        DEB ${FFTW_DEB} hiprand
+        RPM ${FFTW_RPM} hiprand
     )
   endif()
   if(BUILD_CLIENTS_BENCH)
     rocm_package_setup_client_component(
       benchmarks
       DEPENDS
-        DEB rocrand
-        RPM rocrand
+        DEB hiprand
+        RPM hiprand
     )
   endif()
   add_subdirectory( clients )
