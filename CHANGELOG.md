@@ -11,6 +11,10 @@ Documentation for hipFFT is available at
   architectures.
 * Use find_package CUDAToolkit instead of CUDA in cmake for modern-cmake compatibility.
 
+### Resolved issues
+
+* Fixed client packages to depend on hipRAND instead of rocRAND.
+
 ## hipFFT 1.0.16 for ROCm 6.3.0
 
 ### Added

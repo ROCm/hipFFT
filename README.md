@@ -41,7 +41,7 @@ To build hipFFT from source, follow these steps:
 
 2. Install the client build dependencies:
 
-   * The clients (samples, tests, etc) included with the hipFFT source depend on FFTW and GoogleTest.
+   * The clients (samples, tests, etc) included with the hipFFT source depend on hipRAND, FFTW and GoogleTest.
 
 3. Build hipFFT:
 
