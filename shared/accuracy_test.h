@@ -490,6 +490,10 @@ inline void execute_gpu_fft(Tparams&              params,
     auto fft_status = params.execute(pibuffer.data(), pobuffer.data());
     if(fft_status != fft_status_success)
         throw std::runtime_error("rocFFT plan execution failure");
+    // work around potential problem of following hipMemcpy
+    // not properly waiting for rocFFT's kernels to finish
+    if(hipDeviceSynchronize() != hipSuccess)
+        throw std::runtime_error("hipDeviceSynchronize after execute failed");
 
     // if not comparing, then just executing the GPU FFT is all we
     // need to do
@@ -1020,19 +1024,19 @@ inline void fft_vs_reference_impl(Tparams& params, bool round_trip)
                     if(last_cpu_fft_data.precision == fft_precision_double)
                     {
                         convert_cpu_output_precision = std::async(std::launch::async, [&]() {
-                            narrow_precision_inplace<double, _Float16>(cpu_output.front());
+                            narrow_precision_inplace<double, rocfft_fp16>(cpu_output.front());
                         });
                         convert_cpu_input_precision  = std::async(std::launch::async, [&]() {
-                            narrow_precision_inplace<double, _Float16>(cpu_input.front());
+                            narrow_precision_inplace<double, rocfft_fp16>(cpu_input.front());
                         });
                     }
                     else if(last_cpu_fft_data.precision == fft_precision_single)
                     {
                         convert_cpu_output_precision = std::async(std::launch::async, [&]() {
-                            narrow_precision_inplace<float, _Float16>(cpu_output.front());
+                            narrow_precision_inplace<float, rocfft_fp16>(cpu_output.front());
                         });
                         convert_cpu_input_precision  = std::async(std::launch::async, [&]() {
-                            narrow_precision_inplace<float, _Float16>(cpu_input.front());
+                            narrow_precision_inplace<float, rocfft_fp16>(cpu_input.front());
                         });
                     }
                     else
