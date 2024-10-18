@@ -285,6 +285,10 @@ typedef enum hipfftXtSubFormat_t
  *  input or output.
  *
  *  The memory must be freed by calling ::hipfftXtFree.
+ * 
+ * @param[in] plan FFT plan to allocate descriptor memory for.
+ * @param[out] desc Pointer to descriptors for allocated memory, the devices used, and sizes.
+ * @param[in] format Subformat determines whether memory is used for FFT input or output.
  *
  * @warning Experimental
  */
@@ -299,6 +303,11 @@ HIPFFT_EXPORT hipfftResult hipfftXtMalloc(hipfftHandle      plan,
  *  - ::HIPFFT_COPY_HOST_TO_DEVICE: dest points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  src points to a host memory buffer.
  *  - ::HIPFFT_COPY_DEVICE_TO_HOST: src points to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  dest points to a host memory buffer.
  *  - ::HIPFFT_COPY_DEVICE_TO_DEVICE: Both dest and src point to a \ref hipLibXtDesc_t structure that describes multi-device memory layout.  The two structures must describe memory with the same number of devices and memory sizes.
+ * 
+ * @param[in] plan Plan which has the descriptor.
+ * @param[out] dest Buffer that will be populated.
+ * @param[in] src Buffer that will be copied from.
+ * @param[in] type Type of copy operation to perform.
  *
  * @warning Experimental
  */
@@ -309,6 +318,8 @@ HIPFFT_EXPORT hipfftResult hipfftXtMemcpy(hipfftHandle     plan,
 
 /*! @brief Free memory allocated by \ref hipfftXtMalloc.
  *
+ * @param[in] desc Descriptor whose memory will be freed.
+ * 
  * @warning Experimental
  */
 HIPFFT_EXPORT hipfftResult hipfftXtFree(hipLibXtDesc* desc);
@@ -330,6 +341,12 @@ HIPFFT_EXPORT hipfftResult hipfftXtFree(hipLibXtDesc* desc);
 
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ * 
  * @brief Execute single-precision complex-to-complex transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
@@ -338,6 +355,11 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2C(hipfftHandle  plan,
                                                      int           direction);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * 
  * @brief Execute single-precision real forward transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle  plan,
@@ -345,6 +367,11 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorR2C(hipfftHandle  plan,
                                                      hipLibXtDesc* output);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * 
  * @brief Execute single-precision real backward transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle  plan,
@@ -352,6 +379,12 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorC2R(hipfftHandle  plan,
                                                      hipLibXtDesc* output);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ * 
  * @brief Execute double-precision complex-to-complex transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
@@ -360,6 +393,11 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2Z(hipfftHandle  plan,
                                                      int           direction);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * 
  * @brief Execute double-precision real forward transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle  plan,
@@ -367,6 +405,11 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorD2Z(hipfftHandle  plan,
                                                      hipLibXtDesc* output);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * 
  * @brief Execute double-precision real backward transform.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle  plan,
@@ -374,6 +417,12 @@ HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptorZ2D(hipfftHandle  plan,
                                                      hipLibXtDesc* output);
 /**
  * @ingroup hipfftXtExecDescriptor
+ * 
+ * @param[in] plan The FFT plan.
+ * @param[in] input Input data.
+ * @param[out] output Output data.
+ * @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ * 
  * @brief Execute general transform - types of the descriptors must match the plan.
 */
 HIPFFT_EXPORT hipfftResult hipfftXtExecDescriptor(hipfftHandle  plan,
