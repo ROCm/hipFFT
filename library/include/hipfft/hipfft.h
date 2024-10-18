@@ -233,6 +233,8 @@ HIPFFT_EXPORT hipfftResult hipfftPlanMany(hipfftHandle* plan,
                                           hipfftType    type,
                                           int           batch);
 /*! @brief Allocate a new plan.
+ *
+ *  @param[out] plan Pointer to the FFT plan handle to be allocated.
  *  */
 HIPFFT_EXPORT hipfftResult hipfftCreate(hipfftHandle* plan);
 
@@ -530,10 +532,10 @@ HIPFFT_EXPORT hipfftResult hipfftSetWorkArea(hipfftHandle plan, void* workArea);
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
- *  @param direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
+ *  @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecC2C(hipfftHandle   plan,
                                          hipfftComplex* idata,
@@ -545,9 +547,9 @@ HIPFFT_EXPORT hipfftResult hipfftExecC2C(hipfftHandle   plan,
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecR2C(hipfftHandle   plan,
                                          hipfftReal*    idata,
@@ -558,9 +560,9 @@ HIPFFT_EXPORT hipfftResult hipfftExecR2C(hipfftHandle   plan,
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecC2R(hipfftHandle   plan,
                                          hipfftComplex* idata,
@@ -571,10 +573,10 @@ HIPFFT_EXPORT hipfftResult hipfftExecC2R(hipfftHandle   plan,
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
- *  @param direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
+ *  @param[in] direction Either `HIPFFT_FORWARD` or `HIPFFT_BACKWARD`.
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
                                          hipfftDoubleComplex* idata,
@@ -586,9 +588,9 @@ HIPFFT_EXPORT hipfftResult hipfftExecZ2Z(hipfftHandle         plan,
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecD2Z(hipfftHandle         plan,
                                          hipfftDoubleReal*    idata,
@@ -599,9 +601,9 @@ HIPFFT_EXPORT hipfftResult hipfftExecD2Z(hipfftHandle         plan,
  *  @details If the input and output buffers are equal, an in-place
  *  transform is performed.
  *
- *  @param plan The FFT plan.
- *  @param idata Input data (on device).
- *  @param odata Output data (on device).
+ *  @param[in] plan The FFT plan.
+ *  @param[in] idata Input data (on device).
+ *  @param[out] odata Output data (on device).
  * */
 HIPFFT_EXPORT hipfftResult hipfftExecZ2D(hipfftHandle         plan,
                                          hipfftDoubleComplex* idata,
@@ -612,8 +614,8 @@ HIPFFT_EXPORT hipfftResult hipfftExecZ2D(hipfftHandle         plan,
  * @details Associates a HIP stream with a hipFFT plan.  All kernels
  * launched by this plan are associated with the provided stream.
  *
- * @param plan The FFT plan.
- * @param stream The HIP stream.
+ * @param[in] plan The FFT plan.
+ * @param[in] stream The HIP stream.
  * */
 HIPFFT_EXPORT hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream);
 
@@ -623,6 +625,8 @@ HIPFFT_EXPORT hipfftResult hipfftSetCompatibilityMode(hipfftHandle plan,
 */
 
 /*! @brief Destroy and deallocate an existing plan.
+ *
+ *  @param[in] plan Handle of the FFT plan to be destroyed.
  *  */
 HIPFFT_EXPORT hipfftResult hipfftDestroy(hipfftHandle plan);
 
