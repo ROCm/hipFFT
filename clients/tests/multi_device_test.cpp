@@ -39,7 +39,8 @@ std::vector<fft_params> param_generator_multi_gpu()
         return {};
 
     static const std::vector<std::vector<size_t>> stride_range = {{1}};
-    auto params_complex = param_generator_complex(multi_gpu_sizes,
+    auto params_complex                                        = param_generator_complex(test_prob,
+                                                  multi_gpu_sizes,
                                                   precision_range_sp_dp,
                                                   {1, 10},
                                                   stride_generator(stride_range),
@@ -49,7 +50,8 @@ std::vector<fft_params> param_generator_multi_gpu()
                                                   {fft_placement_inplace, fft_placement_notinplace},
                                                   false);
 
-    auto params_real = param_generator_real(multi_gpu_sizes,
+    auto params_real = param_generator_real(test_prob,
+                                            multi_gpu_sizes,
                                             precision_range_sp_dp,
                                             {1, 10},
                                             stride_generator(stride_range),

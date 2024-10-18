@@ -40,8 +40,10 @@
 #include "../shared/data_gen_device.h"
 #include "../shared/data_gen_host.h"
 #include "../shared/device_properties.h"
+#include "../shared/gpubuf.h"
 #include "../shared/printbuffer.h"
 #include "../shared/ptrdiff.h"
+#include "../shared/rocfft_complex.h"
 
 enum fft_status
 {
@@ -108,6 +110,11 @@ static bool lexical_cast(const std::string& word, fft_input_generator& gen)
         gen = fft_input_generator_host;
     else
         throw std::runtime_error("Invalid input generator specified");
+#ifndef USE_HIPRAND
+    if(gen == fft_input_random_generator_device || gen == fft_input_generator_device)
+        throw std::runtime_error(
+            "Device input generation is not available, as hipRAND support is not enabled");
+#endif
     return true;
 }
 
@@ -156,6 +163,7 @@ inline Tsize var_size(const fft_precision precision, const fft_array_type type)
     return var_size;
 }
 
+#ifdef USE_HIPRAND
 // Given an array type and transform length, strides, etc, initialize
 // values into the input device buffer.
 //
@@ -279,6 +287,7 @@ inline void set_input(std::vector<gpubuf>&       input,
         throw std::runtime_error("Input layout format not yet supported");
     }
 }
+#endif // USE_HIPRAND
 
 // Given an array type and transform length, strides, etc, initialize
 // values into the input host buffer.
@@ -463,7 +472,6 @@ public:
     std::vector<size_t>  ostride;
     size_t               nbatch         = 1;
     fft_precision        precision      = fft_precision_single;
-    fft_input_generator  igen           = fft_input_random_generator_device;
     fft_transform_type   transform_type = fft_transform_type_complex_forward;
     fft_result_placement placement      = fft_placement_inplace;
     size_t               idist          = 0;
@@ -475,6 +483,12 @@ public:
 
     std::vector<size_t> isize;
     std::vector<size_t> osize;
+
+#ifdef USE_HIPRAND
+    fft_input_generator igen = fft_input_random_generator_device;
+#else
+    fft_input_generator igen = fft_input_random_generator_host;
+#endif
 
     size_t workbuffersize = 0;
 
@@ -571,6 +585,12 @@ public:
 
     fft_params(){};
     virtual ~fft_params(){};
+
+    // copying and moving
+    fft_params(const fft_params&) = default;
+    fft_params& operator=(const fft_params&) = default;
+    fft_params(fft_params&&)                 = default;
+    fft_params& operator=(fft_params&&) = default;
 
     // Given an array type, return the name as a string.
     static std::string array_type_name(const fft_array_type type, bool verbose = true)
@@ -984,7 +1004,7 @@ public:
 
         // strides, bricks etc are mixed in from here, so just keep
         // looking at the next token to decide what to do
-        while(pos < vals.size())
+        while(pos < vals.size() - 1)
         {
             const auto& next_token = vals[pos];
             if(next_token == "istride")
@@ -1436,7 +1456,7 @@ public:
     }
 
     // Return true if the given GPU parameters would produce a valid transform.
-    bool valid(const int verbose) const
+    bool valid(const int verbose = 0) const
     {
         if(ioffset.size() < nibuffer() || ooffset.size() < nobuffer())
             return false;
@@ -1620,6 +1640,16 @@ public:
         std::reverse(std::begin(ostride_cm), std::end(ostride_cm));
         return ostride_cm;
     }
+    bool is_interleaved() const
+    {
+        if(itype == fft_array_type_complex_interleaved
+           || itype == fft_array_type_hermitian_interleaved)
+            return true;
+        if(otype == fft_array_type_complex_interleaved
+           || otype == fft_array_type_hermitian_interleaved)
+            return true;
+        return false;
+    }
     bool is_planar() const
     {
         if(itype == fft_array_type_complex_planar || itype == fft_array_type_hermitian_planar)
@@ -1627,6 +1657,14 @@ public:
         if(otype == fft_array_type_complex_planar || otype == fft_array_type_hermitian_planar)
             return true;
         return false;
+    }
+    bool is_real() const
+    {
+        return (itype == fft_array_type_real || otype == fft_array_type_real);
+    }
+    bool is_callback() const
+    {
+        return run_callbacks;
     }
 
     // Given a data type and dimensions, fill the buffer, imposing Hermitian symmetry if necessary.

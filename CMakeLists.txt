@@ -67,6 +67,13 @@ option( BUILD_CLIENTS_TESTS "Build ${PROJECT_NAME} tests (requires 3rd dependenc
 option( BUILD_CLIENTS_SAMPLES "Build examples" OFF )
 option(BUILD_ADDRESS_SANITIZER "Build with address sanitizer enabled" OFF)
 
+# Provide ability to disable hipRAND dependency
+option(USE_HIPRAND "Build using hipRAND for test input generation instead of host-side generation" ON)
+
+if( USE_HIPRAND )
+  add_compile_definitions(USE_HIPRAND)
+endif( )
+
 option( WERROR "Treat warnings as errors" OFF )
 
 set(DEFAULT_GPUS
@@ -223,18 +230,20 @@ if( BUILD_CLIENTS_BENCH OR BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS )
   if(BUILD_CLIENTS_TESTS)
     rocm_package_setup_client_component(
       tests
-      DEPENDS
-        DEB ${FFTW_DEB} hiprand
-        RPM ${FFTW_RPM} hiprand
-    )
+      if(USE_HIPRAND)
+        DEPENDS
+          DEB ${FFTW_DEB} hiprand
+          RPM ${FFTW_RPM} hiprand
+      )
   endif()
   if(BUILD_CLIENTS_BENCH)
     rocm_package_setup_client_component(
       benchmarks
-      DEPENDS
-        DEB hiprand
-        RPM hiprand
-    )
+      if(USE_HIPRAND)
+        DEPENDS
+          DEB hiprand
+          RPM hiprand
+      )
   endif()
   add_subdirectory( clients )
 endif()
