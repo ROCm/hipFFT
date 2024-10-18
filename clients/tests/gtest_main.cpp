@@ -53,15 +53,18 @@ bool smoketest = false;
 
 // User-defined random seed
 size_t random_seed;
-
-// Overall probability of running any given test
+// Overall probability of running conventional tests
 double test_prob;
-
-// Probability of running individual planar FFTs
-double planar_prob;
-
-// Probability of running individual callback FFTs
-double callback_prob;
+// Probability of running tests from the emulation suite
+double emulation_prob;
+// Modifier for probability of running tests with complex interleaved data
+double complex_interleaved_prob_factor;
+// Modifier for probability of running tests with real data
+double real_prob_factor;
+// Modifier for probability of running tests with complex planar data
+double complex_planar_prob_factor;
+// Modifier for probability of running tests with callbacks
+double callback_prob_factor;
 
 // Transform parameters for manual test:
 fft_params manual_params;
@@ -217,6 +220,10 @@ void precompile_test_kernels(const std::string& precompile_file)
                     params.validate();
                     params.create_plan();
                 }
+                catch(fft_params::work_buffer_alloc_failure&)
+                {
+                    continue;
+                }
                 catch(std::exception& e)
                 {
                     // failed to create a plan, abort
@@ -270,11 +277,18 @@ int main(int argc, char* argv[])
     app.add_option("--test_prob", test_prob, "Probability of running individual tests")
         ->default_val(1.0)
         ->check(CLI::Range(0.0, 1.0));
+    app.add_option(
+           "--complex_interleaved_prob_factor",
+           complex_interleaved_prob_factor,
+           "Probability multiplier for running individual transforms with complex interleaved data")
+        ->default_val(1)
+        ->check(CLI::NonNegativeNumber);
     app.add_option("--callback_prob",
-                   callback_prob,
-                   "Probability of running individual callback transforms")
+                   callback_prob_factor,
+                   "Probability multiplier for running individual callback transforms")
         ->default_val(0.1)
-        ->check(CLI::Range(0.0, 1.0));
+        ->check(CLI::NonNegativeNumber);
+
     app.add_option("--fftw_compare", fftw_compare, "Compare to FFTW in accuracy tests")
         ->default_val(true);
     // FIXME: Seed has no use currently
@@ -394,6 +408,13 @@ int main(int argc, char* argv[])
                    precompile_file,
                    "Precompile kernels to a file for all test cases before running tests")
         ->default_val("");
+    // Default value is set in fft_params.h based on if device-side PRNG was enabled.
+    app.add_option("-g, --inputGen",
+                   manual_params.igen,
+                   "Input data generation:\n0) PRNG sequence (device)\n"
+                   "1) PRNG sequence (host)\n"
+                   "2) linearly-spaced sequence (device)\n"
+                   "3) linearly-spaced sequence (host)");
 
     // Parse rest of args and catch any errors here
     try

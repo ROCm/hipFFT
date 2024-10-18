@@ -121,6 +121,13 @@ int main(int argc, char* argv[])
         ->each([&](const std::string& val) {
             std::cout << "Running profile with " << val << " samples\n";
         });
+    // Default value is set in fft_params.h based on if device-side PRNG was enabled.
+    app.add_option("-g, --inputGen",
+                   params.igen,
+                   "Input data generation:\n0) PRNG sequence (device)\n"
+                   "1) PRNG sequence (host)\n"
+                   "2) linearly-spaced sequence (device)\n"
+                   "3) linearly-spaced sequence (host)");
     app.add_option("--isize", params.isize, "Logical size of input buffer");
     app.add_option("--osize", params.osize, "Logical size of output buffer");
     app.add_option("--scalefactor", params.scale_factor, "Scale factor to apply to output");
@@ -261,26 +268,56 @@ int main(int argc, char* argv[])
         pibuffer[i] = ibuffer[i].data();
     }
 
-    // Input data:
-    params.compute_input(ibuffer);
+    // CPU-side input buffer
+    std::vector<hostbuf> ibuffer_cpu;
 
-    if(verbose > 1)
+    auto is_host_gen = (params.igen == fft_input_generator_host
+                        || params.igen == fft_input_random_generator_host);
+
+#ifdef USE_HIPRAND
+    if(!is_host_gen)
     {
-        // Copy input to CPU
-        auto cpu_input = allocate_host_buffer(params.precision, params.itype, params.isize);
-        for(unsigned int idx = 0; idx < ibuffer.size(); ++idx)
-        {
-            hip_rt = hipMemcpy(cpu_input.at(idx).data(),
-                               ibuffer[idx].data(),
-                               ibuffer_sizes[idx],
-                               hipMemcpyDeviceToHost);
+        // Input data:
+        params.compute_input(ibuffer);
 
-            if(hip_rt != hipSuccess)
-                throw std::runtime_error("hipMemcpy failed");
+        if(verbose > 1)
+        {
+            // Copy input to CPU
+            ibuffer_cpu = allocate_host_buffer(params.precision, params.itype, params.isize);
+            for(unsigned int idx = 0; idx < ibuffer.size(); ++idx)
+            {
+                HIP_V_THROW(hipMemcpy(ibuffer_cpu.at(idx).data(),
+                                      ibuffer[idx].data(),
+                                      ibuffer_sizes[idx],
+                                      hipMemcpyDeviceToHost),
+                            "hipMemcpy failed");
+            }
+
+            std::cout << "GPU input:\n";
+            params.print_ibuffer(ibuffer_cpu);
+        }
+    }
+#endif
+    if(is_host_gen)
+    {
+        // Input data:
+        ibuffer_cpu = allocate_host_buffer(params.precision, params.itype, params.isize);
+        params.compute_input(ibuffer_cpu);
+
+        if(verbose > 1)
+        {
+            std::cout << "GPU input:\n";
+            params.print_ibuffer(ibuffer_cpu);
         }
 
-        std::cout << "GPU input:\n";
-        params.print_ibuffer(cpu_input);
+        for(unsigned int idx = 0; idx < ibuffer_cpu.size(); ++idx)
+        {
+            HIP_V_THROW(hipMemcpy(pibuffer[idx],
+                                  ibuffer_cpu[idx].data(),
+                                  ibuffer_cpu[idx].size(),
+                                  hipMemcpyHostToDevice),
+                        "hipMemcpy failed");
+        }
     }
 
     // GPU output buffer:
@@ -325,8 +362,22 @@ int main(int argc, char* argv[])
 
     for(size_t itrial = 0; itrial < gpu_time.size(); ++itrial)
     {
-
-        params.compute_input(ibuffer);
+#ifdef USE_HIPRAND
+        // Compute input on default device
+        if(!is_host_gen)
+            params.compute_input(ibuffer);
+#endif
+        if(is_host_gen)
+        {
+            for(unsigned int idx = 0; idx < ibuffer_cpu.size(); ++idx)
+            {
+                HIP_V_THROW(hipMemcpy(pibuffer[idx],
+                                      ibuffer_cpu[idx].data(),
+                                      ibuffer_cpu[idx].size(),
+                                      hipMemcpyHostToDevice),
+                            "hipMemcpy failed");
+            }
+        }
 
         hip_rt = hipEventRecord(start);
         if(hip_rt != hipSuccess)

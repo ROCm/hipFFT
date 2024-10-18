@@ -30,7 +30,7 @@
 // for an error condition.  If an error occurs, we throw.
 // Note: std::runtime_error does not take unicode strings as input, so only strings
 // supported
-inline hipError_t
+inline void
     hip_V_Throw(hipError_t res, const std::string& msg, size_t lineno, const std::string& fileName)
 {
     if(res != hipSuccess)
@@ -48,13 +48,12 @@ inline hipError_t
         std::cout << errorm << std::endl;
         throw std::runtime_error(errorm);
     }
-    return res;
 }
 
-inline hipfftResult lib_V_Throw(hipfftResult       res,
-                                const std::string& msg,
-                                size_t             lineno,
-                                const std::string& fileName)
+inline void lib_V_Throw(hipfftResult       res,
+                        const std::string& msg,
+                        size_t             lineno,
+                        const std::string& fileName)
 {
     if(res != HIPFFT_SUCCESS)
     {
@@ -71,7 +70,6 @@ inline hipfftResult lib_V_Throw(hipfftResult       res,
         std::cout << errorm << std::endl;
         throw std::runtime_error(errorm);
     }
-    return res;
 }
 
 #define HIP_V_THROW(_status, _message) hip_V_Throw(_status, _message, __LINE__, __FILE__)
