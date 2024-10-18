@@ -3,7 +3,7 @@
 Documentation for hipFFT is available at
 [https://rocm.docs.amd.com/projects/hipFFT/en/latest/](https://rocm.docs.amd.com/projects/hipFFT/en/latest/).
 
-## hipFFT 1.0.17 (unreleased)
+## hipFFT 1.0.18 (unreleased)
 
 ### Changed
 
@@ -15,7 +15,7 @@ Documentation for hipFFT is available at
 
 * Fixed client packages to depend on hipRAND instead of rocRAND.
 
-## hipFFT 1.0.16 for ROCm 6.3.0
+## hipFFT 1.0.17 for ROCm 6.3.0
 
 ### Added
 
@@ -26,6 +26,11 @@ Documentation for hipFFT is available at
 
 * The AMD backend is now compiled using amdclang++ instead of hipcc. The NVIDIA CUDA backend still uses hipcc-nvcc.
 * CLI11 replaces Boost Program Options as the command line parser for clients.
+
+## hipFFT 1.0.16 for ROCm 6.2.4
+
+### Changed
+* Support gfx1151 architecture.
 
 ## hipFFT 1.0.15 for ROCm 6.2.0
 
