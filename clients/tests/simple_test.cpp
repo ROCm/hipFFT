@@ -563,6 +563,7 @@ TEST(hipfftTest, RunR2C)
     nrmse /= maxv;
 
     EXPECT_TRUE(nrmse < type_epsilon<double>());
+    fftw_destroy_plan(ref_p);
     fftw_free(ref_out);
 }
 
@@ -640,5 +641,6 @@ TEST(hipfftTest, OutplaceOnly)
     nrmse /= maxv;
 
     ASSERT_TRUE(nrmse < type_epsilon<double>());
+    fftw_destroy_plan(ref_p);
     fftw_free(ref_out);
 }
