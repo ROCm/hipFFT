@@ -77,7 +77,7 @@ target_include_directories( hipfft
   )
 
 if( BUILD_WITH_LIB STREQUAL "CUDA" )
-  target_include_directories( hipfft PUBLIC $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}> )
+  target_include_directories( hipfft PUBLIC $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}> )
 endif()
 
 set(static_depends)
@@ -93,7 +93,7 @@ if( NOT BUILD_WITH_LIB STREQUAL "CUDA" )
 else()
   # static hipfft build should link against static cufft
   if( BUILD_SHARED_LIBS )
-    target_link_libraries( hipfft PRIVATE ${CUDA_cufft_LIBRARY} )
+    target_link_libraries( hipfft PRIVATE CUDA::cufft )
   else()
     target_link_libraries( hipfft PRIVATE -lcufft_static -lculibos )
   endif()
