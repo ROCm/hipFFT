@@ -222,3 +222,39 @@ if (WIN32)
     add_custom_command( TARGET hipfft-test POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy ${file_i} $<TARGET_FILE_DIR:hipfft-test> )
   endforeach( file_i )
 endif()
+
+option(BUILD_CODE_COVERAGE "Build with code coverage flags (clang only)" OFF)
+if (BUILD_CODE_COVERAGE)
+        set(COVERAGE_COMPILE_FLAGS "-g -O0 -fprofile-instr-generate -fcoverage-mapping ")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILE_FLAGS}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILE_FLAGS}")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-instr-generate")
+
+	add_custom_target(
+		code_cov_tests
+		COMMAND echo Coverage GTEST_FILTER=\${GTEST_FILTER}
+		COMMAND mkdir -p ./coverage-report/profraw/ && rm -rf ./coverage-report/profraw/* && LLVM_PROFILE_FILE="./coverage-report/profraw/hipfft-coverage_%p.profraw" GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./clients/staging/hipfft-test --precompile=./clients/staging/hipfft-test-precompile.db  --gtest_color=yes --gtest_filter=\"\${GTEST_FILTER}\"
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+	add_custom_target(
+		coverage
+		COMMAND /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./coverage-report/profraw/hipfft-coverage_*.profraw -o ./coverage-report/hipfft.profdata
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+	add_dependencies(coverage code_cov_tests)
+
+	add_custom_command(
+		TARGET coverage
+		COMMAND /opt/rocm/llvm/bin/llvm-cov report -object ./library/src/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+	add_custom_command(
+		TARGET coverage
+		COMMAND /opt/rocm/llvm/bin/llvm-cov show -object ./library/src/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata -format=html -output-dir=coverage-report
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+endif()
