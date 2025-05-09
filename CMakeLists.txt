@@ -303,3 +303,11 @@ if( ROCmCMakeBuildTools_FOUND )
     LDCONFIG_DIR ${HIPFFT_CONFIG_DIR}
     )
 endif()
+
+option(BUILD_CODE_COVERAGE "Build with code coverage flags (clang only)" OFF)
+if (BUILD_CODE_COVERAGE)
+	set(COVERAGE_COMPILE_FLAGS "-g -O0 -fprofile-instr-generate -fcoverage-mapping ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COVERAGE_COMPILE_FLAGS}")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COVERAGE_COMPILE_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-instr-generate")
+endif()
