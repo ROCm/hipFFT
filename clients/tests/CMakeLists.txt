@@ -226,9 +226,6 @@ endif()
 option(BUILD_CODE_COVERAGE "Build with code coverage flags (clang only)" OFF)
 set(COVERAGE_TEST_OPTIONS "--smoketest" CACHE STRING "Command line arguments for hipfft-test when generating a code coverage report")
 if (BUILD_CODE_COVERAGE)
-  target_compile_options( hipfft PRIVATE -g -O0 -fprofile-instr-generate -fcoverage-mapping )
-  target_link_options( hipfft INTERFACE -fprofile-instr-generate )
-
   add_custom_target(
     code_cov_tests
     DEPENDS hipfft-test
