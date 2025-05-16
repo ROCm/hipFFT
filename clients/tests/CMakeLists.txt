@@ -231,8 +231,10 @@ if (BUILD_CODE_COVERAGE)
 
 	add_custom_target(
 		code_cov_tests
-		COMMAND echo Coverage GTEST_FILTER=\${GTEST_FILTER}
-		COMMAND mkdir -p ./coverage-report/profraw/ && rm -rf ./coverage-report/profraw/* && LLVM_PROFILE_FILE="./coverage-report/profraw/hipfft-coverage_%p.profraw" GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./clients/staging/hipfft-test --precompile=./clients/staging/hipfft-test-precompile.db  --gtest_color=yes --gtest_filter=\"\${GTEST_FILTER}\"
+		DEPENDS hipfft-test
+		COMMAND ${CMAKE_COMMAND} -E rm -rf ./coverage-report
+		COMMAND ${CMAKE_COMMAND} -E make_directory ./coverage-report/profraw
+		COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE="./coverage-report/profraw/hipfft-coverage_%p.profraw" GTEST_LISTENER=NO_PASS_LINE_IN_LOG $<TARGET_FILE:hipfft-test> --precompile=./clients/staging/hipfft-test-precompile.db ${COVERAGE_TEST_OPTIONS}
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 	)
 
