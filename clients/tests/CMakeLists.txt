@@ -255,8 +255,8 @@ if (BUILD_CODE_COVERAGE)
     coverage
     DEPENDS code_cov_tests
     COMMAND ${LLVM_PROFDATA} merge -sparse ./coverage-report/profraw/hipfft-coverage_*.profraw -o ./coverage-report/hipfft.profdata
-    COMMAND ${LLVM_COV} report -object ./library/hipfft.so -instr-profile=./coverage-report/hipfft.profdata
-    COMMAND ${LLVM_COV} show -object ./library/hipfft.so -instr-profile=./coverage-report/hipfft.profdata -format=html -output-dir=coverage-report
+    COMMAND ${LLVM_COV} report -object ./library/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata
+    COMMAND ${LLVM_COV} show -object ./library/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata -format=html -output-dir=coverage-report
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 endif()
