@@ -238,24 +238,29 @@ if (BUILD_CODE_COVERAGE)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
 
+  find_program(
+    LLVM_PROFDATA
+    llvm-profdata
+    REQUIRED
+    HINTS ${ROCM_PATH}/llvm/bin
+    PATHS /opt/rocm/llvm/bin
+  )
+
+  find_program(
+    LLVM_COV
+    llvm-cov
+    REQUIRED
+    HINTS ${ROCM_PATH}/llvm/bin
+    PATHS /opt/rocm/llvm/bin
+  )
+
   add_custom_target(
     coverage
+    DEPENDS code_cov_tests
+    COMMAND ${LLVM_PROFDATA} merge -sparse ./coverage-report/profraw/hipfft-coverage_*.profraw -o ./coverage-report/hipfft.profdata
+    COMMAND ${LLVM_COV} report -object ./library/src/hipfft.so -instr-profile=./coverage-report/hipfft.profdata
+    COMMAND ${LLVM_COV} show -object ./library/src/hipfft.so -instr-profile=./coverage-report/hipfft.profdata -format=html -output-dir=coverage-report
     COMMAND /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./coverage-report/profraw/hipfft-coverage_*.profraw -o ./coverage-report/hipfft.profdata
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
-
-  add_dependencies(coverage code_cov_tests)
-
-  add_custom_command(
-    TARGET coverage
-    COMMAND /opt/rocm/llvm/bin/llvm-cov report -object ./library/src/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-
-  add_custom_command(
-    TARGET coverage
-    COMMAND /opt/rocm/llvm/bin/llvm-cov show -object ./library/src/libhipfft.so -instr-profile=./coverage-report/hipfft.profdata -format=html -output-dir=coverage-report
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
-
 endif()
