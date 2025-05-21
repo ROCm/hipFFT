@@ -69,6 +69,7 @@ Here are some CMake build examples:
 The `-DBUILD_CLIENTS=ON` option is only allowed with the amdclang++ or HIPCC compilers.
 ```
 
+## Code Coverage
 You can generate a test coverage report with the following:
 
 ```bash
