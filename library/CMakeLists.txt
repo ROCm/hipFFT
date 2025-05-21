@@ -182,5 +182,5 @@ endif()
 
 if (BUILD_CODE_COVERAGE)
   target_compile_options( hipfft PRIVATE -g -O0 -fprofile-instr-generate -fcoverage-mapping )
-  target_link_options( hipfft INTERFACE -fprofile-instr-generate )
+  target_link_options( hipfft PUBLIC -fprofile-instr-generate )
 endif()
