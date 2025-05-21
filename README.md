@@ -69,6 +69,14 @@ Here are some CMake build examples:
 The `-DBUILD_CLIENTS=ON` option is only allowed with the amdclang++ or HIPCC compilers.
 ```
 
+You can generate a test coverage report with the following:
+
+```bash
+cmake -DCMAKE_CXX_COMPILER=amdclang++ -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_CLIENTS_TESTS=ON -DBUILD_CODE_COVERAGE=ON <optional: -DCOVERAGE_TEST_OPTIONS="cmdline args to pass to hipfft-test (default: --smoketest)"> ..
+make -j coverage
+```
+The above will output the coverage report to the terminal and also save an html coverage report to `$PWD/coverage-report`.  Please note that we use llvm for code coverage, which only works with clang compilers.
+
 ## Porting from CUDA
 
 If you have existing CUDA code and want to transition to HIP, follow these steps:
