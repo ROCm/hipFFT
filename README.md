@@ -76,7 +76,7 @@ You can generate a test coverage report with the following:
 cmake -DCMAKE_CXX_COMPILER=amdclang++ -DBUILD_CLIENTS_SAMPLES=ON -DBUILD_CLIENTS_TESTS=ON -DBUILD_CODE_COVERAGE=ON <optional: -DCOVERAGE_TEST_OPTIONS="cmdline args to pass to hipfft-test (default: --smoketest)"> ..
 make -j coverage
 ```
-The above will output the coverage report to the terminal and also save an html coverage report to `$PWD/coverage-report`.  Please note that we use llvm for code coverage, which only works with clang compilers.
+The commands above will output the coverage report to the terminal and save an html coverage report to `$PWD/coverage-report`.  Note that hipFFT uses llvm for code coverage, which only works with clang compilers.
 
 ## Porting from CUDA
 
