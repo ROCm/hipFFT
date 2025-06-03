@@ -68,7 +68,7 @@ std::vector<fft_params> param_generator_multi_gpu(const std::optional<SplitType>
         return {};
 
     static const std::vector<std::vector<size_t>> stride_range = {{1}};
-    auto params_complex                                        = param_generator_complex(test_prob,
+    auto params_complex = param_generator_complex(test_prob,
                                                   multi_gpu_sizes,
                                                   precision_range_sp_dp,
                                                   {1, 10},

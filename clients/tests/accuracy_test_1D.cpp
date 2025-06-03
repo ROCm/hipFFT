@@ -30,8 +30,6 @@
 #include "../../shared/params_gen.h"
 #include "../../shared/rocfft_against_fftw.h"
 
-using ::testing::ValuesIn;
-
 // TODO: handle special case where length=2 for real/complex transforms.
 const static std::vector<size_t> pow2_range
     = {2,       4,        8,        16,       32,        128,       256,

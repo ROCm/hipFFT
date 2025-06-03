@@ -30,8 +30,6 @@
 #include "../../shared/params_gen.h"
 #include "../../shared/rocfft_against_fftw.h"
 
-using ::testing::ValuesIn;
-
 // Set parameters
 
 // TODO: enable 16384, 32768 when omp support is available (takes too

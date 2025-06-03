@@ -30,8 +30,6 @@
 #include "../../shared/params_gen.h"
 #include "../../shared/rocfft_against_fftw.h"
 
-using ::testing::ValuesIn;
-
 // Set parameters
 
 // TODO: 512, 1024, 2048 make the tests take too long; re-enable when

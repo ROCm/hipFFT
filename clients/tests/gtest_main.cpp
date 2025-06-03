@@ -46,15 +46,10 @@
 // Control output verbosity:
 int verbose;
 
-// Run a short (~5 min) test suite by setting test_prob to an appropriate value
-bool smoketest = false;
-
 // User-defined random seed
 size_t random_seed;
 // Overall probability of running conventional tests
 double test_prob;
-// Probability of running tests from the emulation suite
-double emulation_prob;
 // Modifier for probability of running tests with complex interleaved data
 double complex_interleaved_prob_factor;
 // Modifier for probability of running tests with real data
@@ -104,7 +99,7 @@ last_cpu_fft_cache last_cpu_fft_data;
 fft_params::fft_mp_lib mp_lib = fft_params::fft_mp_lib_none;
 // Number of multi-process ranks to launch
 int mp_ranks = 1;
-// Multi-process launch command (e.g. mpirun --np 4 /path/to/rocfft_mpi_worker)
+// Multi-process launch command (e.g. mpirun --np 4 /path/to/hipfft_mpi_worker)
 std::string mp_launch;
 
 void init_gtest_flags()
@@ -280,12 +275,22 @@ int main(int argc, char* argv[])
     app.add_option("--test_prob", test_prob, "Probability of running individual tests")
         ->default_val(1.0)
         ->check(CLI::Range(0.0, 1.0));
+    app.add_option("--real_prob",
+                   real_prob_factor,
+                   "Probability multiplier for running individual real/complex transforms")
+        ->default_val(1.0)
+        ->check(CLI::PositiveNumber);
+    app.add_option("--planar_prob",
+                   complex_planar_prob_factor,
+                   "Probability multiplier for running individual planar transforms")
+        ->default_val(0.1)
+        ->check(CLI::PositiveNumber);
     app.add_option(
            "--complex_interleaved_prob_factor",
            complex_interleaved_prob_factor,
            "Probability multiplier for running individual transforms with complex interleaved data")
         ->default_val(1)
-        ->check(CLI::NonNegativeNumber);
+        ->check(CLI::PositiveNumber);
     app.add_option("--callback_prob",
                    callback_prob_factor,
                    "Probability multiplier for running individual callback transforms")
@@ -302,7 +307,7 @@ int main(int argc, char* argv[])
     app.add_option("--mp_launch",
                    mp_launch,
                    "Command line prefix to launch multi-process transforms, e.g. \"mpirun --np 4 "
-                   "/path/to/rocfft_mpi_worker\"")
+                   "/path/to/hipfft_mpi_worker\"")
         ->default_val("")
         ->each([&](const std::string&) {
             if(mp_lib == fft_params::fft_mp_lib_none)
