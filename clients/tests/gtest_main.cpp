@@ -171,6 +171,17 @@ void precompile_test_kernels(const std::string& precompile_file)
             // only care about accuracy tests
             if(name.find("vs_fftw/") != std::string::npos)
             {
+                // [possible TODO] move above check to nesting loop's scope as a
+                // check on the test suite's name (i.e., if it includes "accuracy_test").
+                // That would allow other (hypothetical) accuracy test instances than
+                // "vs_fftw/" to be considered as well...
+                // Requirement: TEST(manual, vs_fftw) to be changed
+                // - either as TEST(manual_accuracy_test, vs_fftw);
+                // - or as INSTANTIATE_TEST_SUITE_P(manual,
+                //                                  accuracy_test,
+                //                                  ::testing::ValuesIn({manual_param}),
+                //                                  accuracy_test::TestName);
+                // (preference for second option)
                 name.erase(0, 8);
 
                 // change batch to 1, so we don't waste time creating

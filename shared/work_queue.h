@@ -36,7 +36,7 @@ struct WorkQueue
     {
         std::unique_lock<std::mutex> lock(queueMutex);
         while(items.empty())
-            emptyWait.wait(lock);
+            emptyWait.wait(lock); // lock was acquired so possible deadlock here conceptually?
         _WorkItem item(items.front());
         items.pop();
         return item;
