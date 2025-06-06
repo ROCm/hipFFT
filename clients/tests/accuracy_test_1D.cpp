@@ -317,29 +317,22 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_offset_mix_1D,
 
 // small 1D sizes just need to make sure our factorization isn't
 // completely broken, so we just check simple C2C outplace interleaved
-INSTANTIATE_TEST_SUITE_P(small_1D,
-                         accuracy_test,
-                         ::testing::ValuesIn(param_generator_base(
-                             test_prob,
-                             {fft_transform_type_complex_forward},
-                             generate_lengths({small_1D_sizes()}),
-                             {fft_precision_single},
-                             {1},
-                             [](fft_transform_type                       t,
-                                const std::vector<fft_result_placement>& place_range,
-                                const bool                               planar) {
-                                 return std::vector<type_place_io_t>{
-                                     std::make_tuple(t,
-                                                     place_range[0],
-                                                     fft_array_type_complex_interleaved,
-                                                     fft_array_type_complex_interleaved)};
-                             },
-                             stride_range,
-                             stride_range,
-                             ioffset_range_zero,
-                             ooffset_range_zero,
-                             {fft_placement_notinplace})),
-                         accuracy_test::TestName);
+INSTANTIATE_TEST_SUITE_P(
+    small_1D,
+    accuracy_test,
+    ::testing::ValuesIn(param_generator_base(test_prob,
+                                             {fft_transform_type_complex_forward},
+                                             generate_lengths({small_1D_sizes()}),
+                                             {fft_precision_single},
+                                             range_for_unbatched,
+                                             generate_types,
+                                             stride_range,
+                                             stride_range,
+                                             ioffset_range_zero,
+                                             ooffset_range_zero,
+                                             {fft_placement_notinplace},
+                                             false /* planar */)),
+    accuracy_test::TestName);
 
 // NB:
 // We have known non-unit strides issues for 1D:
@@ -350,7 +343,7 @@ INSTANTIATE_TEST_SUITE_P(small_1D,
 // main tests.
 //
 // The below test covers non-unit strides, pow of 2, middle sizes, which has SBCC/SBRC kernels
-// invloved.
+// involved.
 const static std::vector<size_t>              pow2_range_for_stride      = {4096, 8192, 524288};
 const static std::vector<size_t>              pow2_range_for_stride_half = {4096, 8192};
 const static std::vector<std::vector<size_t>> stride_range_for_pow2      = {{2}, {3}};
@@ -362,7 +355,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(param_generator_complex(test_prob,
                                                 generate_lengths({pow2_range_for_stride}),
                                                 precision_range_sp_dp,
-                                                batch_range_1D,
+                                                batch_range_for_stride,
                                                 stride_range_for_pow2,
                                                 stride_range_for_pow2,
                                                 ioffset_range_zero,
@@ -378,7 +371,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(param_generator_real(test_prob,
                                              generate_lengths({pow2_range_for_stride}),
                                              precision_range_sp_dp,
-                                             batch_range_1D,
+                                             batch_range_for_stride,
                                              stride_range_for_pow2,
                                              stride_range_for_pow2,
                                              ioffset_range_zero,
@@ -394,7 +387,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(param_generator_real(test_prob,
                                              generate_lengths({pow2_range_for_stride_half}),
                                              {fft_precision_half},
-                                             batch_range_1D,
+                                             batch_range_for_stride,
                                              stride_range_for_pow2,
                                              stride_range_for_pow2,
                                              ioffset_range_zero,
@@ -404,87 +397,27 @@ INSTANTIATE_TEST_SUITE_P(
                                              false)),
     accuracy_test::TestName);
 
-// Create an array parameters for strided 2D batched transforms.
-inline auto
-    param_generator_complex_1d_batched_2d(const double                             base_prob,
-                                          const std::vector<std::vector<size_t>>&  v_lengths,
-                                          const std::vector<fft_precision>&        precision_range,
-                                          const std::vector<std::vector<size_t>>&  ioffset_range,
-                                          const std::vector<std::vector<size_t>>&  ooffset_range,
-                                          const std::vector<fft_result_placement>& place_range)
-{
-
-    std::vector<fft_params> params;
-
-    // for(auto& transform_type :
-    // {fft_transform_type_complex_forward, fft_transform_type_complex_inverse})
-    // {
-
-    for(auto& transform_type : trans_type_range_complex)
-    {
-        for(const auto& lengths : v_lengths)
-        {
-            // try to ensure that we are given literal lengths, not
-            // something to be passed to generate_lengths
-            if(lengths.empty() || lengths.size() > 3)
-            {
-                assert(false);
-                continue;
-            }
-            for(const auto precision : precision_range)
-            {
-                for(const auto& types : generate_types(transform_type, place_range, false))
-                {
-                    for(const auto& ioffset : ioffset_range)
-                    {
-                        for(const auto& ooffset : ooffset_range)
-                        {
-                            fft_params param;
-
-                            param.length         = lengths;
-                            param.istride        = lengths;
-                            param.ostride        = lengths;
-                            param.nbatch         = lengths[0];
-                            param.precision      = precision;
-                            param.transform_type = std::get<0>(types);
-                            param.placement      = std::get<1>(types);
-                            param.idist          = 1;
-                            param.odist          = 1;
-                            param.itype          = std::get<2>(types);
-                            param.otype          = std::get<3>(types);
-                            param.ioffset        = ioffset;
-                            param.ooffset        = ooffset;
-
-                            param.validate();
-
-                            const double roll = hash_prob(random_seed, param.token());
-                            const double run_prob
-                                = base_prob * (param.is_planar() ? complex_planar_prob_factor : 1.0)
-                                  * (param.is_interleaved() ? complex_interleaved_prob_factor : 1.0)
-                                  * (param.is_real() ? real_prob_factor : 1.0);
-
-                            if(roll > run_prob)
-                            {
-                                if(verbose > 4)
-                                {
-                                    std::cout << "Test skipped (probability " << run_prob << " > "
-                                              << roll << ")\n";
-                                }
-                                continue;
-                            }
-                            if(param.valid(0))
-                            {
-                                params.push_back(param);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return params;
-}
+inline auto param_generator_complex_1d_batched_2d =
+    [](const double                             base_prob,
+       const std::vector<std::vector<size_t>>&  v_lengths,
+       const std::vector<fft_precision>&        precision_range,
+       const std::vector<std::vector<size_t>>&  ioffset_range,
+       const std::vector<std::vector<size_t>>&  ooffset_range,
+       const std::vector<fft_result_placement>& place_range) {
+    return param_generator_base(base_prob,
+                                trans_type_range_complex,
+                                v_lengths,
+                                precision_range,
+                                inner_batch_generator(),
+                                generate_types,
+                                inner_batch_stride_generator(),
+                                inner_batch_stride_generator(),
+                                ioffset_range,
+                                ooffset_range,
+                                place_range,
+                                false  /*planar*/,
+                                false  /*run_callbacks*/);
+};
 
 const static std::vector<size_t> pow2_range_2D
     = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};

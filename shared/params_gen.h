@@ -27,6 +27,7 @@
 #include "fft_params.h"
 #include "test_params.h"
 
+const static std::vector<size_t> range_for_unbatched = {1};
 const static std::vector<size_t> batch_range = {2, 1};
 
 const static std::vector<fft_precision> precision_range_full
@@ -164,35 +165,130 @@ static std::vector<type_place_io_t>
     return ret;
 }
 
-struct stride_generator
+// basic struct template for various data generators, encapsulating a list of values
+// known at construction
+template <typename value_type>
+struct data_generator_base
 {
-    struct stride_dist
-    {
-        stride_dist(const std::vector<size_t>& s, size_t d)
-            : stride(s)
-            , dist(d)
-        {
-        }
-        std::vector<size_t> stride;
-        size_t              dist;
-    };
-
+protected:
+    const std::vector<value_type> value_list;
+public:
     // NOTE: allow for this ctor to be implicit, so it's less typing for a test writer
     //
     // cppcheck-suppress noExplicitConstructor
+    data_generator_base(const std::vector<value_type>& value_list_in)
+        : value_list(value_list_in)
+    {
+    }
+};
+
+// abstract struct template for generating data given some length(s) and a batch size
+template <typename value_type, typename ret_type = value_type>
+struct data_generator_from_lengths_and_batch : data_generator_base<value_type>
+{
+    data_generator_from_lengths_and_batch(const std::vector<value_type>& value_list_in)
+        : data_generator_base<value_type>(value_list_in)
+    {
+    }
+    virtual std::vector<ret_type> generate(const std::vector<size_t>& lengths, size_t batch) const = 0;
+};
+
+// abstract struct template for generating data given some length(s) only
+template <typename value_type, typename ret_type = value_type>
+struct data_generator_from_lengths : data_generator_base<value_type>
+{
+    data_generator_from_lengths(const std::vector<value_type>& value_list_in)
+        : data_generator_base<value_type>(value_list_in)
+    {
+    }
+    virtual std::vector<ret_type> generate(const std::vector<size_t>& lengths) const = 0;
+};
+
+struct stride_dist
+{
+    stride_dist(const std::vector<size_t>& s, size_t d)
+        : stride(s)
+        , dist(d)
+    {
+    }
+    const std::vector<size_t> stride;
+    const size_t              dist;
+};
+
+struct stride_generator : data_generator_from_lengths_and_batch<std::vector<size_t>, stride_dist>
+{
     stride_generator(const std::vector<std::vector<size_t>>& stride_list_in)
-        : stride_list(stride_list_in)
+        : data_generator_from_lengths_and_batch(stride_list_in)
     {
     }
     virtual std::vector<stride_dist> generate(const std::vector<size_t>& lengths,
                                               size_t                     batch) const
     {
+        // default behavior: return the encapsulated stride data with 0 (default) distance
+        // (lengths and batch unused in this case)
         std::vector<stride_dist> ret;
-        for(const auto& s : stride_list)
+        for(const auto& s : value_list)
             ret.emplace_back(s, 0);
         return ret;
     }
-    std::vector<std::vector<size_t>> stride_list;
+};
+
+struct batch_generator : data_generator_from_lengths<size_t>
+{
+    batch_generator(const std::vector<size_t>& batch_list_in)
+        : data_generator_from_lengths(batch_list_in)
+    {
+    }
+    virtual std::vector<size_t> generate(const std::vector<size_t>& lengths) const
+    {
+        // default behavior: return the encapsulated batch data
+        // (lengths unused in this case)
+        return value_list;
+    }
+};
+
+struct inner_batch_generator : public batch_generator
+{
+    inner_batch_generator() :
+        batch_generator({1 /* dummy, value_list is irrelevant in this case */})
+    {
+    };
+
+    std::vector<size_t> generate(const std::vector<size_t>& lengths) const override
+    {
+        assert(lengths.size() > 0);
+        // batch size set to the problem's last lengths ("fastest" dimension)
+        std::vector<size_t> ret(1, lengths.back());
+        return ret;
+    }
+};
+
+template<size_t dim = 1, std::enable_if_t<(dim > 0), bool> = true>
+struct inner_batch_stride_generator : public stride_generator
+{
+    inner_batch_stride_generator() :
+        stride_generator({{1 /* dummy, value_list is irrelevant in this case */}})
+    {
+    };
+
+    std::vector<stride_dist> generate(const std::vector<size_t>& lengths,
+                                      size_t                     batch) const override
+    {
+        assert(lengths.size() == dim);
+        // only positive strides assumed in here
+        std::vector<size_t> strides;
+        auto cur_stride = std::accumulate(lengths.begin() + 1,
+                                          lengths.end(),
+                                          batch,
+                                          std::multiplies<size_t>());
+        for (auto length : lengths) {
+            strides.emplace_back(cur_stride);
+            cur_stride /= length;
+        }
+        assert(cur_stride == 1); // := distance for "inner_batch" layout
+        std::vector<stride_dist> ret(1, {strides, cur_stride});
+        return ret;
+    }
 };
 
 // Generate strides such that batch is essentially the innermost dimension
@@ -228,6 +324,8 @@ struct stride_generator_3D_inner_batch : public stride_generator
                                       size_t                     batch) const override
     {
         std::vector<stride_dist> ret = stride_generator::generate(lengths, batch);
+        // Note: the above call makes this struct behave slightly differently from
+        // inner_batch_stride_generator<3>...
         std::vector<size_t> strides{lengths[1] * lengths[2] * batch, lengths[2] * batch, batch};
         ret.emplace_back(strides, 1);
         return ret;
@@ -240,7 +338,7 @@ inline auto param_generator_base(const double                             base_p
                                  const std::vector<fft_transform_type>&   type_range,
                                  const std::vector<std::vector<size_t>>&  v_lengths,
                                  const std::vector<fft_precision>&        precisions,
-                                 const std::vector<size_t>&               batch_range,
+                                 const batch_generator&                   batch_range,
                                  decltype(generate_types)                 types_generator,
                                  const stride_generator&                  istride,
                                  const stride_generator&                  ostride,
@@ -272,7 +370,7 @@ inline auto param_generator_base(const double                             base_p
             {
                 for(const auto precision : precisions)
                 {
-                    for(const auto batch : batch_range)
+                    for(const auto batch : batch_range.generate(lengths))
                     {
                         for(const auto& types :
                             types_generator(transform_type, place_range, planar))
@@ -362,7 +460,7 @@ inline auto param_generator_base(const double                             base_p
 inline auto param_generator(const double                             base_prob,
                             const std::vector<std::vector<size_t>>&  v_lengths,
                             const std::vector<fft_precision>&        precision_range,
-                            const std::vector<size_t>&               batch_range,
+                            const batch_generator&                   batch_range,
                             const stride_generator&                  istride,
                             const stride_generator&                  ostride,
                             const std::vector<std::vector<size_t>>&  ioffset_range,
@@ -392,7 +490,7 @@ inline auto param_generator(const double                             base_prob,
 inline auto param_generator_complex(const double                             base_prob,
                                     const std::vector<std::vector<size_t>>&  v_lengths,
                                     const std::vector<fft_precision>&        precision_range,
-                                    const std::vector<size_t>&               batch_range,
+                                    const batch_generator&                   batch_range,
                                     const stride_generator&                  istride,
                                     const stride_generator&                  ostride,
                                     const std::vector<std::vector<size_t>>&  ioffset_range,
@@ -422,7 +520,7 @@ inline auto param_generator_complex(const double                             bas
 inline auto param_generator_real(const double                             base_prob,
                                  const std::vector<std::vector<size_t>>&  v_lengths,
                                  const std::vector<fft_precision>&        precision_range,
-                                 const std::vector<size_t>&               batch_range,
+                                 const batch_generator&                   batch_range,
                                  const stride_generator&                  istride,
                                  const stride_generator&                  ostride,
                                  const std::vector<std::vector<size_t>>&  ioffset_range,
