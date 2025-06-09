@@ -48,6 +48,7 @@ int verbose;
 
 // User-defined random seed
 size_t random_seed;
+std::random_device default_seed_dev;
 // Overall probability of running conventional tests
 double test_prob;
 // Modifier for probability of running tests with complex interleaved data
@@ -101,6 +102,8 @@ fft_params::fft_mp_lib mp_lib = fft_params::fft_mp_lib_none;
 int mp_ranks = 1;
 // Multi-process launch command (e.g. mpirun --np 4 /path/to/hipfft_mpi_worker)
 std::string mp_launch;
+
+static std::string config_file_to_save;
 
 void init_gtest_flags()
 {
@@ -277,7 +280,10 @@ int main(int argc, char* argv[])
         "      HP - hermitian planar\n"
         "\n"
         "Usage"};
-
+    auto* rt_default_opts =
+        app.add_option_group("Options with runtime-defined default values",
+                             "Option values are saved/reported in case of test "
+                             "failure (even if not set explicitly)");
     // Override CLI11 help to print after later CLI11 options that are defined, and allow gtest's help
     app.set_help_flag("");
     CLI::Option* opt_help = app.add_flag("-h, --help", "Produces this help message");
@@ -323,21 +329,22 @@ int main(int argc, char* argv[])
         ->each([&](const std::string&) {
             if(mp_lib == fft_params::fft_mp_lib_none)
             {
-                std::cout << "--mp_launch requires an mp library (see mp_lib in --help).\n";
-                std::exit(-1);
+                throw CLI::ValidationError("--mp_launch requires an mp library (see mp_lib in --help)");
             }
         })
         ->needs("--mp_lib");
-    // FIXME: Seed has no use currently
-    // CLI::Option* opt_seed =
-    app.add_option("--seed", random_seed, "Random seed; if unset, use an actual random seed");
+    rt_default_opts->add_option(
+        "--seed", random_seed, "Random seed; if unset, use an actual random seed")
+        ->default_val(default_seed_dev());
     app.add_flag("--smoketest", "Run a short (approx 5 minute) randomized selection of tests")
         ->each([&](const std::string&) {
             // The objective is to have an test that takes about 5 minutes, so just set the probability
             // per test to a small value to achieve this result.
             test_prob = 0.002;
         });
-
+    app.set_config("--load_config_file",
+                   "" /* none by default */,
+                   "Path to a readable file defining a test configuration to read");
     // Try parsing initial args that will be used to configure tests
     // Allow extras to pass on gtest and hipFFT arguments without error
     app.allow_extras();
@@ -424,7 +431,7 @@ int main(int argc, char* argv[])
     non_token->add_option("--ooffset", manual_params.ooffset, "Output offset");
     app.add_option("--isize", manual_params.isize, "Logical size of input buffer");
     app.add_option("--osize", manual_params.osize, "Logical size of output buffer");
-    app.add_option("--R", ramgb, "RAM limit in GiB for tests")
+    rt_default_opts->add_option("--R", ramgb, "RAM limit in GiB for tests")
         ->default_val(host_memory::singleton().get_total_gbytes());
     app.add_option("--V", vramgb, "VRAM limit in GiB for tests")->default_val(0);
     app.add_option("--half_epsilon", half_epsilon)->default_val(9.77e-4);
@@ -449,6 +456,11 @@ int main(int argc, char* argv[])
                    "1) PRNG sequence (host)\n"
                    "2) linearly-spaced sequence (device)\n"
                    "3) linearly-spaced sequence (host)");
+    app.add_option("--save_config_filename",
+                   config_file_to_save,
+                   "Relative path to a writeable file where the test configuration is "
+                   "to be saved, if the test failed.")
+                   ->default_val("saved_hipfft-test.conf");
 
     // Parse rest of args and catch any errors here
     try
@@ -477,6 +489,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    std::cout << "Using random_seed = " << random_seed << std::endl;
     std::cout << "half epsilon: " << half_epsilon << "\tsingle epsilon: " << single_epsilon
               << "\tdouble epsilon: " << double_epsilon << std::endl;
 
@@ -608,6 +621,34 @@ int main(int argc, char* argv[])
     std::cout << "single precision max l2 epsilon:     " << max_l2_eps_single << std::endl;
     std::cout << "double precision max l-inf epsilon: " << max_linf_eps_double << std::endl;
     std::cout << "double precision max l2 epsilon:     " << max_l2_eps_double << std::endl;
+
+    if (retval != EXIT_SUCCESS) {
+        constexpr bool print_default_too = true;
+        std::string conf = app.config_to_str(!print_default_too);
+        // The above exports values for all configuration options set by the user.
+        // Default-initialized option values are not included: add those initialized
+        // at runtime separately to ease reproducibility of reported failure(s)
+        for (auto* opt : rt_default_opts->get_options()) {
+            // remove option from from group if explicitly set to avoid
+            // ill-constructed configuration files due to duplication(s)
+            if (*opt) rt_default_opts->remove_option(opt);
+        }
+        conf += rt_default_opts->config_to_str(print_default_too);
+        try {
+            std::ofstream outputFile(config_file_to_save);
+            if (!outputFile.is_open())
+                throw std::runtime_error(config_file_to_save + ": file could not be opened");
+            outputFile << conf;
+            outputFile.close();
+            std::cout << "Test configuration successfully saved to "
+                      << config_file_to_save << std::endl;
+        } catch(const std::exception& e) {
+            std::cout << "Failed to save configuration to " << config_file_to_save
+                      << "Exception caught: \n"<< e.what() << std::endl;
+            std::cout << "Configuration: \n"
+                      << conf << std::endl;
+        }
+    }
 
     // rocfft_cleanup();
     return retval;
