@@ -252,6 +252,17 @@ void precompile_test_kernels(const std::string& precompile_file)
               << " ms\n";
 }
 
+// helper function including some testing
+static inline int get_hipfft_version(){
+    // TODO: this segfaults, fix in hipFFT and enable here
+    // EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
+    int v;
+    EXPECT_EQ(hipfftGetVersion(&v), HIPFFT_SUCCESS);
+    // maybe possible to verify v (e.g. by comparison with compile-time-defined
+    // values defined in some backend's header)?
+    return v;
+}
+
 int main(int argc, char* argv[])
 {
     CLI::App app{
@@ -401,6 +412,8 @@ int main(int argc, char* argv[])
                    "1) PRNG sequence (host)\n"
                    "2) linearly-spaced sequence (device)\n"
                    "3) linearly-spaced sequence (host)");
+    CLI::Option* opt_version = app.add_flag("--version",
+        "Print queryable version information from the hipfft library's backend");
     // Try parsing initial args that will be used to configure tests
     // Allow extras to pass on gtest and hipFFT arguments without error
     app.allow_extras();
@@ -464,14 +477,6 @@ int main(int argc, char* argv[])
     // Filename for precompiled kernels to be written to
     std::string precompile_file;
 
-    // app.add_flag("--version", "Print queryable version information from the rocfft library")
-    //     ->each([](const std::string&) {
-    //         rocfft_setup();
-    //         char v[256];
-    //         rocfft_get_version_string(v, 256);
-    //         std::cout << "rocFFT version: " << v << std::endl;
-    //         return EXIT_SUCCESS;
-    //     });
     rt_default_opts->add_option("--R", ramgb, "RAM limit in GiB for tests")
         ->default_val(host_memory::singleton().get_total_gbytes());
     app.add_option("--V", vramgb, "VRAM limit in GiB for tests")->default_val(0);
@@ -510,6 +515,12 @@ int main(int argc, char* argv[])
         std::cout << app.help() << "\n";
         return EXIT_SUCCESS;
     }
+    const int hipfft_version = get_hipfft_version();
+    // print it regardless:
+    std::cout << "hipFFT version: " << hipfft_version << std::endl;
+    if (*opt_version) {
+        return EXIT_SUCCESS;
+    }
 
     // Ensure there are no leftover options used by neither gtest nor CLI11
     std::vector<std::string> remaining_args = app.remaining();
@@ -537,11 +548,6 @@ int main(int argc, char* argv[])
         env_precompile = std::make_unique<EnvironmentSetTemp>("ROCFFT_RTC_CACHE_PATH",
                                                               precompile_file.c_str());
     }
-
-    // rocfft_setup();
-    // char v[256];
-    // rocfft_get_version_string(v, 256);
-    // std::cout << "rocFFT version: " << v << std::endl;
 
 #ifdef FFTW_MULTITHREAD
     fftw_init_threads();
@@ -650,7 +656,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // rocfft_cleanup();
     return retval;
 }
 
