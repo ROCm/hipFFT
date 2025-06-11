@@ -178,13 +178,6 @@ void precompile_test_kernels(const std::string& precompile_file)
                 // check on the test suite's name (i.e., if it includes "accuracy_test").
                 // That would allow other (hypothetical) accuracy test instances than
                 // "vs_fftw/" to be considered as well...
-                // Requirement: TEST(manual, vs_fftw) to be changed
-                // - either as TEST(manual_accuracy_test, vs_fftw);
-                // - or as INSTANTIATE_TEST_SUITE_P(manual,
-                //                                  accuracy_test,
-                //                                  ::testing::ValuesIn({manual_param}),
-                //                                  accuracy_test::TestName);
-                // (preference for second option)
                 name.erase(0, 8);
 
                 // change batch to 1, so we don't waste time creating
@@ -342,54 +335,23 @@ int main(int argc, char* argv[])
             // per test to a small value to achieve this result.
             test_prob = 0.002;
         });
+    // Token string to fully specify fft params for the manual test.
+    std::string test_token;
+    CLI::Option* opt_token
+        = app.add_option("--token", test_token, "Test token name for manual test")->default_val("");
     app.set_config("--load_config_file",
                    "" /* none by default */,
                    "Path to a readable file defining a test configuration to read");
-    // Try parsing initial args that will be used to configure tests
-    // Allow extras to pass on gtest and hipFFT arguments without error
-    app.allow_extras();
-    try
-    {
-        app.parse(argc, argv);
-    }
-    catch(const CLI::ParseError& e)
-    {
-        return app.exit(e);
-    }
-
-    // NB: If we initialize gtest first, then it removes all of its own command-line
-    // arguments and sets argc and argv correctly;
-    ::testing::InitGoogleTest(&argc, argv);
-
-    // Filename for fftw and fftwf wisdom.
-    std::string fftw_wisdom_filename;
-
-    // Token string to fully specify fft params for the manual test.
-    std::string test_token;
-
-    // Filename for precompiled kernels to be written to
-    std::string precompile_file;
-
-    // Declare the supported options. Some option pointers are declared to track passed opts.
-    app.add_flag("--callback", "Inject load/store callbacks")->each([&](const std::string&) {
-        manual_params.run_callbacks = true;
-    });
-    // app.add_flag("--version", "Print queryable version information from the rocfft library")
-    //     ->each([](const std::string&) {
-    //         rocfft_setup();
-    //         char v[256];
-    //         rocfft_get_version_string(v, 256);
-    //         std::cout << "rocFFT version: " << v << std::endl;
-    //         return EXIT_SUCCESS;
-    //     });
-    CLI::Option* opt_token
-        = app.add_option("--token", test_token, "Test token name for manual test")->default_val("");
     // Group together options that conflict with --token
     auto* non_token = app.add_option_group("Token Conflict", "Options excluded by --token");
+    non_token->excludes(opt_token);
+    // Declare the supported options. Some option pointers are declared to track passed opts.
+    non_token->add_flag("--callback", "Inject load/store callbacks")->each([&](const std::string&) {
+        manual_params.run_callbacks = true;
+    });
     non_token
         ->add_flag("--double", "Double precision transform (deprecated: use --precision double)")
         ->each([&](const std::string&) { manual_params.precision = fft_precision_double; });
-    non_token->excludes(opt_token);
     non_token
         ->add_option("-t, --transformType",
                      manual_params.transform_type,
@@ -429,8 +391,87 @@ int main(int argc, char* argv[])
         ->default_val(0);
     non_token->add_option("--ioffset", manual_params.ioffset, "Input offset");
     non_token->add_option("--ooffset", manual_params.ooffset, "Output offset");
-    app.add_option("--isize", manual_params.isize, "Logical size of input buffer");
-    app.add_option("--osize", manual_params.osize, "Logical size of output buffer");
+    non_token->add_option("--isize", manual_params.isize, "Logical size of input buffer");
+    non_token->add_option("--osize", manual_params.osize, "Logical size of output buffer");
+    non_token->add_option("--scalefactor", manual_params.scale_factor, "Scale factor to apply to output");
+    // Default value is set in fft_params.h based on if device-side PRNG was enabled.
+    non_token->add_option("-g, --inputGen",
+                   manual_params.igen,
+                   "Input data generation:\n0) PRNG sequence (device)\n"
+                   "1) PRNG sequence (host)\n"
+                   "2) linearly-spaced sequence (device)\n"
+                   "3) linearly-spaced sequence (host)");
+    // Try parsing initial args that will be used to configure tests
+    // Allow extras to pass on gtest and hipFFT arguments without error
+    app.allow_extras();
+    try
+    {
+        app.parse(argc, argv);
+    }
+    catch(const CLI::ParseError& e)
+    {
+        return app.exit(e);
+    }
+
+    if(!test_token.empty())
+    {
+        std::cout << "Reading fft params from token:\n" << test_token << std::endl;
+
+        try
+        {
+            manual_params.from_token(test_token);
+            std::cout << "manual_params.token() = " << manual_params.token() << std::endl;
+        }
+        catch(...)
+        {
+            std::cout << "Unable to parse token." << std::endl;
+            return 1;
+        }
+    }
+    if (manual_params.length.empty())
+    {
+        manual_params.length.push_back(8);
+        // TODO: add random size?
+    }
+
+    if(manual_params.istride.empty())
+    {
+        manual_params.istride.push_back(1);
+        // TODO: add random size?
+    }
+
+    if(manual_params.ostride.empty())
+    {
+        manual_params.ostride.push_back(1);
+        // TODO: add random size?
+    }
+
+    // User-settable options defining the values of all the actual test parameters
+    // (e.g., probability factors and value of manual_params) must be handled
+    // before invoking ::testing::InitGoogleTest as it triggers evaluation of said
+    // parameters (e.g., args of "::testing::Values{In}" in instantiations of test
+    // suites).
+    // set any "unset" parameters of manual_params before initiating gtests
+    // (makes the token reported by gtest less ambiguous)
+    manual_params.validate();
+    // NB: If we initialize gtest first, then it removes all of its own command-line
+    // arguments and sets argc and argv correctly;
+    ::testing::InitGoogleTest(&argc, argv);
+
+    // Filename for fftw and fftwf wisdom.
+    std::string fftw_wisdom_filename;
+
+    // Filename for precompiled kernels to be written to
+    std::string precompile_file;
+
+    // app.add_flag("--version", "Print queryable version information from the rocfft library")
+    //     ->each([](const std::string&) {
+    //         rocfft_setup();
+    //         char v[256];
+    //         rocfft_get_version_string(v, 256);
+    //         std::cout << "rocFFT version: " << v << std::endl;
+    //         return EXIT_SUCCESS;
+    //     });
     rt_default_opts->add_option("--R", ramgb, "RAM limit in GiB for tests")
         ->default_val(host_memory::singleton().get_total_gbytes());
     app.add_option("--V", vramgb, "VRAM limit in GiB for tests")->default_val(0);
@@ -444,18 +485,10 @@ int main(int argc, char* argv[])
     app.add_option("-w, --wise", use_fftw_wisdom, "Use FFTW wisdom");
     app.add_option("-W, --wisdomfile", fftw_wisdom_filename, "FFTW3 wisdom filename")
         ->default_val("wisdom3.txt");
-    app.add_option("--scalefactor", manual_params.scale_factor, "Scale factor to apply to output");
     app.add_option("--precompile",
                    precompile_file,
                    "Precompile kernels to a file for all test cases before running tests")
         ->default_val("");
-    // Default value is set in fft_params.h based on if device-side PRNG was enabled.
-    app.add_option("-g, --inputGen",
-                   manual_params.igen,
-                   "Input data generation:\n0) PRNG sequence (device)\n"
-                   "1) PRNG sequence (host)\n"
-                   "2) linearly-spaced sequence (device)\n"
-                   "3) linearly-spaced sequence (host)");
     app.add_option("--save_config_filename",
                    config_file_to_save,
                    "Relative path to a writeable file where the test configuration is "
@@ -492,24 +525,6 @@ int main(int argc, char* argv[])
     std::cout << "Using random_seed = " << random_seed << std::endl;
     std::cout << "half epsilon: " << half_epsilon << "\tsingle epsilon: " << single_epsilon
               << "\tdouble epsilon: " << double_epsilon << std::endl;
-
-    if(manual_params.length.empty())
-    {
-        manual_params.length.push_back(8);
-        // TODO: add random size?
-    }
-
-    if(manual_params.istride.empty())
-    {
-        manual_params.istride.push_back(1);
-        // TODO: add random size?
-    }
-
-    if(manual_params.ostride.empty())
-    {
-        manual_params.ostride.push_back(1);
-        // TODO: add random size?
-    }
 
     // if precompiling, tell rocFFT to use the specified cache file
     // to write kernels to
@@ -584,21 +599,6 @@ int main(int argc, char* argv[])
         fftwf_import_wisdom_from_string(fftwf_wisdom.c_str());
     }
 
-    if(!test_token.empty())
-    {
-        std::cout << "Reading fft params from token:\n" << test_token << std::endl;
-
-        try
-        {
-            manual_params.from_token(test_token);
-        }
-        catch(...)
-        {
-            std::cout << "Unable to parse token." << std::endl;
-            return 1;
-        }
-    }
-
     if(!precompile_file.empty())
         precompile_test_kernels(precompile_file);
 
@@ -654,34 +654,9 @@ int main(int argc, char* argv[])
     return retval;
 }
 
-TEST(manual, vs_fftw)
-{
-    // Run an individual test using the provided command-line parameters.
-
-    std::cout << "Manual test:" << std::endl;
-
-    manual_params.validate();
-
-    std::cout << "Token: " << manual_params.token() << std::endl;
-
-    hipfft_params params(manual_params);
-
-    try
-    {
-        fft_vs_reference(params, false);
-    }
-    catch(HOSTBUF_MEM_USAGE& e)
-    {
-        // explicitly clear test cache
-        last_cpu_fft_data = last_cpu_fft_cache();
-        GTEST_SKIP() << e.msg;
-    }
-    catch(ROCFFT_SKIP& e)
-    {
-        GTEST_SKIP() << e.msg;
-    }
-    catch(ROCFFT_FAIL& e)
-    {
-        GTEST_FAIL() << e.msg;
-    }
-}
+// instantiation of the paramameterized accuracy_test for the
+// configuration set manually:
+INSTANTIATE_TEST_SUITE_P(manual,
+                         accuracy_test,
+                         ::testing::Values(manual_params),
+                         accuracy_test::TestName);
