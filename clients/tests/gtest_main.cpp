@@ -103,6 +103,10 @@ int mp_ranks = 1;
 // Multi-process launch command (e.g. mpirun --np 4 /path/to/hipfft_mpi_worker)
 std::string mp_launch;
 
+const static std::string hipfft_test_load_opt = "--load_config_file";
+const static std::string gtest_flagfile_opt = "--gtest_flagfile=";
+const static std::string hipfft_test_conf_ext = ".hipfft-test.conf";
+const static std::string gtest_conf_ext = ".gtest.conf";
 static std::string config_file_to_save;
 
 void init_gtest_flags()
@@ -253,7 +257,8 @@ void precompile_test_kernels(const std::string& precompile_file)
 }
 
 // helper function including some testing
-static inline int get_hipfft_version(){
+static inline int get_hipfft_version()
+{
     // TODO: this segfaults, fix in hipFFT and enable here
     // EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
     int v;
@@ -261,6 +266,110 @@ static inline int get_hipfft_version(){
     // maybe possible to verify v (e.g. by comparison with compile-time-defined
     // values defined in some backend's header)?
     return v;
+}
+
+static std::string get_file_content(const std::string& filename)
+{
+    std::ifstream file(filename);
+    if (!file.is_open())
+    {
+        throw std::runtime_error(filename + " could not be opened for reading");
+    }
+    auto content = std::string(std::istreambuf_iterator<char>(file),
+                               std::istreambuf_iterator<char>());
+    file.close();
+    return content;
+}
+
+static void save_to_file(const std::string& content_to_save,
+                         const std::string& filename)
+{
+    if (content_to_save.empty())
+        return;
+    std::ifstream file_check(filename);
+    if (file_check.is_open())
+    {
+        const auto existing_content = get_file_content(filename);
+        file_check.close();
+        if (existing_content == content_to_save)
+            return; // existing file is as required, no need to overwrite it
+        throw std::runtime_error("Refusing to overwrite existing " + filename);
+    }
+    std::ofstream out_file(filename);
+    if (!out_file.is_open())
+        throw std::runtime_error(filename + " could not be opened for writing");
+    out_file << content_to_save;
+    out_file.close();
+}
+
+static void report_failing_configuration(const std::string& exe,
+                                         const CLI::App& app,
+                                         CLI::Option_group* rt_default_opts,
+                                         const std::vector<std::string>& gtest_args)
+{
+    constexpr bool print_default_too = true;
+    std::string hipfft_test_options = app.config_to_str(!print_default_too);
+    // The above exports values for all options set by the user.
+    // Default-initialized option values are not included: add those initialized
+    // at runtime separately to ease reproducibility of reported failure(s)
+    for (auto* opt : rt_default_opts->get_options())
+    {
+        // remove option from group if explicitly set to avoid
+        // ill-constructed configuration files due to duplication(s)
+        if (*opt) rt_default_opts->remove_option(opt);
+    }
+    hipfft_test_options += rt_default_opts->config_to_str(print_default_too);
+    std::string gtest_flagfile_content;
+    for (auto flag : gtest_args)
+    {
+        if (flag.find(gtest_flagfile_opt) != std::string::npos)
+        {
+            // avoid generating a recursive inclusion of gtest flagfiles
+            // if possible: copy content of file that was used instead
+            try
+            {
+                gtest_flagfile_content += get_file_content(flag.substr(gtest_flagfile_opt.length()));
+            }
+            catch (const std::exception& e)
+            {
+                if (verbose)
+                {
+                    std::cout << "Resorting to use recursive flagfiles" << std::endl;
+                }
+                gtest_flagfile_content += flag;
+            }
+        } else {
+            gtest_flagfile_content += flag;
+        }
+        if (gtest_flagfile_content.back() != '\n')
+        {
+            gtest_flagfile_content += "\n";
+        }
+    }
+    const std::string hipfft_test_config_file_to_save = config_file_to_save + hipfft_test_conf_ext;
+    const std::string gtest_config_file_to_save = config_file_to_save + gtest_conf_ext;
+    try {
+        save_to_file(hipfft_test_options, hipfft_test_config_file_to_save);
+        save_to_file(gtest_flagfile_content, gtest_config_file_to_save);
+        std::cout << "\nFailure(s) should be reproduced by \n\t"
+                    << exe;
+        if (!hipfft_test_config_file_to_save.empty())
+            std::cout << " " << hipfft_test_load_opt << " " << hipfft_test_config_file_to_save;
+        if (!gtest_flagfile_content.empty())
+            std::cout << " " << gtest_flagfile_opt << gtest_config_file_to_save;
+        std::cout << std::endl;
+    } catch (const std::exception& e)
+    {
+        std::cout << "\nFailed to save configuration to designated file(s).\n"
+                    << "\tException caught: "<< e.what() << "\n";
+        if (!hipfft_test_options.empty())
+            std::cout << "\nUsed hipfft-test options: \n"
+                        << hipfft_test_options;
+        if (!gtest_flagfile_content.empty())
+            std::cout << "\nUsed gtest flags: \n"
+                        << gtest_flagfile_content << "\n";
+        std::cout << std::endl;
+    }
 }
 
 int main(int argc, char* argv[])
@@ -350,7 +459,7 @@ int main(int argc, char* argv[])
     std::string test_token;
     CLI::Option* opt_token
         = app.add_option("--token", test_token, "Test token name for manual test")->default_val("");
-    app.set_config("--load_config_file",
+    app.set_config(hipfft_test_load_opt,
                    "" /* none by default */,
                    "Path to a readable file defining a test configuration to read");
     // Group together options that conflict with --token
@@ -469,8 +578,28 @@ int main(int argc, char* argv[])
     manual_params.validate();
     // NB: If we initialize gtest first, then it removes all of its own command-line
     // arguments and sets argc and argv correctly;
-    ::testing::InitGoogleTest(&argc, argv);
-
+    // Determine gtest args by identification of the argv set excluded by InitGoogleTest
+    std::vector<std::string> gtest_args;
+    int argv_idx = 0;
+    for (; argv_idx < argc; argv_idx++)
+        gtest_args.push_back(argv[argv_idx]);   // all argv values are copied
+    ::testing::InitGoogleTest(&argc, argv);     // gtest args are removed
+    // identify what was removed (assuming removals didn't change ordering)
+    auto arg = gtest_args.begin(); argv_idx = 0;
+    while (argv_idx < argc && arg != gtest_args.end())
+    {
+        if (*arg == argv[argv_idx])
+        {
+            // argument not removed --> not specific to gtests
+            arg = gtest_args.erase(arg, arg+1);
+            argv_idx++;
+        }
+        else
+        {
+            // arg is specific to gtest
+            arg++;
+        }
+    }
     // Filename for fftw and fftwf wisdom.
     std::string fftw_wisdom_filename;
 
@@ -494,11 +623,13 @@ int main(int argc, char* argv[])
                    precompile_file,
                    "Precompile kernels to a file for all test cases before running tests")
         ->default_val("");
-    app.add_option("--save_config_filename",
+    app.add_option("--save_config",
                    config_file_to_save,
-                   "Relative path to a writeable file where the test configuration is "
-                   "to be saved, if the test failed.")
-                   ->default_val("saved_hipfft-test.conf");
+                   "File(s) where the test options are to be written out, "
+                   "if the test fails.\nUp to two files may be created, "
+                    "with extensions \"" + hipfft_test_conf_ext + "\" and/or \""
+                    + gtest_conf_ext +"\" added to this file name")
+                   ->default_val("saved_failed_test");
 
     // Parse rest of args and catch any errors here
     try
@@ -516,10 +647,13 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
     const int hipfft_version = get_hipfft_version();
-    // print it regardless:
-    std::cout << "hipFFT version: " << hipfft_version << std::endl;
-    if (*opt_version) {
-        return EXIT_SUCCESS;
+    if (*opt_version || verbose > 0)
+    {
+        std::cout << "hipFFT version: " << hipfft_version << std::endl;
+        if (*opt_version)
+        {
+            return EXIT_SUCCESS;
+        }
     }
 
     // Ensure there are no leftover options used by neither gtest nor CLI11
@@ -628,32 +762,9 @@ int main(int argc, char* argv[])
     std::cout << "double precision max l-inf epsilon: " << max_linf_eps_double << std::endl;
     std::cout << "double precision max l2 epsilon:     " << max_l2_eps_double << std::endl;
 
-    if (retval != EXIT_SUCCESS) {
-        constexpr bool print_default_too = true;
-        std::string conf = app.config_to_str(!print_default_too);
-        // The above exports values for all configuration options set by the user.
-        // Default-initialized option values are not included: add those initialized
-        // at runtime separately to ease reproducibility of reported failure(s)
-        for (auto* opt : rt_default_opts->get_options()) {
-            // remove option from from group if explicitly set to avoid
-            // ill-constructed configuration files due to duplication(s)
-            if (*opt) rt_default_opts->remove_option(opt);
-        }
-        conf += rt_default_opts->config_to_str(print_default_too);
-        try {
-            std::ofstream outputFile(config_file_to_save);
-            if (!outputFile.is_open())
-                throw std::runtime_error(config_file_to_save + ": file could not be opened");
-            outputFile << conf;
-            outputFile.close();
-            std::cout << "Test configuration successfully saved to "
-                      << config_file_to_save << std::endl;
-        } catch(const std::exception& e) {
-            std::cout << "Failed to save configuration to " << config_file_to_save
-                      << "Exception caught: \n"<< e.what() << std::endl;
-            std::cout << "Configuration: \n"
-                      << conf << std::endl;
-        }
+    if (retval != EXIT_SUCCESS)
+    {
+        report_failing_configuration(argv[0], app, rt_default_opts, gtest_args);
     }
 
     return retval;
