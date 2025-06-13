@@ -28,7 +28,7 @@
 #include "test_params.h"
 
 const static std::vector<size_t> range_for_unbatched = {1};
-const static std::vector<size_t> batch_range = {2, 1};
+const static std::vector<size_t> batch_range         = {2, 1};
 
 const static std::vector<fft_precision> precision_range_full
     = {fft_precision_double, fft_precision_single, fft_precision_half};
@@ -172,6 +172,7 @@ struct data_generator_base
 {
 protected:
     const std::vector<value_type> value_list;
+
 public:
     // NOTE: allow for this ctor to be implicit, so it's less typing for a test writer
     //
@@ -190,7 +191,8 @@ struct data_generator_from_lengths_and_batch : data_generator_base<value_type>
         : data_generator_base<value_type>(value_list_in)
     {
     }
-    virtual std::vector<ret_type> generate(const std::vector<size_t>& lengths, size_t batch) const = 0;
+    virtual std::vector<ret_type> generate(const std::vector<size_t>& lengths, size_t batch) const
+        = 0;
 };
 
 // abstract struct template for generating data given some length(s) only
@@ -249,10 +251,8 @@ struct batch_generator : data_generator_from_lengths<size_t>
 
 struct inner_batch_generator : public batch_generator
 {
-    inner_batch_generator() :
-        batch_generator({1 /* dummy, value_list is irrelevant in this case */})
-    {
-    };
+    inner_batch_generator()
+        : batch_generator({1 /* dummy, value_list is irrelevant in this case */}){};
 
     std::vector<size_t> generate(const std::vector<size_t>& lengths) const override
     {
@@ -263,13 +263,11 @@ struct inner_batch_generator : public batch_generator
     }
 };
 
-template<size_t dim = 1, std::enable_if_t<(dim > 0), bool> = true>
+template <size_t dim = 1, std::enable_if_t<(dim > 0), bool> = true>
 struct inner_batch_stride_generator : public stride_generator
 {
-    inner_batch_stride_generator() :
-        stride_generator({{1 /* dummy, value_list is irrelevant in this case */}})
-    {
-    };
+    inner_batch_stride_generator()
+        : stride_generator({{1 /* dummy, value_list is irrelevant in this case */}}){};
 
     std::vector<stride_dist> generate(const std::vector<size_t>& lengths,
                                       size_t                     batch) const override
@@ -277,11 +275,10 @@ struct inner_batch_stride_generator : public stride_generator
         assert(lengths.size() == dim);
         // only positive strides assumed in here
         std::vector<size_t> strides;
-        auto cur_stride = std::accumulate(lengths.begin() + 1,
-                                          lengths.end(),
-                                          batch,
-                                          std::multiplies<size_t>());
-        for (auto length : lengths) {
+        auto                cur_stride
+            = std::accumulate(lengths.begin() + 1, lengths.end(), batch, std::multiplies<size_t>());
+        for(auto length : lengths)
+        {
             strides.emplace_back(cur_stride);
             cur_stride /= length;
         }

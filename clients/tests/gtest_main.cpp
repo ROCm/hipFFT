@@ -47,7 +47,7 @@
 int verbose;
 
 // User-defined random seed
-size_t random_seed;
+size_t             random_seed;
 std::random_device default_seed_dev;
 // Overall probability of running conventional tests
 double test_prob;
@@ -104,10 +104,10 @@ int mp_ranks = 1;
 std::string mp_launch;
 
 const static std::string hipfft_test_load_opt = "--load_config_file";
-const static std::string gtest_flagfile_opt = "--gtest_flagfile=";
+const static std::string gtest_flagfile_opt   = "--gtest_flagfile=";
 const static std::string hipfft_test_conf_ext = ".hipfft-test.conf";
-const static std::string gtest_conf_ext = ".gtest.conf";
-static std::string config_file_to_save;
+const static std::string gtest_conf_ext       = ".gtest.conf";
+static std::string       config_file_to_save;
 
 void init_gtest_flags()
 {
@@ -271,103 +271,105 @@ static inline int get_hipfft_version()
 static std::string get_file_content(const std::string& filename)
 {
     std::ifstream file(filename);
-    if (!file.is_open())
+    if(!file.is_open())
     {
         throw std::runtime_error(filename + " could not be opened for reading");
     }
-    auto content = std::string(std::istreambuf_iterator<char>(file),
-                               std::istreambuf_iterator<char>());
+    auto content
+        = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     file.close();
     return content;
 }
 
-static void save_to_file(const std::string& content_to_save,
-                         const std::string& filename)
+static void save_to_file(const std::string& content_to_save, const std::string& filename)
 {
-    if (content_to_save.empty())
+    if(content_to_save.empty())
         return;
     std::ifstream file_check(filename);
-    if (file_check.is_open())
+    if(file_check.is_open())
     {
         const auto existing_content = get_file_content(filename);
         file_check.close();
-        if (existing_content == content_to_save)
+        if(existing_content == content_to_save)
             return; // existing file is as required, no need to overwrite it
         throw std::runtime_error("Refusing to overwrite existing " + filename);
     }
     std::ofstream out_file(filename);
-    if (!out_file.is_open())
+    if(!out_file.is_open())
         throw std::runtime_error(filename + " could not be opened for writing");
     out_file << content_to_save;
     out_file.close();
 }
 
-static void report_failing_configuration(const std::string& exe,
-                                         const CLI::App& app,
-                                         CLI::Option_group* rt_default_opts,
+static void report_failing_configuration(const std::string&              exe,
+                                         const CLI::App&                 app,
+                                         CLI::Option_group*              rt_default_opts,
                                          const std::vector<std::string>& gtest_args)
 {
-    constexpr bool print_default_too = true;
-    std::string hipfft_test_options = app.config_to_str(!print_default_too);
+    constexpr bool print_default_too   = true;
+    std::string    hipfft_test_options = app.config_to_str(!print_default_too);
     // The above exports values for all options set by the user.
     // Default-initialized option values are not included: add those initialized
     // at runtime separately to ease reproducibility of reported failure(s)
-    for (auto* opt : rt_default_opts->get_options())
+    for(auto* opt : rt_default_opts->get_options())
     {
         // remove option from group if explicitly set to avoid
         // ill-constructed configuration files due to duplication(s)
-        if (*opt) rt_default_opts->remove_option(opt);
+        if(*opt)
+            rt_default_opts->remove_option(opt);
     }
     hipfft_test_options += rt_default_opts->config_to_str(print_default_too);
     std::string gtest_flagfile_content;
-    for (auto flag : gtest_args)
+    for(auto flag : gtest_args)
     {
-        if (flag.find(gtest_flagfile_opt) != std::string::npos)
+        if(flag.find(gtest_flagfile_opt) != std::string::npos)
         {
             // avoid generating a recursive inclusion of gtest flagfiles
             // if possible: copy content of file that was used instead
             try
             {
-                gtest_flagfile_content += get_file_content(flag.substr(gtest_flagfile_opt.length()));
+                gtest_flagfile_content
+                    += get_file_content(flag.substr(gtest_flagfile_opt.length()));
             }
-            catch (const std::exception& e)
+            catch(const std::exception& e)
             {
-                if (verbose)
+                if(verbose)
                 {
                     std::cout << "Resorting to use recursive flagfiles" << std::endl;
                 }
                 gtest_flagfile_content += flag;
             }
-        } else {
+        }
+        else
+        {
             gtest_flagfile_content += flag;
         }
-        if (gtest_flagfile_content.back() != '\n')
+        if(gtest_flagfile_content.back() != '\n')
         {
             gtest_flagfile_content += "\n";
         }
     }
     const std::string hipfft_test_config_file_to_save = config_file_to_save + hipfft_test_conf_ext;
-    const std::string gtest_config_file_to_save = config_file_to_save + gtest_conf_ext;
-    try {
+    const std::string gtest_config_file_to_save       = config_file_to_save + gtest_conf_ext;
+    try
+    {
         save_to_file(hipfft_test_options, hipfft_test_config_file_to_save);
         save_to_file(gtest_flagfile_content, gtest_config_file_to_save);
-        std::cout << "\nFailure(s) should be reproduced by \n\t"
-                    << exe;
-        if (!hipfft_test_config_file_to_save.empty())
+        std::cout << "\nFailure(s) should be reproduced by \n\t" << exe;
+        if(!hipfft_test_config_file_to_save.empty())
             std::cout << " " << hipfft_test_load_opt << " " << hipfft_test_config_file_to_save;
-        if (!gtest_flagfile_content.empty())
+        if(!gtest_flagfile_content.empty())
             std::cout << " " << gtest_flagfile_opt << gtest_config_file_to_save;
         std::cout << std::endl;
-    } catch (const std::exception& e)
+    }
+    catch(const std::exception& e)
     {
         std::cout << "\nFailed to save configuration to designated file(s).\n"
-                    << "\tException caught: "<< e.what() << "\n";
-        if (!hipfft_test_options.empty())
-            std::cout << "\nUsed hipfft-test options: \n"
-                        << hipfft_test_options;
-        if (!gtest_flagfile_content.empty())
-            std::cout << "\nUsed gtest flags: \n"
-                        << gtest_flagfile_content << "\n";
+                  << "\tException caught: " << e.what() << "\n";
+        if(!hipfft_test_options.empty())
+            std::cout << "\nUsed hipfft-test options: \n" << hipfft_test_options;
+        if(!gtest_flagfile_content.empty())
+            std::cout << "\nUsed gtest flags: \n" << gtest_flagfile_content << "\n";
         std::cout << std::endl;
     }
 }
@@ -393,10 +395,9 @@ int main(int argc, char* argv[])
         "      HP - hermitian planar\n"
         "\n"
         "Usage"};
-    auto* rt_default_opts =
-        app.add_option_group("Options with runtime-defined default values",
-                             "Option values are saved/reported in case of test "
-                             "failure (even if not set explicitly)");
+    auto* rt_default_opts = app.add_option_group("Options with runtime-defined default values",
+                                                 "Option values are saved/reported in case of test "
+                                                 "failure (even if not set explicitly)");
     // Override CLI11 help to print after later CLI11 options that are defined, and allow gtest's help
     app.set_help_flag("");
     CLI::Option* opt_help = app.add_flag("-h, --help", "Produces this help message");
@@ -442,12 +443,13 @@ int main(int argc, char* argv[])
         ->each([&](const std::string&) {
             if(mp_lib == fft_params::fft_mp_lib_none)
             {
-                throw CLI::ValidationError("--mp_launch requires an mp library (see mp_lib in --help)");
+                throw CLI::ValidationError(
+                    "--mp_launch requires an mp library (see mp_lib in --help)");
             }
         })
         ->needs("--mp_lib");
-    rt_default_opts->add_option(
-        "--seed", random_seed, "Random seed; if unset, use an actual random seed")
+    rt_default_opts
+        ->add_option("--seed", random_seed, "Random seed; if unset, use an actual random seed")
         ->default_val(default_seed_dev());
     app.add_flag("--smoketest", "Run a short (approx 5 minute) randomized selection of tests")
         ->each([&](const std::string&) {
@@ -456,7 +458,7 @@ int main(int argc, char* argv[])
             test_prob = 0.002;
         });
     // Token string to fully specify fft params for the manual test.
-    std::string test_token;
+    std::string  test_token;
     CLI::Option* opt_token
         = app.add_option("--token", test_token, "Test token name for manual test")->default_val("");
     app.set_config(hipfft_test_load_opt,
@@ -513,16 +515,17 @@ int main(int argc, char* argv[])
     non_token->add_option("--ooffset", manual_params.ooffset, "Output offset");
     non_token->add_option("--isize", manual_params.isize, "Logical size of input buffer");
     non_token->add_option("--osize", manual_params.osize, "Logical size of output buffer");
-    non_token->add_option("--scalefactor", manual_params.scale_factor, "Scale factor to apply to output");
+    non_token->add_option(
+        "--scalefactor", manual_params.scale_factor, "Scale factor to apply to output");
     // Default value is set in fft_params.h based on if device-side PRNG was enabled.
     non_token->add_option("-g, --inputGen",
-                   manual_params.igen,
-                   "Input data generation:\n0) PRNG sequence (device)\n"
-                   "1) PRNG sequence (host)\n"
-                   "2) linearly-spaced sequence (device)\n"
-                   "3) linearly-spaced sequence (host)");
-    CLI::Option* opt_version = app.add_flag("--version",
-        "Print queryable version information from the hipfft library's backend");
+                          manual_params.igen,
+                          "Input data generation:\n0) PRNG sequence (device)\n"
+                          "1) PRNG sequence (host)\n"
+                          "2) linearly-spaced sequence (device)\n"
+                          "3) linearly-spaced sequence (host)");
+    CLI::Option* opt_version = app.add_flag(
+        "--version", "Print queryable version information from the hipfft library's backend");
     // Try parsing initial args that will be used to configure tests
     // Allow extras to pass on gtest and hipFFT arguments without error
     app.allow_extras();
@@ -550,7 +553,7 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
-    if (manual_params.length.empty())
+    if(manual_params.length.empty())
     {
         manual_params.length.push_back(8);
         // TODO: add random size?
@@ -580,18 +583,19 @@ int main(int argc, char* argv[])
     // arguments and sets argc and argv correctly;
     // Determine gtest args by identification of the argv set excluded by InitGoogleTest
     std::vector<std::string> gtest_args;
-    int argv_idx = 0;
-    for (; argv_idx < argc; argv_idx++)
-        gtest_args.push_back(argv[argv_idx]);   // all argv values are copied
-    ::testing::InitGoogleTest(&argc, argv);     // gtest args are removed
+    int                      argv_idx = 0;
+    for(; argv_idx < argc; argv_idx++)
+        gtest_args.push_back(argv[argv_idx]); // all argv values are copied
+    ::testing::InitGoogleTest(&argc, argv); // gtest args are removed
     // identify what was removed (assuming removals didn't change ordering)
-    auto arg = gtest_args.begin(); argv_idx = 0;
-    while (argv_idx < argc && arg != gtest_args.end())
+    auto arg = gtest_args.begin();
+    argv_idx = 0;
+    while(argv_idx < argc && arg != gtest_args.end())
     {
-        if (*arg == argv[argv_idx])
+        if(*arg == argv[argv_idx])
         {
             // argument not removed --> not specific to gtests
-            arg = gtest_args.erase(arg, arg+1);
+            arg = gtest_args.erase(arg, arg + 1);
             argv_idx++;
         }
         else
@@ -627,9 +631,10 @@ int main(int argc, char* argv[])
                    config_file_to_save,
                    "File(s) where the test options are to be written out, "
                    "if the test fails.\nUp to two files may be created, "
-                    "with extensions \"" + hipfft_test_conf_ext + "\" and/or \""
-                    + gtest_conf_ext +"\" added to this file name")
-                   ->default_val("saved_failed_test");
+                   "with extensions \""
+                       + hipfft_test_conf_ext + "\" and/or \"" + gtest_conf_ext
+                       + "\" added to this file name")
+        ->default_val("saved_failed_test");
 
     // Parse rest of args and catch any errors here
     try
@@ -647,10 +652,10 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
     const int hipfft_version = get_hipfft_version();
-    if (*opt_version || verbose > 0)
+    if(*opt_version || verbose > 0)
     {
         std::cout << "hipFFT version: " << hipfft_version << std::endl;
-        if (*opt_version)
+        if(*opt_version)
         {
             return EXIT_SUCCESS;
         }
@@ -762,7 +767,7 @@ int main(int argc, char* argv[])
     std::cout << "double precision max l-inf epsilon: " << max_linf_eps_double << std::endl;
     std::cout << "double precision max l2 epsilon:     " << max_l2_eps_double << std::endl;
 
-    if (retval != EXIT_SUCCESS)
+    if(retval != EXIT_SUCCESS)
     {
         report_failing_configuration(argv[0], app, rt_default_opts, gtest_args);
     }

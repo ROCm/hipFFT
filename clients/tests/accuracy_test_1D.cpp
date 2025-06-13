@@ -397,27 +397,27 @@ INSTANTIATE_TEST_SUITE_P(
                                              false)),
     accuracy_test::TestName);
 
-inline auto param_generator_complex_1d_batched_2d =
-    [](const double                             base_prob,
-       const std::vector<std::vector<size_t>>&  v_lengths,
-       const std::vector<fft_precision>&        precision_range,
-       const std::vector<std::vector<size_t>>&  ioffset_range,
-       const std::vector<std::vector<size_t>>&  ooffset_range,
-       const std::vector<fft_result_placement>& place_range) {
-    return param_generator_base(base_prob,
-                                trans_type_range_complex,
-                                v_lengths,
-                                precision_range,
-                                inner_batch_generator(),
-                                generate_types,
-                                inner_batch_stride_generator(),
-                                inner_batch_stride_generator(),
-                                ioffset_range,
-                                ooffset_range,
-                                place_range,
-                                false  /*planar*/,
-                                false  /*run_callbacks*/);
-};
+inline auto param_generator_complex_1d_batched_2d
+    = [](const double                             base_prob,
+         const std::vector<std::vector<size_t>>&  v_lengths,
+         const std::vector<fft_precision>&        precision_range,
+         const std::vector<std::vector<size_t>>&  ioffset_range,
+         const std::vector<std::vector<size_t>>&  ooffset_range,
+         const std::vector<fft_result_placement>& place_range) {
+          return param_generator_base(base_prob,
+                                      trans_type_range_complex,
+                                      v_lengths,
+                                      precision_range,
+                                      inner_batch_generator(),
+                                      generate_types,
+                                      inner_batch_stride_generator(),
+                                      inner_batch_stride_generator(),
+                                      ioffset_range,
+                                      ooffset_range,
+                                      place_range,
+                                      false /*planar*/,
+                                      false /*run_callbacks*/);
+      };
 
 const static std::vector<size_t> pow2_range_2D
     = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
