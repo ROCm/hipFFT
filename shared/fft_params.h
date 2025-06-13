@@ -3085,7 +3085,7 @@ inline VectorNorms distance_1to2(const rocfft_complex<Tval>*             input,
     return {.l_2 = sqrt(l2), .l_inf = linf};
 }
 
-// Compute the L-inifnity and L-2 distance between two buffers of dimension length and
+// Compute the L-infinity and L-2 distance between two buffers of dimension length and
 // with types given by itype, otype, and precision.
 template <typename Tint1, typename Tint2, typename Tint3>
 inline VectorNorms distance(const std::vector<hostbuf>&             input,
