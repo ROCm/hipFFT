@@ -132,12 +132,6 @@ endif()
 
 # Dependencies
 include(cmake/dependencies.cmake)
-# Note: the above does 'find_package(rocfft REQUIRED)' which eventually
-# includes /opt/rocm/lib/cmake/hip/hip-config-amd.cmake on AMD platforms.
-# The latter does set GPU_TARGETS (cached) to
-# - AMDGPU_TARGETS if it is used (printing a deprecation warning);
-# - the (list of) GPU device(s) automatically detected on the platform if
-#   neither GPU_TARGETS nor AMDGPU_TARGETS is used.
 
 if (BUILD_WITH_COMPILER STREQUAL "HIP-NVCC" )
   set (BUILD_WITH_LIB "CUDA")
