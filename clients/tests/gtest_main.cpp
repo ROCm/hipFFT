@@ -459,7 +459,11 @@ int main(int argc, char* argv[])
     // suites).
     // set any "unset" parameters of manual_params before initiating gtests
     // (makes the token reported by gtest less ambiguous)
-    manual_params.validate();
+    if(!*opt_token)
+    {
+        manual_params.validate();
+    }
+
     // NB: If we initialize gtest first, then it removes all of its own command-line
     // arguments and sets argc and argv correctly;
     ::testing::InitGoogleTest(&argc, argv); // gtest args are removed
