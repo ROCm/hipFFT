@@ -61,7 +61,7 @@ double complex_planar_prob_factor;
 double callback_prob_factor;
 
 // Transform parameters for manual test:
-fft_params manual_params;
+hipfft_params manual_params;
 
 // Host memory limitation for tests (GiB):
 size_t ramgb;
@@ -459,10 +459,7 @@ int main(int argc, char* argv[])
     // suites).
     // set any "unset" parameters of manual_params before initiating gtests
     // (makes the token reported by gtest less ambiguous)
-    if(!*opt_token)
-    {
-        manual_params.validate();
-    }
+    manual_params.validate();
 
     // NB: If we initialize gtest first, then it removes all of its own command-line
     // arguments and sets argc and argv correctly;
@@ -629,5 +626,5 @@ int main(int argc, char* argv[])
 // configuration set manually:
 INSTANTIATE_TEST_SUITE_P(manual,
                          accuracy_test,
-                         ::testing::Values(manual_params),
+                         ::testing::Values(static_cast<const fft_params&>(manual_params)),
                          accuracy_test::TestName);
