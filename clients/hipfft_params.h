@@ -996,13 +996,22 @@ private:
     }
     hipfftResult_t create_plan_many()
     {
+        auto* inembed = int_inembed.data();
+        auto* onembed = int_onembed.data();
+        if(is_using_default_layout())
+        {
+            // test hipfft's ability to figure it out
+            inembed = nullptr;
+            onembed = nullptr;
+        }
+
         auto ret = hipfftPlanMany(&plan,
                                   dim(),
                                   int_length.data(),
-                                  int_inembed.data(),
+                                  inembed,
                                   istride.back(),
                                   idist,
-                                  int_onembed.data(),
+                                  onembed,
                                   ostride.back(),
                                   odist,
                                   *hipfft_transform_type,
@@ -1128,13 +1137,23 @@ private:
         auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
+
+        auto* inembed = int_inembed.data();
+        auto* onembed = int_onembed.data();
+        if(is_using_default_layout())
+        {
+            // test hipfft's ability to figure it out
+            inembed = nullptr;
+            onembed = nullptr;
+        }
+
         return hipfftMakePlanMany(plan,
                                   dim(),
                                   int_length.data(),
-                                  int_inembed.data(),
+                                  inembed,
                                   istride.back(),
                                   idist,
-                                  int_onembed.data(),
+                                  onembed,
                                   ostride.back(),
                                   odist,
                                   *hipfft_transform_type,
@@ -1147,13 +1166,21 @@ private:
         auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
+        auto* inembed = ll_inembed.data();
+        auto* onembed = ll_onembed.data();
+        if(is_using_default_layout())
+        {
+            // test hipfft's ability to figure it out
+            inembed = nullptr;
+            onembed = nullptr;
+        }
         return hipfftMakePlanMany64(plan,
                                     dim(),
                                     ll_length.data(),
-                                    ll_inembed.data(),
+                                    inembed,
                                     istride.back(),
                                     idist,
-                                    ll_onembed.data(),
+                                    onembed,
                                     ostride.back(),
                                     odist,
                                     *hipfft_transform_type,
@@ -1184,14 +1211,23 @@ private:
             break;
         }
 
+        auto* inembed = ll_inembed.data();
+        auto* onembed = ll_onembed.data();
+        if(is_using_default_layout())
+        {
+            // test hipfft's ability to figure it out
+            inembed = nullptr;
+            onembed = nullptr;
+        }
+
         return hipfftXtMakePlanMany(plan,
                                     dim(),
                                     ll_length.data(),
-                                    ll_inembed.data(),
+                                    inembed,
                                     istride.back(),
                                     idist,
                                     inputType,
-                                    ll_onembed.data(),
+                                    onembed,
                                     ostride.back(),
                                     odist,
                                     outputType,
