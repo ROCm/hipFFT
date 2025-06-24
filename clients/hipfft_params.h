@@ -32,11 +32,25 @@
 #include "../shared/hipfft_brick.h"
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
+#include <random>
 
 #ifdef HIPFFT_MPI_ENABLE
 #include "hipfft/hipfftMp.h"
 #include <mpi.h>
 #endif
+
+template <typename T,
+          typename... Args,
+          std::enable_if_t<std::is_integral_v<T> && (std::is_same_v<T, Args> && ...), bool> = true>
+static void set_with_random_nonnegative_values(const std::string& token, T& val, Args&... args)
+{
+    std::hash<std::string>           hasher;
+    std::ranlux24_base               gen(hasher(token));
+    std::uniform_int_distribution<T> dis(static_cast<T>(0), std::numeric_limits<T>::max());
+    val = dis(gen);
+    ((args = dis(gen)), ...);
+    return;
+}
 
 inline fft_status fft_status_from_hipfftparams(const hipfftResult_t val)
 {
@@ -996,24 +1010,35 @@ private:
     }
     hipfftResult_t create_plan_many()
     {
-        auto* inembed = int_inembed.data();
-        auto* onembed = int_onembed.data();
-        if(is_using_default_layout())
+        int*              inembed_arg = int_inembed.data();
+        int*              onembed_arg = int_onembed.data();
+        int               istride_arg = istride.back();
+        int               ostride_arg = ostride.back();
+        int               idist_arg   = idist;
+        int               odist_arg   = odist;
+        const std::string prob_token  = token();
+        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
         {
             // test hipfft's ability to figure it out
-            inembed = nullptr;
-            onembed = nullptr;
+            inembed_arg = nullptr;
+            onembed_arg = nullptr;
+            // istride, ostride, idist and odist are (should be) effectively ignored if
+            // inembed == nullptr and onembed == nullptr. Use random values for those
+            // arguments to test that behavior.
+            // FIXME: negative values are not truly ignored for now.
+            set_with_random_nonnegative_values(
+                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
         }
 
         auto ret = hipfftPlanMany(&plan,
                                   dim(),
                                   int_length.data(),
-                                  inembed,
-                                  istride.back(),
-                                  idist,
-                                  onembed,
-                                  ostride.back(),
-                                  odist,
+                                  inembed_arg,
+                                  istride_arg,
+                                  idist_arg,
+                                  onembed_arg,
+                                  ostride_arg,
+                                  odist_arg,
                                   *hipfft_transform_type,
                                   nbatch);
         return ret;
@@ -1138,24 +1163,35 @@ private:
         if(ret != HIPFFT_SUCCESS)
             return ret;
 
-        auto* inembed = int_inembed.data();
-        auto* onembed = int_onembed.data();
-        if(is_using_default_layout())
+        int*              inembed_arg = int_inembed.data();
+        int*              onembed_arg = int_onembed.data();
+        int               istride_arg = istride.back();
+        int               ostride_arg = ostride.back();
+        int               idist_arg   = idist;
+        int               odist_arg   = odist;
+        const std::string prob_token  = token();
+        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
         {
             // test hipfft's ability to figure it out
-            inembed = nullptr;
-            onembed = nullptr;
+            inembed_arg = nullptr;
+            onembed_arg = nullptr;
+            // istride, ostride, idist and odist are (should be) effectively ignored if
+            // inembed == nullptr and onembed == nullptr. Use random values for those
+            // arguments to test that behavior.
+            // FIXME: negative values are not truly ignored for now.
+            set_with_random_nonnegative_values(
+                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
         }
 
         return hipfftMakePlanMany(plan,
                                   dim(),
                                   int_length.data(),
-                                  inembed,
-                                  istride.back(),
-                                  idist,
-                                  onembed,
-                                  ostride.back(),
-                                  odist,
+                                  inembed_arg,
+                                  istride_arg,
+                                  idist_arg,
+                                  onembed_arg,
+                                  ostride_arg,
+                                  odist_arg,
                                   *hipfft_transform_type,
                                   nbatch,
                                   workbuffersize_ptr);
@@ -1166,23 +1202,34 @@ private:
         auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
-        auto* inembed = ll_inembed.data();
-        auto* onembed = ll_onembed.data();
-        if(is_using_default_layout())
+        long long int*    inembed_arg = ll_inembed.data();
+        long long int*    onembed_arg = ll_onembed.data();
+        long long int     istride_arg = istride.back();
+        long long int     ostride_arg = ostride.back();
+        long long int     idist_arg   = idist;
+        long long int     odist_arg   = odist;
+        const std::string prob_token  = token();
+        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
         {
             // test hipfft's ability to figure it out
-            inembed = nullptr;
-            onembed = nullptr;
+            inembed_arg = nullptr;
+            onembed_arg = nullptr;
+            // istride, ostride, idist and odist are (should be) effectively ignored if
+            // inembed == nullptr and onembed == nullptr. Use random values for those
+            // arguments to test that behavior.
+            // FIXME: negative values are not truly ignored for now.
+            set_with_random_nonnegative_values(
+                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
         }
         return hipfftMakePlanMany64(plan,
                                     dim(),
                                     ll_length.data(),
-                                    inembed,
-                                    istride.back(),
-                                    idist,
-                                    onembed,
-                                    ostride.back(),
-                                    odist,
+                                    inembed_arg,
+                                    istride_arg,
+                                    idist_arg,
+                                    onembed_arg,
+                                    ostride_arg,
+                                    odist_arg,
                                     *hipfft_transform_type,
                                     nbatch,
                                     workbuffersize_ptr);
@@ -1210,26 +1257,36 @@ private:
             executionType = HIP_C_64F;
             break;
         }
-
-        auto* inembed = ll_inembed.data();
-        auto* onembed = ll_onembed.data();
-        if(is_using_default_layout())
+        long long int*    inembed_arg = ll_inembed.data();
+        long long int*    onembed_arg = ll_onembed.data();
+        long long int     istride_arg = istride.back();
+        long long int     ostride_arg = ostride.back();
+        long long int     idist_arg   = idist;
+        long long int     odist_arg   = odist;
+        const std::string prob_token  = token();
+        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
         {
             // test hipfft's ability to figure it out
-            inembed = nullptr;
-            onembed = nullptr;
+            inembed_arg = nullptr;
+            onembed_arg = nullptr;
+            // istride, ostride, idist and odist are (should be) effectively ignored if
+            // inembed == nullptr and onembed == nullptr. Use random values for those
+            // arguments to test that behavior.
+            // FIXME: negative values are not truly ignored for now.
+            set_with_random_nonnegative_values(
+                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
         }
 
         return hipfftXtMakePlanMany(plan,
                                     dim(),
                                     ll_length.data(),
-                                    inembed,
-                                    istride.back(),
-                                    idist,
+                                    inembed_arg,
+                                    istride_arg,
+                                    idist_arg,
                                     inputType,
-                                    onembed,
-                                    ostride.back(),
-                                    odist,
+                                    onembed_arg,
+                                    ostride_arg,
+                                    odist_arg,
                                     outputType,
                                     nbatch,
                                     workbuffersize_ptr,
