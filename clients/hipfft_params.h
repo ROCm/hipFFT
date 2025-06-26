@@ -155,6 +155,13 @@ public:
     std::vector<long long int> ll_inembed;
     std::vector<long long int> ll_onembed;
 
+    template <typename T>
+    struct many_api_layout_args
+    {
+        T *input_embed, *output_embed;
+        T  input_stride, output_stride, input_distance, output_distance;
+    };
+
     struct hipLibXtDesc_deleter
     {
         void operator()(hipLibXtDesc* d)
@@ -946,6 +953,45 @@ private:
         return false;
     }
 
+    template <
+        typename T,
+        std::enable_if_t<std::is_same_v<T, int> || std::is_same_v<T, long long int>, bool> = true>
+    many_api_layout_args<T> make_valid_layout_args_for_plan_many()
+    {
+        many_api_layout_args<T> ret;
+        if constexpr(std::is_same_v<T, int>)
+        {
+            ret.input_embed  = int_inembed.data();
+            ret.output_embed = int_onembed.data();
+        }
+        else
+        {
+            ret.input_embed  = ll_inembed.data();
+            ret.output_embed = ll_onembed.data();
+        }
+        ret.input_stride             = static_cast<T>(istride.back());
+        ret.output_stride            = static_cast<T>(ostride.back());
+        ret.input_distance           = static_cast<T>(idist);
+        ret.output_distance          = static_cast<T>(odist);
+        const std::string test_token = token();
+        if((std::hash<std::string>()(test_token) % 2) && is_using_default_layout())
+        {
+            // In case of default layouts, the following input arguments are also valid
+            ret.input_embed  = nullptr;
+            ret.output_embed = nullptr;
+            // istride, ostride, idist and odist are (should be) effectively ignored if
+            // inembed == nullptr and onembed == nullptr. Use random values for those
+            // arguments to test that behavior.
+            // FIXME: negative values are not truly ignored for now.
+            set_with_random_nonnegative_values(test_token,
+                                               ret.input_stride,
+                                               ret.output_stride,
+                                               ret.input_distance,
+                                               ret.output_distance);
+        }
+        return ret;
+    }
+
     // Not all plan options work with all creation types.  Return a
     // suitable plan creation type for the current FFT parameters.
     int get_create_type()
@@ -1010,35 +1056,16 @@ private:
     }
     hipfftResult_t create_plan_many()
     {
-        int*              inembed_arg = int_inembed.data();
-        int*              onembed_arg = int_onembed.data();
-        int               istride_arg = istride.back();
-        int               ostride_arg = ostride.back();
-        int               idist_arg   = idist;
-        int               odist_arg   = odist;
-        const std::string prob_token  = token();
-        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
-        {
-            // test hipfft's ability to figure it out
-            inembed_arg = nullptr;
-            onembed_arg = nullptr;
-            // istride, ostride, idist and odist are (should be) effectively ignored if
-            // inembed == nullptr and onembed == nullptr. Use random values for those
-            // arguments to test that behavior.
-            // FIXME: negative values are not truly ignored for now.
-            set_with_random_nonnegative_values(
-                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
-        }
-
-        auto ret = hipfftPlanMany(&plan,
+        auto layout_args = make_valid_layout_args_for_plan_many<int>();
+        auto ret         = hipfftPlanMany(&plan,
                                   dim(),
                                   int_length.data(),
-                                  inembed_arg,
-                                  istride_arg,
-                                  idist_arg,
-                                  onembed_arg,
-                                  ostride_arg,
-                                  odist_arg,
+                                  layout_args.input_embed,
+                                  layout_args.input_stride,
+                                  layout_args.input_distance,
+                                  layout_args.output_embed,
+                                  layout_args.output_stride,
+                                  layout_args.output_distance,
                                   *hipfft_transform_type,
                                   nbatch);
         return ret;
@@ -1162,36 +1189,16 @@ private:
         auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
-
-        int*              inembed_arg = int_inembed.data();
-        int*              onembed_arg = int_onembed.data();
-        int               istride_arg = istride.back();
-        int               ostride_arg = ostride.back();
-        int               idist_arg   = idist;
-        int               odist_arg   = odist;
-        const std::string prob_token  = token();
-        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
-        {
-            // test hipfft's ability to figure it out
-            inembed_arg = nullptr;
-            onembed_arg = nullptr;
-            // istride, ostride, idist and odist are (should be) effectively ignored if
-            // inembed == nullptr and onembed == nullptr. Use random values for those
-            // arguments to test that behavior.
-            // FIXME: negative values are not truly ignored for now.
-            set_with_random_nonnegative_values(
-                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
-        }
-
+        auto layout_args = make_valid_layout_args_for_plan_many<int>();
         return hipfftMakePlanMany(plan,
                                   dim(),
                                   int_length.data(),
-                                  inembed_arg,
-                                  istride_arg,
-                                  idist_arg,
-                                  onembed_arg,
-                                  ostride_arg,
-                                  odist_arg,
+                                  layout_args.input_embed,
+                                  layout_args.input_stride,
+                                  layout_args.input_distance,
+                                  layout_args.output_embed,
+                                  layout_args.output_stride,
+                                  layout_args.output_distance,
                                   *hipfft_transform_type,
                                   nbatch,
                                   workbuffersize_ptr);
@@ -1202,34 +1209,16 @@ private:
         auto ret = create_with_pre_make();
         if(ret != HIPFFT_SUCCESS)
             return ret;
-        long long int*    inembed_arg = ll_inembed.data();
-        long long int*    onembed_arg = ll_onembed.data();
-        long long int     istride_arg = istride.back();
-        long long int     ostride_arg = ostride.back();
-        long long int     idist_arg   = idist;
-        long long int     odist_arg   = odist;
-        const std::string prob_token  = token();
-        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
-        {
-            // test hipfft's ability to figure it out
-            inembed_arg = nullptr;
-            onembed_arg = nullptr;
-            // istride, ostride, idist and odist are (should be) effectively ignored if
-            // inembed == nullptr and onembed == nullptr. Use random values for those
-            // arguments to test that behavior.
-            // FIXME: negative values are not truly ignored for now.
-            set_with_random_nonnegative_values(
-                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
-        }
+        auto layout_args = make_valid_layout_args_for_plan_many<long long int>();
         return hipfftMakePlanMany64(plan,
                                     dim(),
                                     ll_length.data(),
-                                    inembed_arg,
-                                    istride_arg,
-                                    idist_arg,
-                                    onembed_arg,
-                                    ostride_arg,
-                                    odist_arg,
+                                    layout_args.input_embed,
+                                    layout_args.input_stride,
+                                    layout_args.input_distance,
+                                    layout_args.output_embed,
+                                    layout_args.output_stride,
+                                    layout_args.output_distance,
                                     *hipfft_transform_type,
                                     nbatch,
                                     workbuffersize_ptr);
@@ -1257,36 +1246,18 @@ private:
             executionType = HIP_C_64F;
             break;
         }
-        long long int*    inembed_arg = ll_inembed.data();
-        long long int*    onembed_arg = ll_onembed.data();
-        long long int     istride_arg = istride.back();
-        long long int     ostride_arg = ostride.back();
-        long long int     idist_arg   = idist;
-        long long int     odist_arg   = odist;
-        const std::string prob_token  = token();
-        if((std::hash<std::string>()(prob_token) % 2) && is_using_default_layout())
-        {
-            // test hipfft's ability to figure it out
-            inembed_arg = nullptr;
-            onembed_arg = nullptr;
-            // istride, ostride, idist and odist are (should be) effectively ignored if
-            // inembed == nullptr and onembed == nullptr. Use random values for those
-            // arguments to test that behavior.
-            // FIXME: negative values are not truly ignored for now.
-            set_with_random_nonnegative_values(
-                prob_token, istride_arg, ostride_arg, idist_arg, odist_arg);
-        }
 
+        auto layout_args = make_valid_layout_args_for_plan_many<long long int>();
         return hipfftXtMakePlanMany(plan,
                                     dim(),
                                     ll_length.data(),
-                                    inembed_arg,
-                                    istride_arg,
-                                    idist_arg,
+                                    layout_args.input_embed,
+                                    layout_args.input_stride,
+                                    layout_args.input_distance,
                                     inputType,
-                                    onembed_arg,
-                                    ostride_arg,
-                                    odist_arg,
+                                    layout_args.output_embed,
+                                    layout_args.output_stride,
+                                    layout_args.output_distance,
                                     outputType,
                                     nbatch,
                                     workbuffersize_ptr,
