@@ -319,7 +319,7 @@ int main(int argc, char* argv[])
         ->each([&](const std::string&) {
             // The objective is to have an test that takes about 5 minutes, so just set the probability
             // per test to a small value to achieve this result.
-            test_prob = 0.002;
+            test_prob = 0.02;
         });
 
     // Try parsing initial args that will be used to configure tests
