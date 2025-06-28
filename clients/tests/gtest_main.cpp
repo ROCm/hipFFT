@@ -250,18 +250,6 @@ void precompile_test_kernels(const std::string& precompile_file)
               << " ms\n";
 }
 
-// helper function including some testing
-static inline int get_hipfft_version()
-{
-    // TODO: this segfaults, fix in hipFFT and enable here
-    // EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
-    int v;
-    EXPECT_EQ(hipfftGetVersion(&v), HIPFFT_SUCCESS);
-    // maybe possible to verify v (e.g. by comparison with compile-time-defined
-    // values defined in some backend's header)?
-    return v;
-}
-
 int main(int argc, char* argv[])
 {
     CLI::App app{
@@ -503,10 +491,12 @@ int main(int argc, char* argv[])
         std::cout << app.help() << "\n";
         return EXIT_SUCCESS;
     }
-    const int hipfft_version = get_hipfft_version();
     if(*opt_version || verbose > 0)
     {
+        int hipfft_version;
+        hipfftGetVersion(&hipfft_version);
         std::cout << "hipFFT version: " << hipfft_version << std::endl;
+
         if(*opt_version)
         {
             return EXIT_SUCCESS;
