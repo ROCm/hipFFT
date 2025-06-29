@@ -23,6 +23,7 @@
 #include <fftw3.h>
 #include <gtest/gtest.h>
 #include <hip/hip_vector_types.h>
+#include <random>
 #include <vector>
 
 #include "../hipfft_params.h"
@@ -47,6 +48,68 @@ inline double type_epsilon_simple<double>()
 {
     return 1e-7;
 }
+
+template <typename T, std::enable_if_t<std::is_enum_v<T>, bool> = true>
+class enum_helper
+{
+    using base_t = typename std::underlying_type<T>::type;
+
+public:
+    static const std::vector<T> valid_values;
+
+    static bool has_value(const T& val)
+    {
+        return std::any_of(
+            valid_values.begin(), valid_values.end(), [&](const T& v) { return v == val; });
+    }
+
+    static size_t num_valid_values()
+    {
+        return valid_values.size();
+    }
+    static T get_any_valid_value(size_t prng_seed = 0)
+    {
+        const size_t nvals = num_valid_values();
+        if(nvals == 0)
+            throw std::runtime_error(
+                "enum_helper::get_any_valid_value: no valid value is defined.");
+        std::ranlux24_base gen(prng_seed);
+        valid_values[static_cast<size_t>(gen()) % nvals];
+    }
+
+    static T get_invalid_value(size_t prng_seed = 0)
+    {
+        constexpr base_t max_base_val = std::numeric_limits<base_t>::max();
+        constexpr base_t min_base_val = std::numeric_limits<base_t>::min();
+
+        std::ranlux24_base                    gen(prng_seed);
+        std::uniform_int_distribution<base_t> dis(min_base_val, max_base_val);
+        // limit number of attempts to 10x the number of possible value
+        size_t num_attempts = 0;
+        T      made_up_value;
+        auto   generate_candidate = [&]() {
+            num_attempts++;
+            made_up_value = static_cast<T>(dis(gen));
+            return;
+        };
+        generate_candidate();
+        while(has_value(made_up_value) && num_attempts < 10 * num_valid_values())
+        {
+            generate_candidate();
+        }
+        if(has_value(made_up_value))
+            throw std::runtime_error(
+                "enum_helper::get_invalid_value failed to generate an invalid valid");
+        return made_up_value;
+    }
+};
+
+// definition of valid values for various enum types
+template <>
+const std::vector<hipfftLibraryPropertyType> enum_helper<hipfftLibraryPropertyType>::valid_values
+    = {hipfftLibraryPropertyType::HIPFFT_MAJOR_VERSION,
+       hipfftLibraryPropertyType::HIPFFT_MINOR_VERSION,
+       hipfftLibraryPropertyType::HIPFFT_PATCH_LEVEL};
 
 TEST(hipfftTest, Create1dPlan)
 {
@@ -644,4 +707,30 @@ TEST(hipfftTest, OutplaceOnly)
     ASSERT_LT(nrmse, type_epsilon_simple<double>());
     fftw_destroy_plan(ref_p);
     fftw_free(ref_out);
+}
+
+TEST(hipfftTest, GetVersion)
+{
+    // valid use case(s)
+    int tmp;
+    EXPECT_EQ(hipfftGetVersion(&tmp), HIPFFT_SUCCESS);
+    // invalid use case(s)
+    // FIXME: enable once fixed (this segfaults for now)
+    //EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
+}
+
+TEST(hipfftTest, GetProperty)
+{
+    // valid use case(s)
+    int tmp;
+    for(auto prop_type : enum_helper<hipfftLibraryPropertyType>::valid_values)
+    {
+        EXPECT_EQ(hipfftGetProperty(prop_type, &tmp), HIPFFT_SUCCESS);
+    }
+    // invalid use case(s)
+    //const auto valid_property_type = enum_helper<hipfftLibraryPropertyType>::get_any_valid_value();
+    // FIXME: this segfaults for now
+    //EXPECT_EQ(hipfftGetProperty(valid_property_type, nullptr), HIPFFT_INVALID_VALUE);
+    const auto invalid_property_type = enum_helper<hipfftLibraryPropertyType>::get_invalid_value();
+    EXPECT_EQ(hipfftGetProperty(invalid_property_type, &tmp), HIPFFT_INVALID_TYPE);
 }
