@@ -454,10 +454,12 @@ public:
         }
     }
 
-    fft_status set_callbacks(void* load_cb_host,
-                             void* load_cb_data,
-                             void* store_cb_host,
-                             void* store_cb_data) override
+    fft_status set_callbacks(void*  load_cb_host,
+                             void*  load_cb_data,
+                             void*  store_cb_host,
+                             void*  store_cb_data,
+                             size_t load_cb_shared_mem_bytes  = 0,
+                             size_t store_cb_shared_mem_bytes = 0) override
     {
         if(run_callbacks)
         {
@@ -476,6 +478,16 @@ public:
                     plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX, &store_cb_data);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_REAL, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_COMPLEX, store_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
                 break;
             case HIPFFT_D2Z:
                 ret = hipfftXtSetCallback(
@@ -487,6 +499,16 @@ public:
                     plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX_DOUBLE, &store_cb_data);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_REAL_DOUBLE, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_COMPLEX_DOUBLE, store_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
                 break;
             case HIPFFT_C2R:
                 ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX, &load_cb_data);
@@ -494,6 +516,16 @@ public:
                     return fft_status_from_hipfftparams(ret);
 
                 ret = hipfftXtSetCallback(plan, &store_cb_host, HIPFFT_CB_ST_REAL, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_COMPLEX, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_REAL, store_cb_shared_mem_bytes);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
                 break;
@@ -507,6 +539,16 @@ public:
                     plan, &store_cb_host, HIPFFT_CB_ST_REAL_DOUBLE, &store_cb_data);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_COMPLEX_DOUBLE, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_REAL_DOUBLE, store_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
                 break;
             case HIPFFT_C2C:
                 ret = hipfftXtSetCallback(plan, &load_cb_host, HIPFFT_CB_LD_COMPLEX, &load_cb_data);
@@ -515,6 +557,16 @@ public:
 
                 ret = hipfftXtSetCallback(
                     plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_COMPLEX, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_COMPLEX, store_cb_shared_mem_bytes);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
                 break;
@@ -526,6 +578,16 @@ public:
 
                 ret = hipfftXtSetCallback(
                     plan, &store_cb_host, HIPFFT_CB_ST_COMPLEX_DOUBLE, &store_cb_data);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_LD_COMPLEX_DOUBLE, load_cb_shared_mem_bytes);
+                if(ret != HIPFFT_SUCCESS)
+                    return fft_status_from_hipfftparams(ret);
+
+                ret = hipfftXtSetCallbackSharedSize(
+                    plan, HIPFFT_CB_ST_COMPLEX_DOUBLE, store_cb_shared_mem_bytes);
                 if(ret != HIPFFT_SUCCESS)
                     return fft_status_from_hipfftparams(ret);
                 break;
