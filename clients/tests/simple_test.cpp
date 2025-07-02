@@ -74,7 +74,7 @@ public:
             throw std::runtime_error(
                 "enum_helper::get_any_valid_value: no valid value is defined.");
         std::ranlux24_base gen(prng_seed);
-        valid_values[static_cast<size_t>(gen()) % nvals];
+        return valid_values[static_cast<size_t>(gen()) % nvals];
     }
 
     static T get_invalid_value(size_t prng_seed = 0)
@@ -709,14 +709,14 @@ TEST(hipfftTest, OutplaceOnly)
     fftw_free(ref_out);
 }
 
+static constexpr int absurd_version_or_property = std::numeric_limits<int>::min();
 TEST(hipfftTest, GetVersion)
 {
     // valid use case(s)
-    int tmp;
+    int tmp = absurd_version_or_property;
     EXPECT_EQ(hipfftGetVersion(&tmp), HIPFFT_SUCCESS);
-    // invalid use case(s)
-    // FIXME: enable once fixed (this segfaults for now)
-    //EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
+    EXPECT_NE(tmp, absurd_version_or_property);
+    EXPECT_EQ(hipfftGetVersion(nullptr), HIPFFT_INVALID_VALUE);
 }
 
 TEST(hipfftTest, GetProperty)
@@ -725,12 +725,13 @@ TEST(hipfftTest, GetProperty)
     int tmp;
     for(auto prop_type : enum_helper<hipfftLibraryPropertyType>::valid_values)
     {
+        tmp = absurd_version_or_property;
         EXPECT_EQ(hipfftGetProperty(prop_type, &tmp), HIPFFT_SUCCESS);
+        EXPECT_NE(tmp, absurd_version_or_property);
     }
     // invalid use case(s)
-    //const auto valid_property_type = enum_helper<hipfftLibraryPropertyType>::get_any_valid_value();
-    // FIXME: this segfaults for now
-    //EXPECT_EQ(hipfftGetProperty(valid_property_type, nullptr), HIPFFT_INVALID_VALUE);
+    const auto valid_property_type = enum_helper<hipfftLibraryPropertyType>::get_any_valid_value();
+    EXPECT_EQ(hipfftGetProperty(valid_property_type, nullptr), HIPFFT_INVALID_VALUE);
     const auto invalid_property_type = enum_helper<hipfftLibraryPropertyType>::get_invalid_value();
     EXPECT_EQ(hipfftGetProperty(invalid_property_type, &tmp), HIPFFT_INVALID_TYPE);
 }
