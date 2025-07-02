@@ -30,6 +30,7 @@
 #include "../shared/concurrency.h"
 #include "../shared/fft_params.h"
 #include "../shared/hipfft_brick.h"
+#include "../shared/test_params.h"
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
 #include <random>
@@ -45,7 +46,7 @@ template <typename T,
 static void set_with_random_nonnegative_values(const std::string& token, T& val, Args&... args)
 {
     std::hash<std::string>           hasher;
-    std::ranlux24_base               gen(hasher(token));
+    std::ranlux24_base               gen(random_seed + hasher(token));
     std::uniform_int_distribution<T> dis(static_cast<T>(0), std::numeric_limits<T>::max());
     val = dis(gen);
     ((args = dis(gen)), ...);
@@ -969,25 +970,32 @@ private:
             ret.input_embed  = ll_inembed.data();
             ret.output_embed = ll_onembed.data();
         }
-        ret.input_stride             = static_cast<T>(istride.back());
-        ret.output_stride            = static_cast<T>(ostride.back());
-        ret.input_distance           = static_cast<T>(idist);
-        ret.output_distance          = static_cast<T>(odist);
-        const std::string test_token = token();
-        if((std::hash<std::string>()(test_token) % 2) && is_using_default_layout())
+        ret.input_stride    = static_cast<T>(istride.back());
+        ret.output_stride   = static_cast<T>(ostride.back());
+        ret.input_distance  = static_cast<T>(idist);
+        ret.output_distance = static_cast<T>(odist);
+        if(is_using_default_layout())
         {
-            // In case of default layouts, the following input arguments are also valid
-            ret.input_embed  = nullptr;
-            ret.output_embed = nullptr;
-            // istride, ostride, idist and odist are (should be) effectively ignored if
-            // inembed == nullptr and onembed == nullptr. Use random values for those
-            // arguments to test that behavior.
-            // FIXME: negative values are not truly ignored for now.
-            set_with_random_nonnegative_values(test_token,
-                                               ret.input_stride,
-                                               ret.output_stride,
-                                               ret.input_distance,
-                                               ret.output_distance);
+            // If using a default layout, users can
+            // (A) either set explicitly inembed, onembed, strides, and distances (like above);
+            // (B) or use nullptr as arguments for inembed and onembed. Strides and
+            //     distances are supposed to be ignored in that case.
+            // --> choose randomly between either valid usage when a default layout is
+            //     used, so that all possible valid use case scenarios are considered.
+            const std::string test_token = token();
+            int               randomizer;
+            set_with_random_nonnegative_values(test_token, randomizer);
+            if(randomizer % 2 == 0)
+            {
+                ret.input_embed  = nullptr;
+                ret.output_embed = nullptr;
+                // FIXME: negative values are not truly ignored for now.
+                set_with_random_nonnegative_values(test_token,
+                                                   ret.input_stride,
+                                                   ret.output_stride,
+                                                   ret.input_distance,
+                                                   ret.output_distance);
+            }
         }
         return ret;
     }
