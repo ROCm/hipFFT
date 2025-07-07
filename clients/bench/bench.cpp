@@ -31,6 +31,9 @@
 #include "../../shared/client_except.h"
 #include "../../shared/gpubuf.h"
 
+// initialize static class member of hipfft_params
+std::vector<gpubuf> hipfft_params::externally_managed_workareas = std::vector<gpubuf>();
+
 int main(int argc, char* argv[])
 {
     // This helps with mixing output of both wide and narrow characters to the screen

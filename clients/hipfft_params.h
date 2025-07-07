@@ -30,7 +30,6 @@
 #include "../shared/concurrency.h"
 #include "../shared/fft_params.h"
 #include "../shared/hipfft_brick.h"
-#include "../shared/test_params.h"
 #include "hipfft/hipfft.h"
 #include "hipfft/hipfftXt.h"
 #include <random>
@@ -46,7 +45,7 @@ template <typename T,
 static void set_with_random_nonnegative_values(const std::string& token, T& val, Args&... args)
 {
     std::hash<std::string>           hasher;
-    std::ranlux24_base               gen(random_seed + hasher(token));
+    std::ranlux24_base               gen(hasher(token));
     std::uniform_int_distribution<T> dis(static_cast<T>(0), std::numeric_limits<T>::max());
     val = dis(gen);
     ((args = dis(gen)), ...);
@@ -211,7 +210,7 @@ public:
         // externally-managed workarea(s) are provided after plan generation
         // Note: this member function must return the same result even if called
         // more than once by a given instance, it must be stable for any instance
-        return (random_seed + std::hash<std::string>()(token())) % 2 == 1;
+        return std::hash<std::string>()(token()) % 2 == 1;
     }
 
     hipfft_params() = default;
