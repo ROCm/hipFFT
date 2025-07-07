@@ -49,10 +49,25 @@ inline double type_epsilon_simple<double>()
     return 1e-7;
 }
 
+/* Static utility class template helping with the definition of valid/invalid
+   values for arguments of (un)scoped enumeration types in API testing.
+   Usage: for an enumeration type of interest, say "enum_of_interest", define
+template <>
+const std::vector<enum_of_interest> enum_helper<enum_of_interest>::valid_values =
+        {all, the, known, valid, values, of, type, enum_of_interest};
+   before using any of this class' self-explanatory public member functions.
+*/
 template <typename T, std::enable_if_t<std::is_enum_v<T>, bool> = true>
 class enum_helper
 {
     using base_t = typename std::underlying_type<T>::type;
+    // static class cannot be instantiated, copied, or moved
+    enum_helper()                    = delete;
+    ~enum_helper()                   = delete;
+    enum_helper(const enum_helper&)  = delete;
+    enum_helper(enum_helper&& other) = delete;
+    enum_helper& operator=(const enum_helper&) = delete;
+    enum_helper& operator=(enum_helper&& other) = delete;
 
 public:
     static const std::vector<T> valid_values;
