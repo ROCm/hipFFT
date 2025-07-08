@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
     non_token
         ->add_option("--auto_allocation",
                      manual_params.auto_allocate,
-                     "Backend library's auto-allocation behavior: \"on\", \"off\", or \"default\"")
+                     "HipFFT's auto-allocation behavior: \"on\", \"off\", or \"default\"")
         ->default_val("default");
     non_token
         ->add_flag("--double", "Double precision transform (deprecated: use --precision double)")

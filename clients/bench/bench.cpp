@@ -82,6 +82,11 @@ int main(int argc, char* argv[])
                      "forward\n3) real inverse")
         ->default_val(fft_transform_type_complex_forward);
     non_token
+        ->add_option("--auto_allocation",
+                     params.auto_allocate,
+                     "HipFFT's auto-allocation behavior: \"on\", \"off\", or \"default\"")
+        ->default_val("default");
+    non_token
         ->add_option(
             "--precision", params.precision, "Transform precision: single (default), double, half")
         ->excludes("--double");
