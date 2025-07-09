@@ -2289,6 +2289,15 @@ public:
         }
     };
 
+    // Specific exception type for unimplemented feature(s).
+    struct unimplemented_exception : public std::runtime_error
+    {
+        unimplemented_exception(const std::string& s)
+            : std::runtime_error(s)
+        {
+        }
+    };
+
     virtual fft_status create_plan()
     {
         return fft_status_success;

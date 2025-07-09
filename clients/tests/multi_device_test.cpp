@@ -189,7 +189,6 @@ std::vector<fft_params> param_generator_multi_gpu(const std::optional<SplitType>
                 // in-place transforms require identical input/output layouts
                 if(p.placement == fft_placement_inplace && input_grid != output_grid)
                     continue;
-
                 all_params.push_back(std::move(p_dist));
             }
         }
@@ -236,7 +235,9 @@ INSTANTIATE_TEST_SUITE_P(multi_gpu,
                          ::testing::ValuesIn(param_generator_multi_gpu({})),
                          accuracy_test::TestName);
 
-INSTANTIATE_TEST_SUITE_P(DISABLED_multi_gpu,
+// Note: disabled for now due to implementation issues and
+// unimplemented features in hipFFT (to fix first)
+INSTANTIATE_TEST_SUITE_P(DISABLED_various_multi_gpu,
                          accuracy_test,
                          ::testing::ValuesIn(param_generator_multi_gpu({},
                                                                        fft_auto_allocation_off)),

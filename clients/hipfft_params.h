@@ -488,13 +488,6 @@ public:
 
     void validate_fields() const override
     {
-        if(multiGPU > 1 && auto_allocate == fft_auto_allocation_off)
-        {
-            // hipfftXtSetWorkArea would be required
-            throw std::runtime_error(
-                "cannot request externally-managed work areas with multi-gpu usage");
-        }
-
         validate_brick_volume();
 
         // multi-process only works with batch-1 FFTs, as hipFFT has
@@ -1282,8 +1275,8 @@ private:
 #if(0)
             ret = hipfftXtSetWorkArea(plan, workareas.data);
 #else
-            throw std::runtime_error(
-                "cannot request externally-managed work areas with multi-gpu usage");
+            throw unimplemented_exception(
+                "No implementation support for externally-managed work areas with multi-gpu usage");
 #endif
         }
         else
@@ -1637,6 +1630,8 @@ private:
         case fft_precision_double:
             ret = HIP_C_64F;
             break;
+        default:
+            throw std::runtime_error("Invalid precision");
         }
         return ret;
     }
