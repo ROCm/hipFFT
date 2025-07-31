@@ -1,5 +1,8 @@
 # hipFFT
 
+> [!CAUTION]
+> The hipFFT repository is retired, please use the [ROCm/rocm-libraries](https://github.com/ROCm/rocm-libraries) repository
+
 hipFFT is an FFT marshalling library that supports
 [rocFFT](https://github.com/ROCmSoftwarePlatform/rocFFT) and
 [cuFFT](https://developer.nvidia.com/cufft) backends.
